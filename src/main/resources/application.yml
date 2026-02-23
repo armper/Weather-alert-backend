@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: weather-alert-backend
+    
+  datasource:
+    url: jdbc:postgresql://localhost:5432/weather_alerts
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: alert-processor
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      
+  elasticsearch:
+    uris: http://localhost:9200
+    
+server:
+  port: 8080
+  
+logging:
+  level:
+    com.weather.alert: INFO
+    org.springframework.web: INFO
+    org.hibernate: WARN
