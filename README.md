@@ -121,6 +121,10 @@ The application will start on `http://localhost:8080`
 
 ## API Endpoints
 
+Interactive API documentation is available at:
+- `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
 ### Alert Criteria Management (Commands - CQRS)
 
 ```bash
