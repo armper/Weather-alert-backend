@@ -54,3 +54,4 @@ app:
   rate-limit:
     max-requests: 120
     window-seconds: 60
+    trust-forwarded-for: false

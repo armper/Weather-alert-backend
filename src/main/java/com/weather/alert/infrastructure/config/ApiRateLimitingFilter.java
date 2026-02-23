@@ -16,15 +16,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class ApiRateLimitingFilter extends OncePerRequestFilter {
 
+    private static final int TOO_MANY_REQUESTS_STATUS = 429;
+    private static final int MAX_CLIENT_IP_LENGTH = 64;
     private final int maxRequestsPerWindow;
     private final long windowMillis;
+    private final boolean trustForwardedFor;
     private final Map<String, RateLimitWindow> requestWindows = new ConcurrentHashMap<>();
+    private volatile long nextCleanupTimeMillis = 0;
 
     public ApiRateLimitingFilter(
             @Value("${app.rate-limit.max-requests:120}") int maxRequestsPerWindow,
-            @Value("${app.rate-limit.window-seconds:60}") long windowSeconds) {
+            @Value("${app.rate-limit.window-seconds:60}") long windowSeconds,
+            @Value("${app.rate-limit.trust-forwarded-for:false}") boolean trustForwardedFor) {
         this.maxRequestsPerWindow = maxRequestsPerWindow;
         this.windowMillis = windowSeconds * 1000;
+        this.trustForwardedFor = trustForwardedFor;
     }
 
     @Override
@@ -36,28 +42,52 @@ public class ApiRateLimitingFilter extends OncePerRequestFilter {
         }
 
         long now = System.currentTimeMillis();
-        String clientKey = request.getRemoteAddr();
+        cleanupExpiredWindows(now);
+        String clientKey = extractClientKey(request);
 
-        RateLimitWindow rateLimitWindow = requestWindows.compute(clientKey, (key, existing) -> {
+        AtomicInteger currentCountRef = new AtomicInteger();
+        requestWindows.compute(clientKey, (key, existing) -> {
             if (existing == null || now - existing.windowStartMillis >= windowMillis) {
+                currentCountRef.set(1);
                 return new RateLimitWindow(now, new AtomicInteger(1));
             }
-            existing.requestCount.incrementAndGet();
+            currentCountRef.set(existing.requestCount.incrementAndGet());
             return existing;
         });
 
-        int currentCount = rateLimitWindow.requestCount.get();
+        int currentCount = currentCountRef.get();
         response.setHeader("X-RateLimit-Limit", String.valueOf(maxRequestsPerWindow));
         response.setHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, maxRequestsPerWindow - currentCount)));
 
         if (currentCount > maxRequestsPerWindow) {
-            response.setStatus(429);
+            response.setStatus(TOO_MANY_REQUESTS_STATUS);
             response.setContentType("text/plain");
             response.getWriter().write("Rate limit exceeded");
             return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String extractClientKey(HttpServletRequest request) {
+        if (trustForwardedFor) {
+            String forwardedFor = request.getHeader("X-Forwarded-For");
+            if (forwardedFor != null && !forwardedFor.isBlank()) {
+                String clientIp = forwardedFor.split(",")[0].trim();
+                if (!clientIp.isBlank() && clientIp.length() <= MAX_CLIENT_IP_LENGTH) {
+                    return clientIp;
+                }
+            }
+        }
+        return request.getRemoteAddr();
+    }
+
+    private void cleanupExpiredWindows(long now) {
+        if (now < nextCleanupTimeMillis) {
+            return;
+        }
+        requestWindows.entrySet().removeIf(entry -> now - entry.getValue().windowStartMillis >= windowMillis);
+        nextCleanupTimeMillis = now + windowMillis;
     }
 
     private static class RateLimitWindow {
