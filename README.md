@@ -121,6 +121,16 @@ The application will start on `http://localhost:8080`
 
 ## API Endpoints
 
+All `/api/**` endpoints now require HTTP Basic authentication.
+
+- **USER role**: read-only API access
+- **ADMIN role**: includes write access for criteria management and pending alerts endpoint
+
+Credentials can be configured via environment variables:
+
+- `APP_SECURITY_USER_USERNAME`, `APP_SECURITY_USER_PASSWORD`
+- `APP_SECURITY_ADMIN_USERNAME`, `APP_SECURITY_ADMIN_PASSWORD`
+
 ### Alert Criteria Management (Commands - CQRS)
 
 ```bash
@@ -274,7 +284,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Future Enhancements
 
-- [ ] User authentication and authorization
+- [x] User authentication and authorization
 - [ ] Email/SMS notification integration
 - [ ] Mobile push notifications
 - [ ] GraphQL API

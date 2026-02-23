@@ -55,3 +55,10 @@ app:
     max-requests: 120
     window-seconds: 60
     trust-forwarded-for: false
+  security:
+    user:
+      username: ${APP_SECURITY_USER_USERNAME:user}
+      password: ${APP_SECURITY_USER_PASSWORD:user-password}
+    admin:
+      username: ${APP_SECURITY_ADMIN_USERNAME:admin}
+      password: ${APP_SECURITY_ADMIN_PASSWORD:admin-password}
