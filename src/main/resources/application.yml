@@ -39,3 +39,19 @@ logging:
     com.weather.alert: INFO
     org.springframework.web: INFO
     org.hibernate: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  rate-limit:
+    max-requests: 120
+    window-seconds: 60
+    trust-forwarded-for: false
