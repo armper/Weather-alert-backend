@@ -58,7 +58,7 @@ app:
   security:
     user:
       username: ${APP_SECURITY_USER_USERNAME:user}
-      password: ${APP_SECURITY_USER_PASSWORD:user-password}
+      password: ${APP_SECURITY_USER_PASSWORD:${random.uuid}}
     admin:
       username: ${APP_SECURITY_ADMIN_USERNAME:admin}
-      password: ${APP_SECURITY_ADMIN_PASSWORD:admin-password}
+      password: ${APP_SECURITY_ADMIN_PASSWORD:${random.uuid}}

@@ -46,7 +46,7 @@ public class SecurityConfig {
                         .build(),
                 User.withUsername(adminUsername)
                         .password(passwordEncoder.encode(adminPassword))
-                        .roles("ADMIN")
+                        .roles("USER", "ADMIN")
                         .build()
         );
     }
