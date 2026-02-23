@@ -126,7 +126,7 @@ All `/api/**` endpoints now require HTTP Basic authentication.
 - **USER role**: read-only API access
 - **ADMIN role**: includes write access for criteria management and pending alerts endpoint
 
-Credentials can be configured via environment variables:
+Credentials must be configured via environment variables:
 
 - `APP_SECURITY_USER_USERNAME`, `APP_SECURITY_USER_PASSWORD`
 - `APP_SECURITY_ADMIN_USERNAME`, `APP_SECURITY_ADMIN_PASSWORD`

@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AlertCriteriaController.class)
 @Import(SecurityConfig.class)
+@TestPropertySource(properties = {
+        "app.security.user.username=test-user",
+        "app.security.user.password=test-user-password",
+        "app.security.admin.username=test-admin",
+        "app.security.admin.password=test-admin-password"
+})
 class SecurityConfigTest {
 
     @Autowired

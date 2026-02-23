@@ -57,8 +57,8 @@ app:
     trust-forwarded-for: false
   security:
     user:
-      username: ${APP_SECURITY_USER_USERNAME:user}
-      password: ${APP_SECURITY_USER_PASSWORD:${random.uuid}}
+      username: ${APP_SECURITY_USER_USERNAME}
+      password: ${APP_SECURITY_USER_PASSWORD}
     admin:
-      username: ${APP_SECURITY_ADMIN_USERNAME:admin}
-      password: ${APP_SECURITY_ADMIN_PASSWORD:${random.uuid}}
+      username: ${APP_SECURITY_ADMIN_USERNAME}
+      password: ${APP_SECURITY_ADMIN_PASSWORD}

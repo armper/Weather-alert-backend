@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 public class SecurityConfig {
@@ -19,7 +20,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        new AntPathRequestMatcher("/api/**"),
+                        new AntPathRequestMatcher("/actuator/**")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/criteria/**").hasRole("ADMIN")
@@ -34,10 +37,10 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService(
-            @Value("${app.security.user.username:user}") String userUsername,
-            @Value("${app.security.user.password:user-password}") String userPassword,
-            @Value("${app.security.admin.username:admin}") String adminUsername,
-            @Value("${app.security.admin.password:admin-password}") String adminPassword,
+            @Value("${app.security.user.username}") String userUsername,
+            @Value("${app.security.user.password}") String userPassword,
+            @Value("${app.security.admin.username}") String adminUsername,
+            @Value("${app.security.admin.password}") String adminPassword,
             PasswordEncoder passwordEncoder) {
         return new InMemoryUserDetailsManager(
                 User.withUsername(userUsername)
