@@ -129,4 +129,61 @@ class AlertCriteriaTest {
         // Then
         assertTrue(matches);
     }
+
+    @Test
+    void shouldNotMatchWhenThresholdCriterionIsNotMet() {
+        // Given
+        AlertCriteria criteria = AlertCriteria.builder()
+                .userId("user1")
+                .eventType("Tornado")
+                .maxTemperature(35.0)
+                .enabled(true)
+                .build();
+
+        WeatherData weatherData = WeatherData.builder()
+                .eventType("Tornado")
+                .temperature(30.0)
+                .build();
+
+        // When
+        boolean matches = criteria.matches(weatherData);
+
+        // Then
+        assertFalse(matches);
+    }
+
+    @Test
+    void shouldNotMatchWhenEnabledIsNull() {
+        // Given
+        AlertCriteria criteria = AlertCriteria.builder()
+                .userId("user1")
+                .eventType("Tornado")
+                .build();
+
+        WeatherData weatherData = WeatherData.builder()
+                .eventType("Tornado")
+                .build();
+
+        // When
+        boolean matches = criteria.matches(weatherData);
+
+        // Then
+        assertFalse(matches);
+    }
+
+    @Test
+    void shouldNotMatchWhenWeatherDataIsNull() {
+        // Given
+        AlertCriteria criteria = AlertCriteria.builder()
+                .userId("user1")
+                .eventType("Tornado")
+                .enabled(true)
+                .build();
+
+        // When
+        boolean matches = criteria.matches(null);
+
+        // Then
+        assertFalse(matches);
+    }
 }
