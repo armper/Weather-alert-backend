@@ -28,7 +28,7 @@ public class AlertCriteria {
     private Boolean enabled;
     
     public boolean matches(WeatherData weatherData) {
-        if (!enabled) {
+        if (!Boolean.TRUE.equals(enabled) || weatherData == null) {
             return false;
         }
         
@@ -75,28 +75,31 @@ public class AlertCriteria {
         }
         
         // Check temperature thresholds
-        if (weatherData.getTemperature() != null) {
-            if (maxTemperature != null && weatherData.getTemperature() > maxTemperature) {
-                return true;
+        if (maxTemperature != null || minTemperature != null) {
+            hasAnyCriteria = true;
+            if (weatherData.getTemperature() == null) {
+                return false;
             }
-            if (minTemperature != null && weatherData.getTemperature() < minTemperature) {
-                return true;
+            boolean temperatureThresholdMet = (maxTemperature != null && weatherData.getTemperature() > maxTemperature)
+                    || (minTemperature != null && weatherData.getTemperature() < minTemperature);
+            if (!temperatureThresholdMet) {
+                return false;
             }
         }
         
         // Check wind speed
-        if (maxWindSpeed != null && weatherData.getWindSpeed() != null) {
+        if (maxWindSpeed != null) {
             hasAnyCriteria = true;
-            if (weatherData.getWindSpeed() > maxWindSpeed) {
-                return true;
+            if (weatherData.getWindSpeed() == null || weatherData.getWindSpeed() <= maxWindSpeed) {
+                return false;
             }
         }
         
         // Check precipitation
-        if (maxPrecipitation != null && weatherData.getPrecipitation() != null) {
+        if (maxPrecipitation != null) {
             hasAnyCriteria = true;
-            if (weatherData.getPrecipitation() > maxPrecipitation) {
-                return true;
+            if (weatherData.getPrecipitation() == null || weatherData.getPrecipitation() <= maxPrecipitation) {
+                return false;
             }
         }
         
