@@ -4,6 +4,7 @@ import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
+import com.weather.alert.domain.service.AlertProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,12 +20,15 @@ class ManageAlertCriteriaUseCaseTest {
     
     @Mock
     private AlertCriteriaRepositoryPort criteriaRepository;
+
+    @Mock
+    private AlertProcessingService alertProcessingService;
     
     private ManageAlertCriteriaUseCase useCase;
     
     @BeforeEach
     void setUp() {
-        useCase = new ManageAlertCriteriaUseCase(criteriaRepository);
+        useCase = new ManageAlertCriteriaUseCase(criteriaRepository, alertProcessingService);
     }
     
     @Test
@@ -58,6 +62,7 @@ class ManageAlertCriteriaUseCaseTest {
         assertEquals("Tornado", result.getEventType());
         assertTrue(result.getEnabled());
         verify(criteriaRepository, times(1)).save(any(AlertCriteria.class));
+        verify(alertProcessingService, times(1)).processCriteriaImmediately(expectedCriteria);
     }
 
     @Test
@@ -80,6 +85,7 @@ class ManageAlertCriteriaUseCaseTest {
         assertEquals(48, saved.getForecastWindowHours());
         assertTrue(saved.getOncePerEvent());
         assertEquals(0, saved.getRearmWindowMinutes());
+        verify(alertProcessingService, times(1)).processCriteriaImmediately(saved);
     }
     
     @Test

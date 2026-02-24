@@ -334,6 +334,14 @@ User-defined criteria for triggering weather alerts. Supports:
 - Monitoring scope (`monitorCurrent`, `monitorForecast`, `forecastWindowHours`)
 - Alert cadence controls (`oncePerEvent`, `rearmWindowMinutes`)
 
+Rule semantics:
+- Evaluation is `(all configured filters pass) AND (any configured trigger passes)`.
+- Filter rules: location, event type, severity.
+- Trigger rules: temperature/rain thresholds and legacy wind/precipitation/temperature ranges.
+- For `CURRENT_CONDITIONS` and `FORECAST_CONDITIONS`, `eventType` can match `headline`/`description` text (for user-friendly filters like `"Rain"`).
+- Current and forecast evaluations are controlled by `monitorCurrent`, `monitorForecast`, and `forecastWindowHours` (default 48h).
+- Forecast processing emits one alert for the first matching forecast period per run.
+
 ### Alert
 Generated alert matching user criteria with weather data.
 
@@ -361,8 +369,9 @@ The application implements CQRS (Command Query Responsibility Segregation):
 ## Scheduled Tasks
 
 - Weather data is automatically fetched from NOAA every 5 minutes
-- Alerts are processed and matched against user criteria
+- Alerts are processed and matched against user criteria (active alerts + current/forecast conditions for criteria with condition rules)
 - Matched alerts are published to Kafka for async notification processing
+- Newly-created criteria are evaluated immediately so already-true conditions can notify right away
 
 ## Kafka Topics
 

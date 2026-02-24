@@ -60,6 +60,7 @@ This document provides a detailed overview of the Weather Alert Backend architec
 
 #### Domain Services
 - **AlertProcessingService**: Orchestrates the alert matching and generation process
+- **AlertCriteriaRuleEvaluator**: Explicit filter/trigger rule engine used by `AlertCriteria.matches(...)` and processing flows
 
 #### Ports (Interfaces)
 - **AlertRepositoryPort**: Alert persistence operations
@@ -184,8 +185,13 @@ Elasticsearch Search
        ├─► Load enabled criteria
        │   └─► AlertCriteriaRepositoryPort
        │
-       ├─► Match criteria against weather data
-       │   └─► AlertCriteria.matches(WeatherData)
+       ├─► Evaluate criteria using explicit rules
+       │   ├─► Filter rules: location, event type, severity
+       │   └─► Trigger rules: temperature, rain, wind, precipitation
+       │
+       ├─► For criteria with weather-condition rules + coordinates
+       │   ├─► Fetch current conditions (if monitorCurrent=true)
+       │   └─► Fetch forecast conditions in forecastWindowHours (if monitorForecast=true)
        │
        ├─► Generate alerts for matches
        │   └─► AlertRepositoryPort.save()
@@ -213,6 +219,11 @@ Elasticsearch Search
 │ UseCase              │
 └──────┬───────────────┘
        │
+       ├─► Persist criteria
+       │
+       ├─► Immediate criteria evaluation
+       │   └─► AlertProcessingService.processCriteriaImmediately(...)
+       │
        ▼
 ┌──────────────────────┐
 │ AlertCriteria        │
@@ -231,6 +242,9 @@ Elasticsearch Search
 │ → PostgreSQL         │
 └──────────────────────┘
 ```
+
+After persistence, `ManageAlertCriteriaUseCase` invokes `AlertProcessingService.processCriteriaImmediately(...)`
+so criteria that are already true can produce an immediate alert.
 
 ## Key Design Patterns
 

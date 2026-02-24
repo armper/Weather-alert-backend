@@ -23,6 +23,15 @@ Validation rules for weather-condition fields:
 - `rainThreshold` and `rainThresholdType` must be provided together.
 - At least one of `monitorCurrent` or `monitorForecast` must be `true` (or both omitted to use defaults).
 
+Evaluation semantics:
+- Criteria are evaluated as: `(all configured filters pass) AND (any configured trigger passes)`.
+- Filter rules: `location`, `eventType`, `minSeverity`.
+- For condition payloads (`CURRENT_CONDITIONS` / `FORECAST_CONDITIONS`), `eventType` matching also checks headline/description text (for values like `"Rain"`).
+- Trigger rules: `temperatureThreshold`, `min/maxTemperature`, `maxWindSpeed`, `maxPrecipitation`, `rainThreshold`.
+- `monitorCurrent=true` evaluates NOAA latest observations; `monitorForecast=true` evaluates NOAA hourly forecast within `forecastWindowHours` (default `48`).
+- For forecast evaluation, one alert is generated from the first matching forecast period per processing run.
+- New criteria are immediately evaluated at creation time; if already true, an alert is generated right away.
+
 #### Create Alert Criteria
 ```http
 POST /api/criteria

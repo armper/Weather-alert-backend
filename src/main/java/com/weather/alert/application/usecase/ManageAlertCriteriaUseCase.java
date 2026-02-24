@@ -4,7 +4,9 @@ import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
+import com.weather.alert.domain.service.AlertProcessingService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -14,9 +16,11 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ManageAlertCriteriaUseCase {
     
     private final AlertCriteriaRepositoryPort criteriaRepository;
+    private final AlertProcessingService alertProcessingService;
     
     public AlertCriteria createCriteria(CreateAlertCriteriaRequest request) {
         AlertCriteria criteria = AlertCriteria.builder()
@@ -45,7 +49,13 @@ public class ManageAlertCriteriaUseCase {
                 .enabled(true)
                 .build();
         
-        return criteriaRepository.save(criteria);
+        AlertCriteria saved = criteriaRepository.save(criteria);
+        try {
+            alertProcessingService.processCriteriaImmediately(saved);
+        } catch (Exception ex) {
+            log.warn("Immediate criteria evaluation failed for criteria {}: {}", saved.getId(), ex.getMessage());
+        }
+        return saved;
     }
     
     public void deleteCriteria(String criteriaId) {

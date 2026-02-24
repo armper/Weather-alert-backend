@@ -39,17 +39,17 @@
 - [x] Document data source behavior and limits in README/ARCHITECTURE.
 
 ## Chunk 4: Criteria Evaluation Engine
-- [ ] Refactor `AlertCriteria.matches` into explicit rule evaluation components.
-- [ ] Implement temperature evaluation:
-- [ ] Evaluate current condition.
-- [ ] Evaluate forecast condition within 48h window.
-- [ ] Implement rain evaluation:
-- [ ] Evaluate current rain condition.
-- [ ] Evaluate forecasted rain condition against user threshold.
-- [ ] Ensure combined conditions and multi-criteria are evaluated correctly.
-- [ ] Ensure criteria true-at-creation can trigger immediate notify.
-- [ ] Add focused unit tests for all rule combinations.
-- [ ] Update README/API docs with rule semantics.
+- [x] Refactor `AlertCriteria.matches` into explicit rule evaluation components.
+- [x] Implement temperature evaluation:
+- [x] Evaluate current condition.
+- [x] Evaluate forecast condition within 48h window.
+- [x] Implement rain evaluation:
+- [x] Evaluate current rain condition.
+- [x] Evaluate forecasted rain condition against user threshold.
+- [x] Ensure combined conditions and multi-criteria are evaluated correctly.
+- [x] Ensure criteria true-at-creation can trigger immediate notify.
+- [x] Add focused unit tests for all rule combinations.
+- [x] Update README/API docs with rule semantics.
 
 ## Chunk 5: One-Time-Per-Event Anti-Spam State
 - [ ] Add `criteria_state` persistence model for edge-triggering.
