@@ -41,6 +41,9 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **CQRS Pattern**: Separate command and query operations for optimal performance
 - ✅ **Scheduled Updates**: Automatic weather data fetching every 5 minutes
 - ✅ **RESTful API**: Comprehensive REST endpoints for all operations
+- ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
+- ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
+- ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
 
 ## Technology Stack
 
@@ -140,6 +143,20 @@ POST /api/auth/token
   "username": "your-username",
   "password": "your-password"
 }
+```
+
+WebSocket endpoint for real-time subscriptions:
+
+```text
+CONNECT ws://localhost:8080/ws-alerts
+SUBSCRIBE /topic/alerts/{userId}
+```
+
+Swagger/OpenAPI docs (relative to `http://localhost:8080`):
+
+```bash
+GET /swagger-ui/index.html
+GET /v3/api-docs
 ```
 
 ### Alert Criteria Management (Commands - CQRS)
@@ -299,9 +316,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [ ] Email/SMS notification integration
 - [ ] Mobile push notifications
 - [ ] GraphQL API
-- [ ] WebSocket support for real-time updates
+- [x] WebSocket support for real-time updates
 - [ ] Advanced analytics and reporting
 - [ ] Machine learning for alert prediction
 - [ ] Multi-language support
+- [x] Swagger UI/OpenAPI documentation
 - [x] Rate limiting and API throttling
 - [x] Comprehensive monitoring and observability
