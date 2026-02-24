@@ -9,6 +9,9 @@ spring:
       - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
+  flyway:
+    enabled: false
+
 management:
   tracing:
     enabled: false

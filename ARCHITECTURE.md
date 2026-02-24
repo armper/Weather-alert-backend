@@ -113,7 +113,7 @@ JPA/PostgreSQL
 ├── AlertEntity → AlertRepositoryAdapter
 ├── AlertCriteriaEntity → AlertCriteriaRepositoryAdapter
 ├── UserEntity → UserRepositoryAdapter
-└── Automatic schema generation with Hibernate
+└── Flyway-managed schema migrations + Hibernate validation
 ```
 
 **Kafka Adapter**

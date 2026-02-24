@@ -64,6 +64,10 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - Apache Kafka 3.0+
 - Elasticsearch 8.0+
 
+## Roadmap
+
+Implementation tracking for weather-condition alerts (temperature/rain current + forecast) lives in `IMPLEMENTATION_TODO.md`.
+
 ## Setup
 
 ### 1. Start Local Dependencies with Docker
@@ -100,6 +104,31 @@ set +a
 
 This sets required security credentials and infrastructure endpoints without modifying `src/main/resources/application.yml`.
 It also includes `APP_NOAA_MAX_IN_MEMORY_SIZE` to avoid large NOAA payload buffer errors in local dev.
+
+### 3. Database Migrations (Flyway)
+
+Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
+
+- On startup, Flyway runs pending migrations before JPA initialization.
+- JPA is set to `ddl-auto: validate` (it no longer auto-creates/updates tables).
+- Baseline settings are enabled for safer rollout on existing local databases:
+  - `baseline-on-migrate: true`
+  - `baseline-version: 0`
+
+Common commands:
+
+```bash
+# Clean build and run migrations on app startup
+mvn clean install
+mvn spring-boot:run
+```
+
+If you need a clean local database:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
 
 ## Running the Application
 

@@ -17,6 +17,9 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
       - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+
+  flyway:
+    enabled: false
     
 logging:
   level:

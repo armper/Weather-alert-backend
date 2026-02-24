@@ -5,6 +5,12 @@
 http://localhost:8080
 ```
 
+## Database Migration Strategy
+
+- Database schema changes are managed with Flyway migrations in `src/main/resources/db/migration`.
+- Migrations run automatically at app startup.
+- JPA uses schema validation (`ddl-auto: validate`) to catch drift instead of mutating schema.
+
 ## API Endpoints
 
 ### 1. Alert Criteria Management
