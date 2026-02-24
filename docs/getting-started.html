@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Get started with Weather Alert Backend as an end user: token setup, first requests, and role expectations." />
+    <title>Weather Alert Hub | Getting Started</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="./index.html">
+          <span class="brand-dot" aria-hidden="true"></span>
+          Weather Alert Hub
+        </a>
+        <button class="menu-toggle" data-menu-toggle aria-expanded="false" aria-controls="site-nav">Menu</button>
+        <nav id="site-nav" class="site-nav" aria-label="Main Navigation">
+          <a data-nav href="./index.html">Home</a>
+          <a data-nav href="./getting-started.html">Getting Started</a>
+          <a data-nav href="./use-alerts.html">Use Alerts</a>
+          <a data-nav href="./api-reference.html">API Reference</a>
+          <a data-nav href="./faq.html">FAQ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="reveal">
+            <p class="kicker">Quick setup</p>
+            <h1>First successful call in under 5 minutes</h1>
+            <p class="lead">
+              Use this checklist if you are connecting a client app or testing directly with cURL/Postman.
+            </p>
+          </div>
+          <aside class="panel reveal">
+            <h2>What you need</h2>
+            <p><span class="inline-code">Base URL</span>: <span class="inline-code">http://localhost:8080</span> (or your hosted API URL)</p>
+            <p><span class="inline-code">Credentials</span>: issued by your app team/admin</p>
+            <p><span class="inline-code">Role</span>: <span class="badge badge-user">USER</span> for read access, <span class="badge badge-admin">ADMIN</span> for criteria management</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="card reveal">
+            <h2>1. Request your JWT token</h2>
+            <pre class="code"><code>curl -X POST "http://localhost:8080/api/auth/token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "your-username",
+    "password": "your-password"
+  }'</code></pre>
+            <p>Save <span class="inline-code">accessToken</span> from the response. Token default lifetime is 1 hour.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-2">
+          <article class="card reveal">
+            <h2>2. Set auth header</h2>
+            <pre class="code"><code>Authorization: Bearer YOUR_ACCESS_TOKEN</code></pre>
+            <p>All <span class="inline-code">/api/**</span> routes require this header except token creation.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>3. Fetch your alerts</h2>
+            <pre class="code"><code>curl "http://localhost:8080/api/alerts/user/{userId}" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"</code></pre>
+            <p>Replace <span class="inline-code">{userId}</span> with your assigned user identifier.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-2">
+          <article class="card reveal">
+            <h2>4. Optional: check local weather risk</h2>
+            <pre class="code"><code>curl "http://localhost:8080/api/weather/location?latitude=47.6062&longitude=-122.3321" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"</code></pre>
+            <p>Use coordinates for an on-demand location snapshot from NOAA-backed weather data.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>5. Admin-only criteria changes</h2>
+            <p>
+              Criteria write routes (<span class="inline-code">POST/PUT/DELETE /api/criteria</span>) require
+              <span class="badge badge-admin">ADMIN</span> role.
+            </p>
+            <pre class="code"><code>curl -X POST "http://localhost:8080/api/criteria" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "location": "Seattle",
+    "latitude": 47.6062,
+    "longitude": -122.3321,
+    "radiusKm": 30,
+    "eventType": "Tornado",
+    "minSeverity": "SEVERE"
+  }'</code></pre>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container small">
+        Need endpoint details? Use the API reference page. <span data-year></span>
+      </div>
+    </footer>
+  </body>
+</html>

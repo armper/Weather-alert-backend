@@ -66,46 +66,31 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 
 ## Setup
 
-### 1. Database Setup
+### 1. Start Local Dependencies with Docker
 
 ```bash
-# Create PostgreSQL database
-createdb weather_alerts
+# Starts PostgreSQL, Zookeeper, Kafka, Kafka topic bootstrap, and Elasticsearch
+docker compose up -d
 
-# Or using psql
-psql -U postgres
-CREATE DATABASE weather_alerts;
+# Optional: include Kafka UI on http://localhost:8081
+docker compose --profile tools up -d
 ```
 
-### 2. Kafka Setup
+This stack is defined in `docker-compose.yml` and includes:
+- PostgreSQL on `localhost:5432` (database: `weather_alerts`)
+- Kafka on `localhost:9092` (topic `weather-alerts` created automatically)
+- Elasticsearch on `localhost:9200`
+
+### 2. Configure Local App Environment
 
 ```bash
-# Start Kafka (with Zookeeper)
-bin/zookeeper-server-start.sh config/zookeeper.properties
-bin/kafka-server-start.sh config/server.properties
-
-# Create topic
-bin/kafka-topics.sh --create --topic weather-alerts --bootstrap-server localhost:9092
+cp .env.example .env
+set -a
+source .env
+set +a
 ```
 
-### 3. Elasticsearch Setup
-
-```bash
-# Start Elasticsearch
-bin/elasticsearch
-```
-
-### 4. Application Configuration
-
-Update `src/main/resources/application.yml` with your configuration:
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/weather_alerts
-    username: your_username
-    password: your_password
-```
+This sets required security credentials and infrastructure endpoints without modifying `src/main/resources/application.yml`.
 
 ## Running the Application
 
@@ -113,7 +98,7 @@ spring:
 # Build the project
 mvn clean install
 
-# Run the application
+# Run the application against local Docker services
 mvn spring-boot:run
 
 # Or run the JAR
@@ -121,6 +106,14 @@ java -jar target/weather-alert-backend-0.0.1-SNAPSHOT.jar
 ```
 
 The application will start on `http://localhost:8080`
+
+When you are done:
+
+```bash
+docker compose down
+# or to also remove data volumes
+docker compose down -v
+```
 
 ## API Endpoints
 
@@ -275,6 +268,33 @@ The application implements CQRS (Command Query Responsibility Segregation):
 ```bash
 mvn test
 ```
+
+## GitHub Pages User Site
+
+A multi-page user-focused documentation site is available in the `docs/` folder:
+
+- `docs/index.html` - product overview and user flow
+- `docs/getting-started.html` - first-run setup
+- `docs/use-alerts.html` - daily usage patterns
+- `docs/api-reference.html` - role-aware endpoint table
+- `docs/faq.html` - common troubleshooting
+
+### Publish on GitHub Pages
+
+1. Open your repository on GitHub.
+2. Go to **Settings > Pages**.
+3. Under **Build and deployment**, choose **Deploy from a branch**.
+4. Select your branch (usually `main`) and folder `/docs`.
+5. Save and wait for deployment to finish.
+
+### Preview Locally
+
+```bash
+cd docs
+python3 -m http.server 4000
+```
+
+Then open `http://localhost:4000`.
 
 ### Code Structure
 

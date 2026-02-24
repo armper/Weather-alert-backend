@@ -50,3 +50,7 @@ Thumbs.db
 # Spring Boot
 application-local.yml
 application-local.properties
+
+# Local environment files
+.env
+.env.local

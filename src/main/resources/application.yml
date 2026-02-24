@@ -50,6 +50,10 @@ management:
       probes:
         enabled: true
 
+springdoc:
+  swagger-ui:
+    persist-authorization: true
+
 app:
   rate-limit:
     max-requests: 120

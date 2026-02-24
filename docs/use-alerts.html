@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Daily usage guide for Weather Alert Backend users: monitor alerts, search weather events, and subscribe to real-time streams." />
+    <title>Weather Alert Hub | Use Alerts</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="./index.html">
+          <span class="brand-dot" aria-hidden="true"></span>
+          Weather Alert Hub
+        </a>
+        <button class="menu-toggle" data-menu-toggle aria-expanded="false" aria-controls="site-nav">Menu</button>
+        <nav id="site-nav" class="site-nav" aria-label="Main Navigation">
+          <a data-nav href="./index.html">Home</a>
+          <a data-nav href="./getting-started.html">Getting Started</a>
+          <a data-nav href="./use-alerts.html">Use Alerts</a>
+          <a data-nav href="./api-reference.html">API Reference</a>
+          <a data-nav href="./faq.html">FAQ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="reveal">
+            <p class="kicker">Daily workflow</p>
+            <h1>Read, filter, and react to weather alerts quickly.</h1>
+            <p class="lead">
+              Use these request patterns in your app or scripts for day-to-day monitoring. Every request below needs a
+              bearer token.
+            </p>
+          </div>
+          <aside class="panel reveal">
+            <h2>Typical checks</h2>
+            <ol class="step-list">
+              <li>See your personal alert queue.</li>
+              <li>Inspect active weather events in your area.</li>
+              <li>Use state or search endpoints for broader situational awareness.</li>
+            </ol>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-2">
+          <article class="card reveal">
+            <h2>Your alerts</h2>
+            <pre class="code"><code>GET /api/alerts/user/{userId}</code></pre>
+            <p>Primary endpoint for a user-facing alert inbox.</p>
+            <p class="small">Status values can include pending and processed notifications depending on your flow.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>Specific alert detail</h2>
+            <pre class="code"><code>GET /api/alerts/{alertId}</code></pre>
+            <p>Use when a user opens a single alert card in your UI for full headline/description context.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-3">
+          <article class="card reveal">
+            <h3>Live active feed</h3>
+            <pre class="code"><code>GET /api/weather/active</code></pre>
+            <p>Snapshot of currently active NOAA-backed alerts.</p>
+          </article>
+
+          <article class="card reveal">
+            <h3>Location lookup</h3>
+            <pre class="code"><code>GET /api/weather/location?latitude={lat}&longitude={lon}</code></pre>
+            <p>Best for map-based local checks.</p>
+          </article>
+
+          <article class="card reveal">
+            <h3>State lookup</h3>
+            <pre class="code"><code>GET /api/weather/state/{stateCode}</code></pre>
+            <p>Useful for regional dashboards and travel alerts.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-2">
+          <article class="card reveal">
+            <h2>Search indexed weather data</h2>
+            <pre class="code"><code>GET /api/weather/search/location/{location}
+GET /api/weather/search/event/{eventType}</code></pre>
+            <p>Fast lookup paths backed by Elasticsearch for user-facing filtering and history views.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>Real-time stream</h2>
+            <pre class="code"><code>CONNECT ws://localhost:8080/ws-alerts
+SUBSCRIBE /topic/alerts/{userId}</code></pre>
+            <p>Use WebSocket when you need push-style updates instead of polling.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container small">
+        Looking for role requirements? Open API Reference. <span data-year></span>
+      </div>
+    </footer>
+  </body>
+</html>

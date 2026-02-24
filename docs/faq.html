@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Frequently asked questions for end users of the Weather Alert Backend service." />
+    <title>Weather Alert Hub | FAQ</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="./index.html">
+          <span class="brand-dot" aria-hidden="true"></span>
+          Weather Alert Hub
+        </a>
+        <button class="menu-toggle" data-menu-toggle aria-expanded="false" aria-controls="site-nav">Menu</button>
+        <nav id="site-nav" class="site-nav" aria-label="Main Navigation">
+          <a data-nav href="./index.html">Home</a>
+          <a data-nav href="./getting-started.html">Getting Started</a>
+          <a data-nav href="./use-alerts.html">Use Alerts</a>
+          <a data-nav href="./api-reference.html">API Reference</a>
+          <a data-nav href="./faq.html">FAQ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="reveal">
+            <p class="kicker">Support answers</p>
+            <h1>Frequently asked questions</h1>
+            <p class="lead">Fast fixes for the issues users hit most while integrating or consuming weather alerts.</p>
+          </div>
+          <aside class="panel reveal">
+            <h2>Before you debug</h2>
+            <ol class="step-list">
+              <li>Confirm your token is present and unexpired.</li>
+              <li>Check that your user ID is correct.</li>
+              <li>Confirm whether your account is USER or ADMIN role.</li>
+            </ol>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-2">
+          <article class="card reveal">
+            <h2>Why do I get 401 Unauthorized?</h2>
+            <p>Your bearer token is missing, malformed, or expired. Request a fresh token from <span class="inline-code">/api/auth/token</span>.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>Why do I get 403 Forbidden?</h2>
+            <p>You are hitting an admin-only route. Criteria write operations and <span class="inline-code">/api/alerts/pending</span> require ADMIN role.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>I am not seeing any alerts. Is the system down?</h2>
+            <p>Not necessarily. There may be no active NOAA alerts that match your criteria/location at this time.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>How often is weather data refreshed?</h2>
+            <p>The scheduler fetches updates every 5 minutes. Some NOAA events may appear/disappear between intervals.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>Can I subscribe instead of polling?</h2>
+            <p>Yes. Connect to <span class="inline-code">/ws-alerts</span> and subscribe to <span class="inline-code">/topic/alerts/{userId}</span>.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>Where can I test endpoints interactively?</h2>
+            <p>Use Swagger UI at <span class="inline-code">/swagger-ui/index.html</span> when the backend is running.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <article class="card reveal">
+            <h2>Escalation checklist for support teams</h2>
+            <ol class="step-list">
+              <li>Capture the exact endpoint, status code, and timestamp.</li>
+              <li>Include the role (USER or ADMIN) used for the request.</li>
+              <li>Include the user ID and sanitized request payload.</li>
+              <li>Verify backend dependencies are healthy (PostgreSQL, Kafka, Elasticsearch).</li>
+            </ol>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container small">
+        Weather Alert Backend FAQ. <span data-year></span>
+      </div>
+    </footer>
+  </body>
+</html>

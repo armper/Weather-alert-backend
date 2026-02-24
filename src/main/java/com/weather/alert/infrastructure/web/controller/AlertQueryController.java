@@ -3,6 +3,9 @@ package com.weather.alert.infrastructure.web.controller;
 import com.weather.alert.application.dto.AlertResponse;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.domain.model.Alert;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,12 +19,15 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/alerts")
 @RequiredArgsConstructor
+@Tag(name = "Alerts", description = "Query generated user alerts")
 public class AlertQueryController {
     
     private final QueryAlertsUseCase queryAlertsUseCase;
     
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<AlertResponse>> getAlertsByUserId(@PathVariable String userId) {
+    @Operation(summary = "Get alerts by user ID")
+    public ResponseEntity<List<AlertResponse>> getAlertsByUserId(
+            @Parameter(example = "user-123") @PathVariable String userId) {
         List<Alert> alerts = queryAlertsUseCase.getAlertsByUserId(userId);
         List<AlertResponse> response = alerts.stream()
                 .map(this::toResponse)
@@ -30,12 +36,15 @@ public class AlertQueryController {
     }
     
     @GetMapping("/{alertId}")
-    public ResponseEntity<AlertResponse> getAlertById(@PathVariable String alertId) {
+    @Operation(summary = "Get alert by ID")
+    public ResponseEntity<AlertResponse> getAlertById(
+            @Parameter(example = "a8f1ee4d-5fd0-4b6a-a8ec-7cc7f4bced27") @PathVariable String alertId) {
         Alert alert = queryAlertsUseCase.getAlertById(alertId);
         return ResponseEntity.ok(toResponse(alert));
     }
     
     @GetMapping("/pending")
+    @Operation(summary = "Get pending alerts (admin)")
     public ResponseEntity<List<AlertResponse>> getPendingAlerts() {
         List<Alert> alerts = queryAlertsUseCase.getPendingAlerts();
         List<AlertResponse> response = alerts.stream()

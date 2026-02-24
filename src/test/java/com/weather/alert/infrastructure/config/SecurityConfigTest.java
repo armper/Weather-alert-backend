@@ -69,6 +69,12 @@ class SecurityConfigTest {
     }
 
     @Test
+    void shouldAllowSwaggerEndpointsWithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void shouldForbidCriteriaWriteForNonAdminUser() throws Exception {
         CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
                 .userId("user-1")

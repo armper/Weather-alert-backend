@@ -2,6 +2,9 @@ package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.AuthTokenResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +23,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@SecurityRequirements
+@Tag(name = "Authentication", description = "JWT token issuance")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -29,6 +34,9 @@ public class AuthController {
     private long jwtExpirationSeconds;
 
     @PostMapping("/token")
+    @Operation(
+            summary = "Issue JWT token",
+            description = "Authenticate with configured local credentials and return a bearer JWT for protected endpoints.")
     public ResponseEntity<AuthTokenResponse> generateToken(@Valid @RequestBody AuthRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));

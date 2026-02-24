@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Weather Alert Backend endpoint quick reference with role-based access requirements for end users and admins." />
+    <title>Weather Alert Hub | API Reference</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/site.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="./index.html">
+          <span class="brand-dot" aria-hidden="true"></span>
+          Weather Alert Hub
+        </a>
+        <button class="menu-toggle" data-menu-toggle aria-expanded="false" aria-controls="site-nav">Menu</button>
+        <nav id="site-nav" class="site-nav" aria-label="Main Navigation">
+          <a data-nav href="./index.html">Home</a>
+          <a data-nav href="./getting-started.html">Getting Started</a>
+          <a data-nav href="./use-alerts.html">Use Alerts</a>
+          <a data-nav href="./api-reference.html">API Reference</a>
+          <a data-nav href="./faq.html">FAQ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="reveal">
+            <p class="kicker">Endpoint map</p>
+            <h1>Role-aware API quick reference</h1>
+            <p class="lead">
+              Every route under <span class="inline-code">/api/**</span> requires bearer auth, except token creation.
+            </p>
+          </div>
+          <aside class="panel reveal">
+            <h2>Role key</h2>
+            <p><span class="badge badge-user">USER</span> Read-only access to alerts, criteria reads, and weather data.</p>
+            <p><span class="badge badge-admin">ADMIN</span> Includes all USER access plus criteria writes and pending alerts endpoint.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container reveal">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>Role</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>POST</td>
+                  <td><span class="inline-code">/api/auth/token</span></td>
+                  <td>Public</td>
+                  <td>Issue JWT access token</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td><span class="inline-code">/api/criteria</span></td>
+                  <td><span class="badge badge-admin">ADMIN</span></td>
+                  <td>Create alert criteria</td>
+                </tr>
+                <tr>
+                  <td>PUT</td>
+                  <td><span class="inline-code">/api/criteria/{criteriaId}</span></td>
+                  <td><span class="badge badge-admin">ADMIN</span></td>
+                  <td>Update alert criteria</td>
+                </tr>
+                <tr>
+                  <td>DELETE</td>
+                  <td><span class="inline-code">/api/criteria/{criteriaId}</span></td>
+                  <td><span class="badge badge-admin">ADMIN</span></td>
+                  <td>Delete alert criteria</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/criteria/user/{userId}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Read criteria for a user</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/criteria/{criteriaId}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Read one criteria record</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/alerts/user/{userId}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Get user alert feed</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/alerts/{alertId}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Get specific alert detail</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/alerts/pending</span></td>
+                  <td><span class="badge badge-admin">ADMIN</span></td>
+                  <td>Get all pending alerts</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/active</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Get active weather alerts</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/location?latitude={lat}&longitude={lon}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Weather alerts near coordinates</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/state/{stateCode}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Weather alerts by state</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/search/location/{location}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Search indexed weather by location</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/search/event/{eventType}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Search indexed weather by event type</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container grid-2">
+          <article class="card reveal">
+            <h2>Common response codes</h2>
+            <p><span class="status-ok">200 / 204</span>: Request succeeded.</p>
+            <p><span class="status-warn">400</span>: Invalid request payload or parameters.</p>
+            <p><span class="status-warn">401</span>: Missing/expired/invalid token.</p>
+            <p><span class="status-warn">403</span>: Role does not allow this endpoint.</p>
+          </article>
+
+          <article class="card reveal">
+            <h2>Built-in API explorer</h2>
+            <p>
+              Use Swagger UI when running locally:
+              <span class="inline-code">http://localhost:8080/swagger-ui/index.html</span>
+            </p>
+            <p>OpenAPI JSON: <span class="inline-code">http://localhost:8080/v3/api-docs</span></p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container small">
+        For guided examples, open Getting Started. <span data-year></span>
+      </div>
+    </footer>
+  </body>
+</html>

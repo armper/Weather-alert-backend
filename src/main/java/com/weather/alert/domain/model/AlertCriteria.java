@@ -1,5 +1,6 @@
 package com.weather.alert.domain.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,19 +13,45 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Stored user alert criteria")
 public class AlertCriteria {
+    @Schema(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6")
     private String id;
+
+    @Schema(example = "user-123")
     private String userId;
+
+    @Schema(example = "Seattle")
     private String location;
+
+    @Schema(example = "47.6062")
     private Double latitude;
+
+    @Schema(example = "-122.3321")
     private Double longitude;
+
+    @Schema(example = "50")
     private Double radiusKm;
+
+    @Schema(example = "Tornado Warning")
     private String eventType;
+
+    @Schema(allowableValues = {"MINOR", "MODERATE", "SEVERE", "EXTREME"}, example = "SEVERE")
     private String minSeverity;
+
+    @Schema(example = "35")
     private Double maxTemperature;
+
+    @Schema(example = "-5")
     private Double minTemperature;
+
+    @Schema(example = "80")
     private Double maxWindSpeed;
+
+    @Schema(example = "15")
     private Double maxPrecipitation;
+
+    @Schema(example = "true")
     private Boolean enabled;
     
     public boolean matches(WeatherData weatherData) {
