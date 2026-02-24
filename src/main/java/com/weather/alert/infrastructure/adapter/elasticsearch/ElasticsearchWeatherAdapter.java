@@ -1,9 +1,13 @@
 package com.weather.alert.infrastructure.adapter.elasticsearch;
 
+import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -26,17 +30,36 @@ public class ElasticsearchWeatherAdapter implements WeatherDataSearchPort {
             log.error("Error indexing weather data", e);
         }
     }
+
+    @Override
+    public PagedResult<WeatherData> getActiveWeatherData(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Page<WeatherDataDocument> results = repository.findAll(pageRequest);
+        List<WeatherData> items = results.getContent().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+
+        return PagedResult.<WeatherData>builder()
+                .items(items)
+                .page(results.getNumber())
+                .size(results.getSize())
+                .totalElements(results.getTotalElements())
+                .totalPages(results.getTotalPages())
+                .hasNext(results.hasNext())
+                .hasPrevious(results.hasPrevious())
+                .build();
+    }
     
     @Override
     public List<WeatherData> searchByLocation(String location) {
-        return repository.findByLocation(location).stream()
+        return repository.findByLocationContainingIgnoreCase(location).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
     
     @Override
     public List<WeatherData> searchByEventType(String eventType) {
-        return repository.findByEventType(eventType).stream()
+        return repository.findByEventTypeContainingIgnoreCase(eventType).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }

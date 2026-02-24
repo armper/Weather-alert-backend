@@ -35,16 +35,26 @@ server:
   port: 8080
   
 logging:
+  file:
+    name: ${LOGGING_FILE_NAME:logs/weather-alert-backend.log}
+  pattern:
+    correlation: "[traceId=%X{traceId:-},spanId=%X{spanId:-},correlationId=%X{correlationId:-}] "
   level:
     com.weather.alert: INFO
     org.springframework.web: INFO
     org.hibernate: WARN
 
 management:
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${MANAGEMENT_ZIPKIN_TRACING_ENDPOINT:http://localhost:9411/api/v2/spans}
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,loggers
   endpoint:
     health:
       probes:
@@ -55,6 +65,9 @@ springdoc:
     persist-authorization: true
 
 app:
+  noaa:
+    # NOAA /alerts/active responses can exceed WebClient's default 256KB buffer
+    max-in-memory-size: ${APP_NOAA_MAX_IN_MEMORY_SIZE:10MB}
   rate-limit:
     max-requests: 120
     window-seconds: 60

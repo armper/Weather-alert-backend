@@ -1,6 +1,7 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
+import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,11 +64,23 @@ class ManageAlertCriteriaUseCaseTest {
     void shouldDeleteCriteria() {
         // Given
         String criteriaId = "criteria1";
+        when(criteriaRepository.findById(criteriaId)).thenReturn(java.util.Optional.of(AlertCriteria.builder().id(criteriaId).build()));
         
         // When
         useCase.deleteCriteria(criteriaId);
         
         // Then
         verify(criteriaRepository, times(1)).delete(criteriaId);
+    }
+
+    @Test
+    void shouldThrowWhenDeletingUnknownCriteria() {
+        // Given
+        String criteriaId = "missing-criteria";
+        when(criteriaRepository.findById(criteriaId)).thenReturn(java.util.Optional.empty());
+
+        // When / Then
+        assertThrows(CriteriaNotFoundException.class, () -> useCase.deleteCriteria(criteriaId));
+        verify(criteriaRepository, never()).delete(any());
     }
 }

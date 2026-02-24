@@ -1,5 +1,6 @@
 package com.weather.alert.domain.port;
 
+import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.List;
 public interface WeatherDataSearchPort {
     
     void indexWeatherData(WeatherData weatherData);
+
+    PagedResult<WeatherData> getActiveWeatherData(int page, int size);
     
     List<WeatherData> searchByLocation(String location);
     

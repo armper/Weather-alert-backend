@@ -1,5 +1,7 @@
 package com.weather.alert.application.usecase;
 
+import com.weather.alert.application.exception.AlertNotFoundException;
+import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
@@ -25,7 +27,7 @@ public class QueryAlertsUseCase {
     
     public Alert getAlertById(String alertId) {
         return alertRepository.findById(alertId)
-                .orElseThrow(() -> new RuntimeException("Alert not found"));
+                .orElseThrow(() -> new AlertNotFoundException(alertId));
     }
     
     public List<AlertCriteria> getCriteriaByUserId(String userId) {
@@ -34,7 +36,7 @@ public class QueryAlertsUseCase {
     
     public AlertCriteria getCriteriaById(String criteriaId) {
         return criteriaRepository.findById(criteriaId)
-                .orElseThrow(() -> new RuntimeException("Criteria not found"));
+                .orElseThrow(() -> new CriteriaNotFoundException(criteriaId));
     }
     
     public List<Alert> getPendingAlerts() {

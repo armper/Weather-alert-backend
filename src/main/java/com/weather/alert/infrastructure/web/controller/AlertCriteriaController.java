@@ -7,6 +7,7 @@ import com.weather.alert.domain.model.AlertCriteria;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class AlertCriteriaController {
     
     @PostMapping
     @Operation(summary = "Create alert criteria")
-    public ResponseEntity<AlertCriteria> createCriteria(@RequestBody CreateAlertCriteriaRequest request) {
+    public ResponseEntity<AlertCriteria> createCriteria(@Valid @RequestBody CreateAlertCriteriaRequest request) {
         AlertCriteria criteria = manageAlertCriteriaUseCase.createCriteria(request);
         return ResponseEntity.ok(criteria);
     }
@@ -36,7 +37,7 @@ public class AlertCriteriaController {
     @Operation(summary = "Update alert criteria")
     public ResponseEntity<AlertCriteria> updateCriteria(
             @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId,
-            @RequestBody CreateAlertCriteriaRequest request) {
+            @Valid @RequestBody CreateAlertCriteriaRequest request) {
         AlertCriteria criteria = manageAlertCriteriaUseCase.updateCriteria(criteriaId, request);
         return ResponseEntity.ok(criteria);
     }

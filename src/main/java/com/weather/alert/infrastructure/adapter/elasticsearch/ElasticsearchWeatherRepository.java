@@ -7,7 +7,7 @@ import java.util.List;
 
 @Repository
 public interface ElasticsearchWeatherRepository extends ElasticsearchRepository<WeatherDataDocument, String> {
-    List<WeatherDataDocument> findByLocation(String location);
-    List<WeatherDataDocument> findByEventType(String eventType);
+    List<WeatherDataDocument> findByLocationContainingIgnoreCase(String location);
+    List<WeatherDataDocument> findByEventTypeContainingIgnoreCase(String eventType);
     List<WeatherDataDocument> findBySeverity(String severity);
 }

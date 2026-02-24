@@ -1,14 +1,19 @@
 package com.weather.alert.infrastructure.web.controller;
 
+import com.weather.alert.application.dto.PagedResponse;
 import com.weather.alert.application.dto.WeatherDataResponse;
+import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +25,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/weather")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Weather Data", description = "NOAA weather alert retrieval and search")
 public class WeatherDataController {
     
@@ -27,12 +33,24 @@ public class WeatherDataController {
     private final WeatherDataSearchPort weatherDataSearchPort;
     
     @GetMapping("/active")
-    @Operation(summary = "Get active weather alerts")
-    public ResponseEntity<List<WeatherDataResponse>> getActiveAlerts() {
-        List<WeatherData> weatherData = weatherDataPort.fetchActiveAlerts();
-        List<WeatherDataResponse> response = weatherData.stream()
+    @Operation(summary = "Get paginated active weather alerts from Elasticsearch read model")
+    public ResponseEntity<PagedResponse<WeatherDataResponse>> getActiveAlerts(
+            @Parameter(description = "Zero-based page index", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        PagedResult<WeatherData> pagedResults = weatherDataSearchPort.getActiveWeatherData(page, size);
+        List<WeatherDataResponse> responseItems = pagedResults.getItems().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+
+        PagedResponse<WeatherDataResponse> response = PagedResponse.<WeatherDataResponse>builder()
+                .items(responseItems)
+                .page(pagedResults.getPage())
+                .size(pagedResults.getSize())
+                .totalElements(pagedResults.getTotalElements())
+                .totalPages(pagedResults.getTotalPages())
+                .hasNext(pagedResults.isHasNext())
+                .hasPrevious(pagedResults.isHasPrevious())
+                .build();
         return ResponseEntity.ok(response);
     }
     
@@ -42,6 +60,7 @@ public class WeatherDataController {
             @Parameter(example = "47.6062") @RequestParam double latitude,
             @Parameter(example = "-122.3321") @RequestParam double longitude) {
         List<WeatherData> weatherData = weatherDataPort.fetchAlertsForLocation(latitude, longitude);
+        weatherData.forEach(weatherDataSearchPort::indexWeatherData);
         List<WeatherDataResponse> response = weatherData.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -53,6 +72,7 @@ public class WeatherDataController {
     public ResponseEntity<List<WeatherDataResponse>> getAlertsForState(
             @Parameter(example = "WA") @PathVariable String stateCode) {
         List<WeatherData> weatherData = weatherDataPort.fetchAlertsForState(stateCode);
+        weatherData.forEach(weatherDataSearchPort::indexWeatherData);
         List<WeatherDataResponse> response = weatherData.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

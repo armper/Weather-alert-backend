@@ -74,12 +74,20 @@ docker compose up -d
 
 # Optional: include Kafka UI on http://localhost:8081
 docker compose --profile tools up -d
+
+# Optional: include observability stack
+# Zipkin:  http://localhost:9411
+# Grafana: http://localhost:3000 (admin/admin)
+docker compose --profile observability up -d
 ```
 
 This stack is defined in `docker-compose.yml` and includes:
 - PostgreSQL on `localhost:5432` (database: `weather_alerts`)
 - Kafka on `localhost:9092` (topic `weather-alerts` created automatically)
 - Elasticsearch on `localhost:9200`
+- Optional observability profile:
+  - Zipkin (distributed trace UI)
+  - Loki + Promtail + Grafana (log aggregation/search)
 
 ### 2. Configure Local App Environment
 
@@ -91,6 +99,7 @@ set +a
 ```
 
 This sets required security credentials and infrastructure endpoints without modifying `src/main/resources/application.yml`.
+It also includes `APP_NOAA_MAX_IN_MEMORY_SIZE` to avoid large NOAA payload buffer errors in local dev.
 
 ## Running the Application
 
@@ -106,6 +115,40 @@ java -jar target/weather-alert-backend-0.0.1-SNAPSHOT.jar
 ```
 
 The application will start on `http://localhost:8080`
+
+### Error Handling + Correlation
+
+The API uses RFC7807 Problem Details for structured errors (e.g., validation and not-found):
+
+```json
+{
+  "type": "https://weather-alert-backend/errors/criteria_not_found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Criteria not found: missing-id",
+  "instance": "/api/criteria/missing-id",
+  "errorCode": "CRITERIA_NOT_FOUND",
+  "timestamp": "2026-02-24T18:30:00Z",
+  "path": "/api/criteria/missing-id",
+  "traceId": "8f3d8e4f2f6d1a2b",
+  "correlationId": "a5a8f85e-9d9b-4308-bfcb-7c6e0f0f4b1d"
+}
+```
+
+Each response includes `X-Correlation-Id` and logs include `traceId`, `spanId`, and `correlationId` for easier troubleshooting.
+
+### Observability Workflow
+
+1. Start observability services:
+```bash
+docker compose --profile observability up -d
+```
+2. Run the app (`mvn spring-boot:run`) with `.env` loaded.
+3. Open Zipkin on `http://localhost:9411` to inspect traces.
+4. Open Grafana on `http://localhost:3000` (`admin` / `admin`) and query logs from Loki with:
+```text
+{app="weather-alert-backend"}
+```
 
 When you are done:
 
@@ -199,8 +242,8 @@ GET /api/criteria/{criteriaId}
 ### Weather Data
 
 ```bash
-# Get active weather alerts from NOAA
-GET /api/weather/active
+# Get active weather alerts (Elasticsearch read model, paginated)
+GET /api/weather/active?page=0&size=50
 
 # Get alerts for specific location
 GET /api/weather/location?latitude=47.6062&longitude=-122.3321

@@ -1,6 +1,7 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
+import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,9 @@ public class ManageAlertCriteriaUseCase {
     }
     
     public void deleteCriteria(String criteriaId) {
+        if (criteriaRepository.findById(criteriaId).isEmpty()) {
+            throw new CriteriaNotFoundException(criteriaId);
+        }
         criteriaRepository.delete(criteriaId);
     }
     
@@ -57,6 +61,6 @@ public class ManageAlertCriteriaUseCase {
                     existing.setMaxPrecipitation(request.getMaxPrecipitation());
                     return criteriaRepository.save(existing);
                 })
-                .orElseThrow(() -> new RuntimeException("Criteria not found"));
+                .orElseThrow(() -> new CriteriaNotFoundException(criteriaId));
     }
 }

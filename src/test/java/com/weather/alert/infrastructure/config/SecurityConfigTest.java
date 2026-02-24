@@ -6,6 +6,10 @@ import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.infrastructure.error.CorrelationIdFilter;
+import com.weather.alert.infrastructure.error.RestAccessDeniedHandler;
+import com.weather.alert.infrastructure.error.RestAuthenticationEntryPoint;
+import com.weather.alert.infrastructure.error.SecurityErrorResponseWriter;
 import com.weather.alert.infrastructure.web.controller.AlertCriteriaController;
 import com.weather.alert.infrastructure.web.controller.AuthController;
 import org.junit.jupiter.api.Test;
@@ -34,7 +38,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({AlertCriteriaController.class, AuthController.class})
-@Import(SecurityConfig.class)
+@Import({
+        SecurityConfig.class,
+        RestAuthenticationEntryPoint.class,
+        RestAccessDeniedHandler.class,
+        SecurityErrorResponseWriter.class,
+        CorrelationIdFilter.class
+})
 @TestPropertySource(properties = {
         "app.security.user.username=test-user",
         "app.security.user.password=test-user-password",

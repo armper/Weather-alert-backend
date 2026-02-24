@@ -1,6 +1,9 @@
 package com.weather.alert.application.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,18 +18,24 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "Create or update alert criteria for a user")
 public class CreateAlertCriteriaRequest {
+    @NotBlank(message = "userId is required")
     @Schema(description = "User identifier that owns this criteria", example = "user-123")
     private String userId;
 
     @Schema(description = "Location name filter (case-insensitive contains match)", example = "Seattle")
     private String location;
 
+    @DecimalMin(value = "-90.0", message = "latitude must be >= -90")
+    @DecimalMax(value = "90.0", message = "latitude must be <= 90")
     @Schema(description = "Center latitude for radius-based matching", example = "47.6062")
     private Double latitude;
 
+    @DecimalMin(value = "-180.0", message = "longitude must be >= -180")
+    @DecimalMax(value = "180.0", message = "longitude must be <= 180")
     @Schema(description = "Center longitude for radius-based matching", example = "-122.3321")
     private Double longitude;
 
+    @DecimalMin(value = "0.0", message = "radiusKm must be >= 0")
     @Schema(description = "Matching radius in kilometers", example = "50")
     private Double radiusKm;
 

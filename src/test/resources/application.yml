@@ -21,3 +21,7 @@ spring:
 logging:
   level:
     com.weather.alert: INFO
+
+management:
+  tracing:
+    enabled: false
