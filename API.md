@@ -10,6 +10,7 @@ http://localhost:8080
 - Database schema changes are managed with Flyway migrations in `src/main/resources/db/migration`.
 - Migrations run automatically at app startup.
 - JPA uses schema validation (`ddl-auto: validate`) to catch drift instead of mutating schema.
+- Latest criteria schema extension is in `V2__extend_alert_criteria_for_weather_conditions.sql`.
 
 ## API Endpoints
 
@@ -17,23 +18,31 @@ http://localhost:8080
 
 Create, update, and manage alert criteria for users.
 
+Validation rules for weather-condition fields:
+- `temperatureThreshold` and `temperatureDirection` must be provided together.
+- `rainThreshold` and `rainThresholdType` must be provided together.
+- At least one of `monitorCurrent` or `monitorForecast` must be `true` (or both omitted to use defaults).
+
 #### Create Alert Criteria
 ```http
 POST /api/criteria
 Content-Type: application/json
 
 {
-  "userId": "user123",
-  "location": "Seattle",
-  "latitude": 47.6062,
-  "longitude": -122.3321,
-  "radiusKm": 50,
-  "eventType": "Tornado",
-  "minSeverity": "SEVERE",
-  "maxTemperature": 35,
-  "minTemperature": -10,
-  "maxWindSpeed": 100,
-  "maxPrecipitation": 50
+  "userId": "dev-admin",
+  "location": "Orlando",
+  "eventType": "Rain",
+  "minSeverity": "MODERATE",
+  "temperatureThreshold": 60,
+  "temperatureDirection": "BELOW",
+  "temperatureUnit": "F",
+  "rainThreshold": 40,
+  "rainThresholdType": "PROBABILITY",
+  "monitorCurrent": true,
+  "monitorForecast": true,
+  "forecastWindowHours": 48,
+  "oncePerEvent": true,
+  "rearmWindowMinutes": 120
 }
 ```
 
@@ -41,17 +50,20 @@ Content-Type: application/json
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "userId": "user123",
-  "location": "Seattle",
-  "latitude": 47.6062,
-  "longitude": -122.3321,
-  "radiusKm": 50,
-  "eventType": "Tornado",
-  "minSeverity": "SEVERE",
-  "maxTemperature": 35,
-  "minTemperature": -10,
-  "maxWindSpeed": 100,
-  "maxPrecipitation": 50,
+  "userId": "dev-admin",
+  "location": "Orlando",
+  "eventType": "Rain",
+  "minSeverity": "MODERATE",
+  "temperatureThreshold": 60,
+  "temperatureDirection": "BELOW",
+  "temperatureUnit": "F",
+  "rainThreshold": 40,
+  "rainThresholdType": "PROBABILITY",
+  "monitorCurrent": true,
+  "monitorForecast": true,
+  "forecastWindowHours": 48,
+  "oncePerEvent": true,
+  "rearmWindowMinutes": 120,
   "enabled": true
 }
 ```
@@ -62,10 +74,18 @@ PUT /api/criteria/{criteriaId}
 Content-Type: application/json
 
 {
-  "userId": "user123",
-  "location": "Portland",
-  "eventType": "Flood",
-  "minSeverity": "MODERATE"
+  "userId": "dev-admin",
+  "location": "Orlando",
+  "temperatureThreshold": 57,
+  "temperatureDirection": "BELOW",
+  "temperatureUnit": "F",
+  "rainThreshold": 50,
+  "rainThresholdType": "PROBABILITY",
+  "monitorCurrent": true,
+  "monitorForecast": true,
+  "forecastWindowHours": 48,
+  "oncePerEvent": true,
+  "rearmWindowMinutes": 240
 }
 ```
 
@@ -73,10 +93,18 @@ Content-Type: application/json
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
-  "userId": "user123",
-  "location": "Portland",
-  "eventType": "Flood",
-  "minSeverity": "MODERATE",
+  "userId": "dev-admin",
+  "location": "Orlando",
+  "temperatureThreshold": 57,
+  "temperatureDirection": "BELOW",
+  "temperatureUnit": "F",
+  "rainThreshold": 50,
+  "rainThresholdType": "PROBABILITY",
+  "monitorCurrent": true,
+  "monitorForecast": true,
+  "forecastWindowHours": 48,
+  "oncePerEvent": true,
+  "rearmWindowMinutes": 240,
   "enabled": true
 }
 ```
@@ -338,6 +366,16 @@ GET /api/weather/search/event/{eventType}
   "minTemperature": "number (optional) - Celsius",
   "maxWindSpeed": "number (optional) - km/h",
   "maxPrecipitation": "number (optional) - mm",
+  "temperatureThreshold": "number (optional)",
+  "temperatureDirection": "string (optional) - BELOW|ABOVE",
+  "temperatureUnit": "string (optional, default F) - F|C",
+  "rainThreshold": "number (optional)",
+  "rainThresholdType": "string (optional) - PROBABILITY|AMOUNT",
+  "monitorCurrent": "boolean (optional, default true)",
+  "monitorForecast": "boolean (optional, default true)",
+  "forecastWindowHours": "integer (optional, default 48, range 1..168)",
+  "oncePerEvent": "boolean (optional, default true)",
+  "rearmWindowMinutes": "integer (optional, default 0, range 0..10080)",
   "enabled": "boolean"
 }
 ```

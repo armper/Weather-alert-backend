@@ -6,6 +6,8 @@ import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.domain.model.AlertCriteria;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,14 +29,68 @@ public class AlertCriteriaController {
     private final QueryAlertsUseCase queryAlertsUseCase;
     
     @PostMapping
-    @Operation(summary = "Create alert criteria")
+    @Operation(
+            summary = "Create alert criteria",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "temperature-and-rain-criteria",
+                                    value = """
+                                            {
+                                              "userId": "dev-admin",
+                                              "location": "Orlando",
+                                              "temperatureThreshold": 60,
+                                              "temperatureDirection": "BELOW",
+                                              "temperatureUnit": "F",
+                                              "rainThreshold": 40,
+                                              "rainThresholdType": "PROBABILITY",
+                                              "monitorCurrent": true,
+                                              "monitorForecast": true,
+                                              "forecastWindowHours": 48,
+                                              "oncePerEvent": true,
+                                              "rearmWindowMinutes": 120
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<AlertCriteria> createCriteria(@Valid @RequestBody CreateAlertCriteriaRequest request) {
         AlertCriteria criteria = manageAlertCriteriaUseCase.createCriteria(request);
         return ResponseEntity.ok(criteria);
     }
     
     @PutMapping("/{criteriaId}")
-    @Operation(summary = "Update alert criteria")
+    @Operation(
+            summary = "Update alert criteria",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    name = "update-forecast-window",
+                                    value = """
+                                            {
+                                              "userId": "dev-admin",
+                                              "location": "Orlando",
+                                              "temperatureThreshold": 60,
+                                              "temperatureDirection": "BELOW",
+                                              "temperatureUnit": "F",
+                                              "rainThreshold": 50,
+                                              "rainThresholdType": "PROBABILITY",
+                                              "monitorCurrent": true,
+                                              "monitorForecast": true,
+                                              "forecastWindowHours": 48,
+                                              "oncePerEvent": true,
+                                              "rearmWindowMinutes": 240
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<AlertCriteria> updateCriteria(
             @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId,
             @Valid @RequestBody CreateAlertCriteriaRequest request) {

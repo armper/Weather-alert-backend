@@ -18,16 +18,16 @@
 - [x] Update API/ARCHITECTURE docs for migration strategy.
 
 ## Chunk 2: Domain Model Extensions
-- [ ] Extend `AlertCriteria` for weather-condition monitoring:
-- [ ] Add `temperatureThreshold` with direction (`BELOW`/`ABOVE`).
-- [ ] Add `rainThreshold` and threshold type (e.g., probability, amount).
-- [ ] Add `monitorCurrent` and `monitorForecast`.
-- [ ] Add `forecastWindowHours` (default 48).
-- [ ] Add `temperatureUnit` preference (`F`/`C`).
-- [ ] Add `oncePerEvent`/rearm policy fields for anti-spam behavior.
-- [ ] Extend DTOs and validation rules for new criteria fields.
-- [ ] Update Swagger examples for new criteria schema.
-- [ ] Update README + API docs with new criteria contract.
+- [x] Extend `AlertCriteria` for weather-condition monitoring:
+- [x] Add `temperatureThreshold` with direction (`BELOW`/`ABOVE`).
+- [x] Add `rainThreshold` and threshold type (e.g., probability, amount).
+- [x] Add `monitorCurrent` and `monitorForecast`.
+- [x] Add `forecastWindowHours` (default 48).
+- [x] Add `temperatureUnit` preference (`F`/`C`).
+- [x] Add `oncePerEvent`/rearm policy fields for anti-spam behavior.
+- [x] Extend DTOs and validation rules for new criteria fields.
+- [x] Update Swagger examples for new criteria schema.
+- [x] Update README + API docs with new criteria contract.
 
 ## Chunk 3: Weather Data Provider (Current + Forecast)
 - [ ] Add NOAA integration for current observations by location.

@@ -54,7 +54,7 @@ This document provides a detailed overview of the Weather Alert Backend architec
 
 #### Domain Models
 - **Alert**: Represents a weather alert sent to a user
-- **AlertCriteria**: User-defined criteria for triggering alerts
+- **AlertCriteria**: User-defined criteria for triggering alerts (location/event/severity plus temperature and rain thresholds, unit preference, monitoring scope, and alert cadence policy)
 - **WeatherData**: Weather information from NOAA
 - **User**: User profile and preferences
 
@@ -89,7 +89,7 @@ This document provides a detailed overview of the Weather Alert Backend architec
   - Get pending alerts
 
 #### DTOs (Data Transfer Objects)
-- `CreateAlertCriteriaRequest`
+- `CreateAlertCriteriaRequest` (supports temperature/rain threshold pairs, monitoring scope, and cadence controls)
 - `AlertResponse`
 - `WeatherDataResponse`
 
@@ -113,7 +113,7 @@ JPA/PostgreSQL
 ├── AlertEntity → AlertRepositoryAdapter
 ├── AlertCriteriaEntity → AlertCriteriaRepositoryAdapter
 ├── UserEntity → UserRepositoryAdapter
-└── Flyway-managed schema migrations + Hibernate validation
+└── Flyway-managed schema migrations + Hibernate validation (including criteria extension in V2)
 ```
 
 **Kafka Adapter**

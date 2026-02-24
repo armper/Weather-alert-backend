@@ -1,5 +1,6 @@
 package com.weather.alert.infrastructure.adapter.persistence;
 
+import com.weather.alert.domain.model.AlertCriteria;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,6 +50,39 @@ public class AlertCriteriaEntity {
     
     @Column(name = "max_precipitation")
     private Double maxPrecipitation;
+
+    @Column(name = "temperature_threshold")
+    private Double temperatureThreshold;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "temperature_direction")
+    private AlertCriteria.TemperatureDirection temperatureDirection;
+
+    @Column(name = "rain_threshold")
+    private Double rainThreshold;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rain_threshold_type")
+    private AlertCriteria.RainThresholdType rainThresholdType;
+
+    @Column(name = "monitor_current")
+    private Boolean monitorCurrent;
+
+    @Column(name = "monitor_forecast")
+    private Boolean monitorForecast;
+
+    @Column(name = "forecast_window_hours")
+    private Integer forecastWindowHours;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "temperature_unit")
+    private AlertCriteria.TemperatureUnit temperatureUnit;
+
+    @Column(name = "once_per_event")
+    private Boolean oncePerEvent;
+
+    @Column(name = "rearm_window_minutes")
+    private Integer rearmWindowMinutes;
     
     @Column(name = "enabled")
     private Boolean enabled;

@@ -15,6 +15,21 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "Stored user alert criteria")
 public class AlertCriteria {
+    public enum TemperatureDirection {
+        BELOW,
+        ABOVE
+    }
+
+    public enum RainThresholdType {
+        PROBABILITY,
+        AMOUNT
+    }
+
+    public enum TemperatureUnit {
+        F,
+        C
+    }
+
     @Schema(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6")
     private String id;
 
@@ -51,11 +66,41 @@ public class AlertCriteria {
     @Schema(example = "15")
     private Double maxPrecipitation;
 
+    @Schema(description = "Single temperature threshold value", example = "60")
+    private Double temperatureThreshold;
+
+    @Schema(allowableValues = {"BELOW", "ABOVE"}, example = "BELOW")
+    private TemperatureDirection temperatureDirection;
+
+    @Schema(description = "Rain threshold for triggering an alert", example = "40")
+    private Double rainThreshold;
+
+    @Schema(allowableValues = {"PROBABILITY", "AMOUNT"}, example = "PROBABILITY")
+    private RainThresholdType rainThresholdType;
+
+    @Schema(description = "Evaluate current weather conditions", example = "true")
+    private Boolean monitorCurrent;
+
+    @Schema(description = "Evaluate forecast conditions", example = "true")
+    private Boolean monitorForecast;
+
+    @Schema(description = "Forecast lookahead window in hours", example = "48")
+    private Integer forecastWindowHours;
+
+    @Schema(allowableValues = {"F", "C"}, example = "F")
+    private TemperatureUnit temperatureUnit;
+
+    @Schema(description = "Notify once for each detected condition/event", example = "true")
+    private Boolean oncePerEvent;
+
+    @Schema(description = "Cooldown/rearm window in minutes before a similar alert can fire again", example = "120")
+    private Integer rearmWindowMinutes;
+
     @Schema(example = "true")
     private Boolean enabled;
     
     public boolean matches(WeatherData weatherData) {
-        if (!enabled) {
+        if (!Boolean.TRUE.equals(enabled)) {
             return false;
         }
         
@@ -103,6 +148,19 @@ public class AlertCriteria {
         
         // Check temperature thresholds
         if (weatherData.getTemperature() != null) {
+            if (temperatureThreshold != null && temperatureDirection != null) {
+                hasAnyCriteria = true;
+                double thresholdInC = thresholdInCelsius(temperatureThreshold, temperatureUnit);
+                if (temperatureDirection == TemperatureDirection.ABOVE &&
+                        weatherData.getTemperature() > thresholdInC) {
+                    return true;
+                }
+                if (temperatureDirection == TemperatureDirection.BELOW &&
+                        weatherData.getTemperature() < thresholdInC) {
+                    return true;
+                }
+            }
+
             if (maxTemperature != null && weatherData.getTemperature() > maxTemperature) {
                 return true;
             }
@@ -126,8 +184,23 @@ public class AlertCriteria {
                 return true;
             }
         }
+
+        if (rainThreshold != null && rainThresholdType != null && weatherData.getPrecipitation() != null) {
+            hasAnyCriteria = true;
+            if (weatherData.getPrecipitation() >= rainThreshold) {
+                return true;
+            }
+        }
         
         return hasAnyCriteria;
+    }
+
+    private double thresholdInCelsius(double threshold, TemperatureUnit unit) {
+        TemperatureUnit effectiveUnit = unit != null ? unit : TemperatureUnit.F;
+        if (effectiveUnit == TemperatureUnit.C) {
+            return threshold;
+        }
+        return (threshold - 32.0) * 5.0 / 9.0;
     }
     
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {

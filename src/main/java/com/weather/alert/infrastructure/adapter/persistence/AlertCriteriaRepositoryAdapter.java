@@ -60,6 +60,16 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
                 .minTemperature(criteria.getMinTemperature())
                 .maxWindSpeed(criteria.getMaxWindSpeed())
                 .maxPrecipitation(criteria.getMaxPrecipitation())
+                .temperatureThreshold(criteria.getTemperatureThreshold())
+                .temperatureDirection(criteria.getTemperatureDirection())
+                .rainThreshold(criteria.getRainThreshold())
+                .rainThresholdType(criteria.getRainThresholdType())
+                .monitorCurrent(criteria.getMonitorCurrent())
+                .monitorForecast(criteria.getMonitorForecast())
+                .forecastWindowHours(criteria.getForecastWindowHours())
+                .temperatureUnit(criteria.getTemperatureUnit())
+                .oncePerEvent(criteria.getOncePerEvent())
+                .rearmWindowMinutes(criteria.getRearmWindowMinutes())
                 .enabled(criteria.getEnabled())
                 .build();
     }
@@ -78,6 +88,16 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
                 .minTemperature(entity.getMinTemperature())
                 .maxWindSpeed(entity.getMaxWindSpeed())
                 .maxPrecipitation(entity.getMaxPrecipitation())
+                .temperatureThreshold(entity.getTemperatureThreshold())
+                .temperatureDirection(entity.getTemperatureDirection())
+                .rainThreshold(entity.getRainThreshold())
+                .rainThresholdType(entity.getRainThresholdType())
+                .monitorCurrent(entity.getMonitorCurrent())
+                .monitorForecast(entity.getMonitorForecast())
+                .forecastWindowHours(entity.getForecastWindowHours())
+                .temperatureUnit(entity.getTemperatureUnit())
+                .oncePerEvent(entity.getOncePerEvent())
+                .rearmWindowMinutes(entity.getRearmWindowMinutes())
                 .enabled(entity.getEnabled())
                 .build();
     }

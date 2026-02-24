@@ -87,6 +87,49 @@ class AlertCriteriaTest {
         // Then
         assertTrue(matches);
     }
+
+    @Test
+    void shouldMatchByNewTemperatureThresholdBelowInFahrenheit() {
+        // Given
+        AlertCriteria criteria = AlertCriteria.builder()
+                .userId("user1")
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .enabled(true)
+                .build();
+
+        WeatherData weatherData = WeatherData.builder()
+                .temperature(14.0) // Celsius (~57.2F)
+                .build();
+
+        // When
+        boolean matches = criteria.matches(weatherData);
+
+        // Then
+        assertTrue(matches);
+    }
+
+    @Test
+    void shouldMatchByRainThreshold() {
+        // Given
+        AlertCriteria criteria = AlertCriteria.builder()
+                .userId("user1")
+                .rainThreshold(40.0)
+                .rainThresholdType(AlertCriteria.RainThresholdType.PROBABILITY)
+                .enabled(true)
+                .build();
+
+        WeatherData weatherData = WeatherData.builder()
+                .precipitation(55.0)
+                .build();
+
+        // When
+        boolean matches = criteria.matches(weatherData);
+
+        // Then
+        assertTrue(matches);
+    }
     
     @Test
     void shouldNotMatchWhenDisabled() {

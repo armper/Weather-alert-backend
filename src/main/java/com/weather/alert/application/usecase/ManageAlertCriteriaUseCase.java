@@ -7,7 +7,6 @@ import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,6 +32,16 @@ public class ManageAlertCriteriaUseCase {
                 .minTemperature(request.getMinTemperature())
                 .maxWindSpeed(request.getMaxWindSpeed())
                 .maxPrecipitation(request.getMaxPrecipitation())
+                .temperatureThreshold(request.getTemperatureThreshold())
+                .temperatureDirection(request.getTemperatureDirection())
+                .rainThreshold(request.getRainThreshold())
+                .rainThresholdType(request.getRainThresholdType())
+                .monitorCurrent(defaultMonitorCurrent(request.getMonitorCurrent()))
+                .monitorForecast(defaultMonitorForecast(request.getMonitorForecast()))
+                .forecastWindowHours(defaultForecastWindowHours(request.getForecastWindowHours()))
+                .temperatureUnit(defaultTemperatureUnit(request.getTemperatureUnit()))
+                .oncePerEvent(defaultOncePerEvent(request.getOncePerEvent()))
+                .rearmWindowMinutes(defaultRearmWindowMinutes(request.getRearmWindowMinutes()))
                 .enabled(true)
                 .build();
         
@@ -59,8 +68,42 @@ public class ManageAlertCriteriaUseCase {
                     existing.setMinTemperature(request.getMinTemperature());
                     existing.setMaxWindSpeed(request.getMaxWindSpeed());
                     existing.setMaxPrecipitation(request.getMaxPrecipitation());
+                    existing.setTemperatureThreshold(request.getTemperatureThreshold());
+                    existing.setTemperatureDirection(request.getTemperatureDirection());
+                    existing.setRainThreshold(request.getRainThreshold());
+                    existing.setRainThresholdType(request.getRainThresholdType());
+                    existing.setMonitorCurrent(defaultMonitorCurrent(request.getMonitorCurrent()));
+                    existing.setMonitorForecast(defaultMonitorForecast(request.getMonitorForecast()));
+                    existing.setForecastWindowHours(defaultForecastWindowHours(request.getForecastWindowHours()));
+                    existing.setTemperatureUnit(defaultTemperatureUnit(request.getTemperatureUnit()));
+                    existing.setOncePerEvent(defaultOncePerEvent(request.getOncePerEvent()));
+                    existing.setRearmWindowMinutes(defaultRearmWindowMinutes(request.getRearmWindowMinutes()));
                     return criteriaRepository.save(existing);
                 })
                 .orElseThrow(() -> new CriteriaNotFoundException(criteriaId));
+    }
+
+    private boolean defaultMonitorCurrent(Boolean monitorCurrent) {
+        return monitorCurrent == null || monitorCurrent;
+    }
+
+    private boolean defaultMonitorForecast(Boolean monitorForecast) {
+        return monitorForecast == null || monitorForecast;
+    }
+
+    private int defaultForecastWindowHours(Integer forecastWindowHours) {
+        return forecastWindowHours == null ? 48 : forecastWindowHours;
+    }
+
+    private AlertCriteria.TemperatureUnit defaultTemperatureUnit(AlertCriteria.TemperatureUnit temperatureUnit) {
+        return temperatureUnit == null ? AlertCriteria.TemperatureUnit.F : temperatureUnit;
+    }
+
+    private boolean defaultOncePerEvent(Boolean oncePerEvent) {
+        return oncePerEvent == null || oncePerEvent;
+    }
+
+    private int defaultRearmWindowMinutes(Integer rearmWindowMinutes) {
+        return rearmWindowMinutes == null ? 0 : rearmWindowMinutes;
     }
 }

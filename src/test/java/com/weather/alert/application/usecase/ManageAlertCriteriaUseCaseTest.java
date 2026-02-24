@@ -59,6 +59,28 @@ class ManageAlertCriteriaUseCaseTest {
         assertTrue(result.getEnabled());
         verify(criteriaRepository, times(1)).save(any(AlertCriteria.class));
     }
+
+    @Test
+    void shouldApplyDefaultsForExtendedCriteriaFields() {
+        // Given
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user1")
+                .eventType("Rain")
+                .build();
+
+        when(criteriaRepository.save(any(AlertCriteria.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        AlertCriteria saved = useCase.createCriteria(request);
+
+        // Then
+        assertEquals(AlertCriteria.TemperatureUnit.F, saved.getTemperatureUnit());
+        assertTrue(saved.getMonitorCurrent());
+        assertTrue(saved.getMonitorForecast());
+        assertEquals(48, saved.getForecastWindowHours());
+        assertTrue(saved.getOncePerEvent());
+        assertEquals(0, saved.getRearmWindowMinutes());
+    }
     
     @Test
     void shouldDeleteCriteria() {
@@ -82,5 +104,44 @@ class ManageAlertCriteriaUseCaseTest {
         // When / Then
         assertThrows(CriteriaNotFoundException.class, () -> useCase.deleteCriteria(criteriaId));
         verify(criteriaRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldUpdateExtendedFields() {
+        // Given
+        String criteriaId = "criteria-1";
+        AlertCriteria existing = AlertCriteria.builder()
+                .id(criteriaId)
+                .userId("user1")
+                .enabled(true)
+                .build();
+
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user1")
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .rainThreshold(40.0)
+                .rainThresholdType(AlertCriteria.RainThresholdType.PROBABILITY)
+                .monitorCurrent(true)
+                .monitorForecast(true)
+                .forecastWindowHours(48)
+                .oncePerEvent(true)
+                .rearmWindowMinutes(120)
+                .build();
+
+        when(criteriaRepository.findById(criteriaId)).thenReturn(java.util.Optional.of(existing));
+        when(criteriaRepository.save(any(AlertCriteria.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        AlertCriteria result = useCase.updateCriteria(criteriaId, request);
+
+        // Then
+        assertEquals(60.0, result.getTemperatureThreshold());
+        assertEquals(AlertCriteria.TemperatureDirection.BELOW, result.getTemperatureDirection());
+        assertEquals(AlertCriteria.TemperatureUnit.F, result.getTemperatureUnit());
+        assertEquals(40.0, result.getRainThreshold());
+        assertEquals(AlertCriteria.RainThresholdType.PROBABILITY, result.getRainThresholdType());
+        assertEquals(120, result.getRearmWindowMinutes());
     }
 }

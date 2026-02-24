@@ -35,6 +35,8 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Real-time Weather Data**: Integration with NOAA Weather API (https://api.weather.gov/)
 - ✅ **Custom Alert Criteria**: Users can define personalized alert conditions
 - ✅ **Multi-criteria Matching**: Location, event type, severity, temperature, wind speed, precipitation
+- ✅ **Current + Forecast Monitoring Controls**: Criteria can target current conditions, forecast, or both
+- ✅ **Temperature Unit Preference**: Thresholds support Fahrenheit and Celsius
 - ✅ **Geographic Filtering**: Radius-based location matching using Haversine formula
 - ✅ **Async Processing**: Kafka-based message queue for scalable alert processing
 - ✅ **Search Capabilities**: Elasticsearch integration for fast weather data queries
@@ -114,6 +116,9 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
 - Baseline settings are enabled for safer rollout on existing local databases:
   - `baseline-on-migrate: true`
   - `baseline-version: 0`
+- Current migrations:
+  - `V1__baseline.sql` (existing core tables)
+  - `V2__extend_alert_criteria_for_weather_conditions.sql` (new weather-condition criteria fields)
 
 Common commands:
 
@@ -230,16 +235,18 @@ GET /v3/api-docs
 # Create alert criteria
 POST /api/criteria
 {
-  "userId": "user123",
-  "location": "Seattle",
-  "latitude": 47.6062,
-  "longitude": -122.3321,
-  "radiusKm": 50,
-  "eventType": "Tornado",
-  "minSeverity": "SEVERE",
-  "maxTemperature": 35,
-  "minTemperature": -10,
-  "maxWindSpeed": 100
+  "userId": "dev-admin",
+  "location": "Orlando",
+  "temperatureThreshold": 60,
+  "temperatureDirection": "BELOW",
+  "temperatureUnit": "F",
+  "rainThreshold": 40,
+  "rainThresholdType": "PROBABILITY",
+  "monitorCurrent": true,
+  "monitorForecast": true,
+  "forecastWindowHours": 48,
+  "oncePerEvent": true,
+  "rearmWindowMinutes": 120
 }
 
 # Update criteria
@@ -298,6 +305,10 @@ User-defined criteria for triggering weather alerts. Supports:
 - Event type matching (tornado, hurricane, flood, etc.)
 - Severity thresholds (minor, moderate, severe, extreme)
 - Weather condition thresholds (temperature, wind speed, precipitation)
+- Explicit temperature threshold direction (`BELOW`/`ABOVE`) and unit (`F`/`C`)
+- Rain threshold modes (`PROBABILITY` or `AMOUNT`)
+- Monitoring scope (`monitorCurrent`, `monitorForecast`, `forecastWindowHours`)
+- Alert cadence controls (`oncePerEvent`, `rearmWindowMinutes`)
 
 ### Alert
 Generated alert matching user criteria with weather data.
