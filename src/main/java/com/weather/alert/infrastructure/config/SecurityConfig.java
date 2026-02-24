@@ -108,7 +108,7 @@ public class SecurityConfig {
     private SecretKey buildSecretKey(String jwtSecret) {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
-            throw new IllegalStateException("app.security.jwt.secret must be at least 32 characters");
+            throw new IllegalStateException("app.security.jwt.secret must be at least 32 characters (256 bits) when UTF-8 encoded");
         }
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
