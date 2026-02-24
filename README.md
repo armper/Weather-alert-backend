@@ -121,6 +121,27 @@ The application will start on `http://localhost:8080`
 
 ## API Endpoints
 
+All `/api/**` endpoints now require JWT Bearer authentication (except token issuance).
+
+- **USER role**: read-only API access
+- **ADMIN role**: includes write access for criteria management and pending alerts endpoint
+
+Credentials must be configured via environment variables:
+
+- `APP_SECURITY_USER_USERNAME`, `APP_SECURITY_USER_PASSWORD`
+- `APP_SECURITY_ADMIN_USERNAME`, `APP_SECURITY_ADMIN_PASSWORD`
+- `APP_SECURITY_JWT_SECRET` (minimum 32 characters)
+
+Generate a token:
+
+```bash
+POST /api/auth/token
+{
+  "username": "your-username",
+  "password": "your-password"
+}
+```
+
 ### Alert Criteria Management (Commands - CQRS)
 
 ```bash
@@ -274,7 +295,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Future Enhancements
 
-- [ ] User authentication and authorization
+- [x] User authentication and authorization
 - [ ] Email/SMS notification integration
 - [ ] Mobile push notifications
 - [ ] GraphQL API

@@ -55,3 +55,14 @@ app:
     max-requests: 120
     window-seconds: 60
     trust-forwarded-for: false
+  security:
+    user:
+      username: ${APP_SECURITY_USER_USERNAME}
+      password: ${APP_SECURITY_USER_PASSWORD}
+    admin:
+      username: ${APP_SECURITY_ADMIN_USERNAME}
+      password: ${APP_SECURITY_ADMIN_PASSWORD}
+    jwt:
+      secret: ${APP_SECURITY_JWT_SECRET}
+      # JWT lifetime in seconds (default 3600 = 1 hour)
+      expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:3600}
