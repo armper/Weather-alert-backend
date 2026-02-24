@@ -38,4 +38,22 @@ public class WeatherDataResponse {
 
     @Schema(example = "2026-02-25T01:00:00Z")
     private String expires;
+
+    @Schema(description = "Temperature in Celsius", example = "14.0")
+    private Double temperature;
+
+    @Schema(description = "Wind speed in km/h", example = "8.0")
+    private Double windSpeed;
+
+    @Schema(description = "Rain probability percentage for forecast periods", example = "40.0")
+    private Double precipitationProbability;
+
+    @Schema(description = "Measured precipitation amount in mm for current observations", example = "2.0")
+    private Double precipitationAmount;
+
+    @Schema(description = "Relative humidity percentage", example = "24.0")
+    private Double humidity;
+
+    @Schema(example = "2026-02-24T19:10:00Z")
+    private String timestamp;
 }

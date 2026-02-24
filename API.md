@@ -228,6 +228,12 @@ GET /api/alerts/pending
 
 Retrieve weather data from NOAA API and search indexed data.
 
+NOAA condition normalization:
+- Temperature is normalized to Celsius.
+- Wind speed is normalized to km/h.
+- Forecast rain probability is returned as `precipitationProbability` (percent).
+- Current observed rain amount is returned as `precipitationAmount` (mm).
+
 #### Get Active Weather Alerts
 ```http
 GET /api/weather/active
@@ -294,6 +300,57 @@ GET /api/weather/state/{stateCode}
     "description": "Light snow and freezing rain expected.",
     "onset": "2026-02-23T12:00:00Z",
     "expires": "2026-02-24T06:00:00Z"
+  }
+]
+```
+
+#### Get Current Conditions for Coordinates
+```http
+GET /api/weather/conditions/current?latitude=28.5383&longitude=-81.3792
+```
+
+**Response (200 OK)**
+```json
+{
+  "id": "current-KORL-1771960200000",
+  "location": "Orlando Executive Airport",
+  "eventType": "CURRENT_CONDITIONS",
+  "headline": "Clear",
+  "description": "Latest NOAA observation from station KORL",
+  "temperature": 14.0,
+  "windSpeed": 8.0,
+  "humidity": 21.0,
+  "precipitationAmount": 0.0,
+  "timestamp": "2026-02-24T19:10:00Z"
+}
+```
+
+#### Get Forecast Conditions for Coordinates
+```http
+GET /api/weather/conditions/forecast?latitude=28.5383&longitude=-81.3792&hours=48
+```
+
+**Query Parameters:**
+- `latitude` (required): Latitude coordinate
+- `longitude` (required): Longitude coordinate
+- `hours` (optional): Forecast window in hours (1..168, default 48)
+
+**Response (200 OK)**
+```json
+[
+  {
+    "id": "forecast-28.5383--81.3792-1771960800000",
+    "location": "lat=28.5383,lon=-81.3792",
+    "eventType": "FORECAST_CONDITIONS",
+    "headline": "Sunny",
+    "description": "Sunny",
+    "onset": "2026-02-24T20:00:00Z",
+    "expires": "2026-02-24T21:00:00Z",
+    "temperature": 14.4,
+    "windSpeed": 8.0,
+    "humidity": 24.0,
+    "precipitationProbability": 0.0,
+    "timestamp": "2026-02-24T19:30:00Z"
   }
 ]
 ```
@@ -407,7 +464,13 @@ GET /api/weather/search/event/{eventType}
   "headline": "string",
   "description": "string",
   "onset": "string (ISO 8601)",
-  "expires": "string (ISO 8601)"
+  "expires": "string (ISO 8601)",
+  "temperature": "number (Celsius)",
+  "windSpeed": "number (km/h)",
+  "precipitationProbability": "number (percent, forecast)",
+  "precipitationAmount": "number (mm, current observation)",
+  "humidity": "number (percent)",
+  "timestamp": "string (ISO 8601)"
 }
 ```
 

@@ -37,6 +37,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Multi-criteria Matching**: Location, event type, severity, temperature, wind speed, precipitation
 - ✅ **Current + Forecast Monitoring Controls**: Criteria can target current conditions, forecast, or both
 - ✅ **Temperature Unit Preference**: Thresholds support Fahrenheit and Celsius
+- ✅ **NOAA Conditions Pipeline**: Current observations + hourly forecast retrieval by coordinate
 - ✅ **Geographic Filtering**: Radius-based location matching using Haversine formula
 - ✅ **Async Processing**: Kafka-based message queue for scalable alert processing
 - ✅ **Search Capabilities**: Elasticsearch integration for fast weather data queries
@@ -106,6 +107,11 @@ set +a
 
 This sets required security credentials and infrastructure endpoints without modifying `src/main/resources/application.yml`.
 It also includes `APP_NOAA_MAX_IN_MEMORY_SIZE` to avoid large NOAA payload buffer errors in local dev.
+Optional NOAA client tuning values in `.env`:
+
+- `APP_NOAA_REQUEST_TIMEOUT_SECONDS` (default `8`)
+- `APP_NOAA_RETRY_MAX_ATTEMPTS` (default `2`)
+- `APP_NOAA_RETRY_BACKOFF_MILLIS` (default `250`)
 
 ### 3. Database Migrations (Flyway)
 
@@ -287,6 +293,12 @@ GET /api/weather/location?latitude=47.6062&longitude=-122.3321
 # Get alerts for state
 GET /api/weather/state/WA
 
+# Get current conditions for coordinates (NOAA observations/latest)
+GET /api/weather/conditions/current?latitude=28.5383&longitude=-81.3792
+
+# Get hourly forecast conditions for coordinates (default 48h)
+GET /api/weather/conditions/forecast?latitude=28.5383&longitude=-81.3792&hours=48
+
 # Search by location (Elasticsearch)
 GET /api/weather/search/location/Seattle
 
@@ -298,6 +310,18 @@ GET /api/weather/search/event/Tornado
 
 ### WeatherData
 Represents weather information from NOAA including alerts, conditions, and forecasts.
+
+Normalization strategy for NOAA condition fields:
+- Temperature is normalized to **Celsius**
+- Wind speed is normalized to **km/h**
+- Forecast rain probability is stored as `precipitationProbability` (percent)
+- Observed rain amount is stored as `precipitationAmount` (mm)
+
+Operational behavior:
+- Adapter resolves point metadata (`/points/{lat},{lon}`), then calls:
+  - latest observation (`/stations/{stationId}/observations/latest`)
+  - hourly forecast (`forecastHourly` URL from point metadata)
+- NOAA calls use timeout + retry with safe fallbacks (empty result instead of hard failure)
 
 ### AlertCriteria
 User-defined criteria for triggering weather alerts. Supports:

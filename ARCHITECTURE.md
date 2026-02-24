@@ -102,9 +102,11 @@ This document provides a detailed overview of the Weather Alert Backend architec
 **NOAA API Adapter**
 ```
 NoaaWeatherAdapter
-├── Fetches weather alerts from https://api.weather.gov/
-├── Maps NOAA JSON to domain models
-└── Handles API errors gracefully
+├── Fetches active alerts from https://api.weather.gov/alerts/active
+├── Fetches current conditions via points -> stations -> observations/latest
+├── Fetches hourly forecast via points -> forecastHourly (windowed, e.g., 48h)
+├── Normalizes units (temperature C, wind km/h, precipitation probability/amount)
+└── Applies timeout + retry + empty-result fallback for provider resilience
 ```
 
 **Persistence Adapters**
@@ -153,6 +155,8 @@ Elasticsearch Search
 - GET `/active` - Get active NOAA alerts
 - GET `/location?lat={lat}&lon={lon}` - Get alerts for location
 - GET `/state/{stateCode}` - Get alerts for state
+- GET `/conditions/current?latitude={lat}&longitude={lon}` - Get latest current conditions
+- GET `/conditions/forecast?latitude={lat}&longitude={lon}&hours={h}` - Get hourly forecast conditions
 - GET `/search/location/{location}` - Search by location
 - GET `/search/event/{eventType}` - Search by event type
 

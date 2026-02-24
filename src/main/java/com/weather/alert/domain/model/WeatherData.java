@@ -33,6 +33,8 @@ public class WeatherData {
     private Double temperature;
     private Double windSpeed;
     private Double precipitation;
+    private Double precipitationProbability;
+    private Double precipitationAmount;
     private Double humidity;
     private Instant timestamp;
 }

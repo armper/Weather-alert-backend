@@ -74,6 +74,9 @@ app:
   noaa:
     # NOAA /alerts/active responses can exceed WebClient's default 256KB buffer
     max-in-memory-size: ${APP_NOAA_MAX_IN_MEMORY_SIZE:10MB}
+    request-timeout-seconds: ${APP_NOAA_REQUEST_TIMEOUT_SECONDS:8}
+    retry-max-attempts: ${APP_NOAA_RETRY_MAX_ATTEMPTS:2}
+    retry-backoff-millis: ${APP_NOAA_RETRY_BACKOFF_MILLIS:250}
   rate-limit:
     max-requests: 120
     window-seconds: 60

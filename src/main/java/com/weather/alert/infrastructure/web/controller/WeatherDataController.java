@@ -17,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +79,30 @@ public class WeatherDataController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/conditions/current")
+    @Operation(summary = "Get latest NOAA current conditions for a coordinate")
+    public ResponseEntity<WeatherDataResponse> getCurrentConditions(
+            @Parameter(example = "28.5383") @RequestParam double latitude,
+            @Parameter(example = "-81.3792") @RequestParam double longitude) {
+        Optional<WeatherData> current = weatherDataPort.fetchCurrentConditions(latitude, longitude);
+        return current.map(weatherData -> ResponseEntity.ok(toResponse(weatherData)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/conditions/forecast")
+    @Operation(summary = "Get NOAA hourly forecast conditions for a coordinate")
+    public ResponseEntity<List<WeatherDataResponse>> getForecastConditions(
+            @Parameter(example = "28.5383") @RequestParam double latitude,
+            @Parameter(example = "-81.3792") @RequestParam double longitude,
+            @Parameter(description = "Forecast horizon in hours (max 168)", example = "48")
+            @RequestParam(defaultValue = "48") @Min(1) @Max(168) int hours) {
+        List<WeatherData> weatherData = weatherDataPort.fetchForecastConditions(latitude, longitude, hours);
+        List<WeatherDataResponse> response = weatherData.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
     
     @GetMapping("/search/location/{location}")
     @Operation(summary = "Search indexed weather alerts by location text")
@@ -111,6 +136,12 @@ public class WeatherDataController {
                 .description(data.getDescription())
                 .onset(data.getOnset() != null ? data.getOnset().toString() : null)
                 .expires(data.getExpires() != null ? data.getExpires().toString() : null)
+                .temperature(data.getTemperature())
+                .windSpeed(data.getWindSpeed())
+                .precipitationProbability(data.getPrecipitationProbability())
+                .precipitationAmount(data.getPrecipitationAmount())
+                .humidity(data.getHumidity())
+                .timestamp(data.getTimestamp() != null ? data.getTimestamp().toString() : null)
                 .build();
     }
 }

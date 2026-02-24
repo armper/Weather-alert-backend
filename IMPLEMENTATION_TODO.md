@@ -30,13 +30,13 @@
 - [x] Update README + API docs with new criteria contract.
 
 ## Chunk 3: Weather Data Provider (Current + Forecast)
-- [ ] Add NOAA integration for current observations by location.
-- [ ] Add NOAA integration for forecast periods (at least 48h window support).
-- [ ] Normalize provider payloads into internal weather-condition models.
-- [ ] Add unit conversion helpers (F/C) and canonical storage strategy.
-- [ ] Add resilient error handling, timeouts, and fallback behavior.
-- [ ] Add provider-level tests/mocks.
-- [ ] Document data source behavior and limits in README/ARCHITECTURE.
+- [x] Add NOAA integration for current observations by location.
+- [x] Add NOAA integration for forecast periods (at least 48h window support).
+- [x] Normalize provider payloads into internal weather-condition models.
+- [x] Add unit conversion helpers (F/C) and canonical storage strategy.
+- [x] Add resilient error handling, timeouts, and fallback behavior.
+- [x] Add provider-level tests/mocks.
+- [x] Document data source behavior and limits in README/ARCHITECTURE.
 
 ## Chunk 4: Criteria Evaluation Engine
 - [ ] Refactor `AlertCriteria.matches` into explicit rule evaluation components.
