@@ -449,10 +449,11 @@ Messages published when new alerts are generated.
 The backend provides a STOMP WebSocket endpoint for real-time alert updates.
 
 - **Handshake endpoint**: `/ws-alerts`
-- **Subscription topic**: `/topic/alerts`
+- **Subscription topic**: `/topic/alerts/{userId}`
 - **Payload**: `Alert` JSON message
+- **Allowed origins**: configured via `app.websocket.allowed-origins` (default: `http://localhost:3000`)
 
-When a new alert is consumed from Kafka (`weather-alerts` topic), it is broadcast to `/topic/alerts`.
+When a new alert is consumed from Kafka (`weather-alerts` topic), it is broadcast to the user-specific destination `/topic/alerts/{userId}`.
 
 ---
 

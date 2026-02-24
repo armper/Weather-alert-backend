@@ -11,8 +11,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 class AlertKafkaConsumerTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final SimpMessagingTemplate simpMessagingTemplate = mock(SimpMessagingTemplate.class);
-    private final AlertKafkaConsumer alertKafkaConsumer = new AlertKafkaConsumer(new ObjectMapper(), simpMessagingTemplate);
+    private final AlertKafkaConsumer alertKafkaConsumer = new AlertKafkaConsumer(objectMapper, simpMessagingTemplate);
 
     @Test
     void shouldBroadcastAlertToWebSocketTopic() throws Exception {
@@ -24,14 +25,28 @@ class AlertKafkaConsumerTest {
                 .status(Alert.AlertStatus.PENDING)
                 .build();
 
-        alertKafkaConsumer.consumeAlert(new ObjectMapper().writeValueAsString(alert));
+        alertKafkaConsumer.consumeAlert(objectMapper.writeValueAsString(alert));
 
-        verify(simpMessagingTemplate).convertAndSend("/topic/alerts", alert);
+        verify(simpMessagingTemplate).convertAndSend("/topic/alerts/user-1", alert);
     }
 
     @Test
     void shouldNotBroadcastWhenPayloadIsInvalid() {
         alertKafkaConsumer.consumeAlert("{invalid-json");
+
+        verifyNoInteractions(simpMessagingTemplate);
+    }
+
+    @Test
+    void shouldNotBroadcastWhenUserIdIsMissing() throws Exception {
+        Alert alert = Alert.builder()
+                .id("alert-2")
+                .headline("Headline")
+                .description("Description")
+                .status(Alert.AlertStatus.PENDING)
+                .build();
+
+        alertKafkaConsumer.consumeAlert(objectMapper.writeValueAsString(alert));
 
         verifyNoInteractions(simpMessagingTemplate);
     }

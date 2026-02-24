@@ -27,7 +27,9 @@ public class AlertKafkaConsumer {
             
             // Process the alert - send notifications via email, SMS, push, etc.
             processAlert(alert);
-            simpMessagingTemplate.convertAndSend("/topic/alerts", alert);
+            if (alert.getUserId() != null && !alert.getUserId().isBlank()) {
+                simpMessagingTemplate.convertAndSend("/topic/alerts/" + alert.getUserId(), alert);
+            }
         } catch (Exception e) {
             log.error("Error consuming alert message", e);
         }
