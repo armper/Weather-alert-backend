@@ -37,10 +37,12 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                         new AntPathRequestMatcher("/api/**"),
+                        new AntPathRequestMatcher("/ws-alerts/**"),
                         new AntPathRequestMatcher("/actuator/**")))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/ws-alerts/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/criteria/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/criteria/**").hasRole("ADMIN")

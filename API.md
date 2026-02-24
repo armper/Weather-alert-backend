@@ -444,6 +444,18 @@ Messages published when new alerts are generated.
 
 ---
 
+## WebSocket Real-Time Updates
+
+The backend provides a STOMP WebSocket endpoint for real-time alert updates.
+
+- **Handshake endpoint**: `/ws-alerts`
+- **Subscription topic**: `/topic/alerts`
+- **Payload**: `Alert` JSON message
+
+When a new alert is consumed from Kafka (`weather-alerts` topic), it is broadcast to `/topic/alerts`.
+
+---
+
 ## Usage Examples
 
 ### Example 1: Create Tornado Alert for Seattle

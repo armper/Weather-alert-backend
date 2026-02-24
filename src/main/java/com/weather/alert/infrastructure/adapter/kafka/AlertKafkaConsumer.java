@@ -5,6 +5,7 @@ import com.weather.alert.domain.model.Alert;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 public class AlertKafkaConsumer {
     
     private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate simpMessagingTemplate;
     
     @KafkaListener(topics = "weather-alerts", groupId = "alert-processor")
     public void consumeAlert(String message) {
@@ -25,6 +27,7 @@ public class AlertKafkaConsumer {
             
             // Process the alert - send notifications via email, SMS, push, etc.
             processAlert(alert);
+            simpMessagingTemplate.convertAndSend("/topic/alerts", alert);
         } catch (Exception e) {
             log.error("Error consuming alert message", e);
         }
