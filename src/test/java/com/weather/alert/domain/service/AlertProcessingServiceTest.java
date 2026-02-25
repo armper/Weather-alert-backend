@@ -2,8 +2,10 @@ package com.weather.alert.domain.service;
 
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.AlertCriteriaState;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
+import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.NotificationPort;
 import com.weather.alert.domain.port.WeatherDataPort;
@@ -40,6 +42,9 @@ class AlertProcessingServiceTest {
     @Mock
     private WeatherDataSearchPort searchPort;
 
+    @Mock
+    private AlertCriteriaStateRepositoryPort criteriaStateRepository;
+
     private AlertProcessingService service;
 
     @BeforeEach
@@ -50,6 +55,7 @@ class AlertProcessingServiceTest {
                 alertRepository,
                 notificationPort,
                 searchPort,
+                criteriaStateRepository,
                 new AlertCriteriaRuleEvaluator()
         );
     }
@@ -81,6 +87,8 @@ class AlertProcessingServiceTest {
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
         when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
         when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(current));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.processWeatherAlerts();
@@ -133,6 +141,8 @@ class AlertProcessingServiceTest {
         when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
         when(weatherDataPort.fetchForecastConditions(28.5383, -81.3792, 48))
                 .thenReturn(List.of(forecastNonMatch, forecastMatchOne, forecastMatchTwo));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.processWeatherAlerts();
@@ -158,6 +168,7 @@ class AlertProcessingServiceTest {
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
         when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
 
         service.processWeatherAlerts();
 
@@ -189,6 +200,8 @@ class AlertProcessingServiceTest {
 
         when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
         when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(current));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         List<Alert> generated = service.processCriteriaImmediately(criteria);

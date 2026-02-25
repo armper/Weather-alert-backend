@@ -125,6 +125,7 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
 - Current migrations:
   - `V1__baseline.sql` (existing core tables)
   - `V2__extend_alert_criteria_for_weather_conditions.sql` (new weather-condition criteria fields)
+  - `V3__add_criteria_state.sql` (anti-spam criteria edge/notification state)
 
 Common commands:
 
@@ -342,6 +343,14 @@ Rule semantics:
 - Current and forecast evaluations are controlled by `monitorCurrent`, `monitorForecast`, and `forecastWindowHours` (default 48h).
 - Forecast processing emits one alert for the first matching forecast period per run.
 
+Anti-spam semantics:
+- Criteria state is persisted in `criteria_state` (`lastConditionMet`, `lastEventSignature`, `lastNotifiedAt`).
+- Notifications are edge-triggered by default: `not met -> met` emits alert.
+- While a condition remains met, duplicate alerts are suppressed.
+- When the condition clears and later re-occurs, a new alert is emitted (rearm behavior).
+- `rearmWindowMinutes` enforces cooldown between notifications to avoid rapid repeat alerts.
+- This enables repeated rain alerts across separate events during the week without scheduler spam.
+
 ### Alert
 Generated alert matching user criteria with weather data.
 
@@ -370,6 +379,7 @@ The application implements CQRS (Command Query Responsibility Segregation):
 
 - Weather data is automatically fetched from NOAA every 5 minutes
 - Alerts are processed and matched against user criteria (active alerts + current/forecast conditions for criteria with condition rules)
+- Criteria anti-spam state is persisted and evaluated before notifying (`criteria_state`)
 - Matched alerts are published to Kafka for async notification processing
 - Newly-created criteria are evaluated immediately so already-true conditions can notify right away
 

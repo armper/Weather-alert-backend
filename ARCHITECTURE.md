@@ -65,6 +65,7 @@ This document provides a detailed overview of the Weather Alert Backend architec
 #### Ports (Interfaces)
 - **AlertRepositoryPort**: Alert persistence operations
 - **AlertCriteriaRepositoryPort**: Criteria persistence operations
+- **AlertCriteriaStateRepositoryPort**: Criteria anti-spam edge-state persistence
 - **UserRepositoryPort**: User persistence operations
 - **WeatherDataPort**: Fetch weather data from external API
 - **NotificationPort**: Send notifications
@@ -115,8 +116,9 @@ NoaaWeatherAdapter
 JPA/PostgreSQL
 ├── AlertEntity → AlertRepositoryAdapter
 ├── AlertCriteriaEntity → AlertCriteriaRepositoryAdapter
+├── AlertCriteriaStateEntity → AlertCriteriaStateRepositoryAdapter
 ├── UserEntity → UserRepositoryAdapter
-└── Flyway-managed schema migrations + Hibernate validation (including criteria extension in V2)
+└── Flyway-managed schema migrations + Hibernate validation (including criteria extension in V2 and anti-spam state in V3)
 ```
 
 **Kafka Adapter**
@@ -193,8 +195,13 @@ Elasticsearch Search
        │   ├─► Fetch current conditions (if monitorCurrent=true)
        │   └─► Fetch forecast conditions in forecastWindowHours (if monitorForecast=true)
        │
-       ├─► Generate alerts for matches
-       │   └─► AlertRepositoryPort.save()
+       ├─► Load + evaluate criteria_state (anti-spam edge state)
+       │   ├─► If transition is not met -> met, generate alert
+       │   ├─► If still met, suppress duplicates
+       │   └─► If cleared then re-occurs, allow rearm notification
+       │
+       ├─► Persist alert + updated criteria_state
+       │   └─► AlertRepositoryPort.save() + AlertCriteriaStateRepositoryPort.save()
        │
        └─► Publish to Kafka
            └─► NotificationPort.publishAlert()

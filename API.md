@@ -10,7 +10,7 @@ http://localhost:8080
 - Database schema changes are managed with Flyway migrations in `src/main/resources/db/migration`.
 - Migrations run automatically at app startup.
 - JPA uses schema validation (`ddl-auto: validate`) to catch drift instead of mutating schema.
-- Latest criteria schema extension is in `V2__extend_alert_criteria_for_weather_conditions.sql`.
+- Latest anti-spam state migration is in `V3__add_criteria_state.sql`.
 
 ## API Endpoints
 
@@ -31,6 +31,8 @@ Evaluation semantics:
 - `monitorCurrent=true` evaluates NOAA latest observations; `monitorForecast=true` evaluates NOAA hourly forecast within `forecastWindowHours` (default `48`).
 - For forecast evaluation, one alert is generated from the first matching forecast period per processing run.
 - New criteria are immediately evaluated at creation time; if already true, an alert is generated right away.
+- Anti-spam state is persisted per criteria (`criteria_state`): notifications fire on `not met -> met` transition, are deduped while still met, and can re-fire after condition clears.
+- `rearmWindowMinutes` applies cooldown to prevent rapid re-notify loops.
 
 #### Create Alert Criteria
 ```http

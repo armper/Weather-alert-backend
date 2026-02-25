@@ -2,6 +2,7 @@ package com.weather.alert.domain.service;
 
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.AlertCriteriaState;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.*;
 import com.weather.alert.domain.service.evaluation.AlertCriteriaRuleEvaluator;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -27,6 +29,7 @@ public class AlertProcessingService {
     private final AlertRepositoryPort alertRepository;
     private final NotificationPort notificationPort;
     private final WeatherDataSearchPort searchPort;
+    private final AlertCriteriaStateRepositoryPort criteriaStateRepository;
     private final AlertCriteriaRuleEvaluator criteriaRuleEvaluator;
     
     /**
@@ -43,14 +46,14 @@ public class AlertProcessingService {
         List<AlertCriteria> allCriteria = criteriaRepository.findAllEnabled();
         log.info("Found {} enabled alert criteria", allCriteria.size());
         
-        List<Alert> generatedAlerts = new ArrayList<>();
+        int generatedAlertCount = 0;
         
         for (AlertCriteria criteria : allCriteria) {
-            generatedAlerts.addAll(generateAlertsForCriteria(criteria, activeWeatherAlerts, true));
-            generatedAlerts.addAll(generateConditionAlertsForCriteria(criteria, true));
+            CriteriaEvaluation evaluation = evaluateCriteria(criteria, activeWeatherAlerts);
+            generatedAlertCount += applyStateAndMaybeNotify(criteria, evaluation, true).size();
         }
         
-        log.info("Generated {} alerts", generatedAlerts.size());
+        log.info("Generated {} alerts", generatedAlertCount);
     }
 
     /**
@@ -67,8 +70,8 @@ public class AlertProcessingService {
 
         List<WeatherData> activeWeatherAlerts = weatherDataPort.fetchActiveAlerts();
         activeWeatherAlerts.forEach(searchPort::indexWeatherData);
-        generatedAlerts.addAll(generateAlertsForCriteria(criteria, activeWeatherAlerts, true));
-        generatedAlerts.addAll(generateConditionAlertsForCriteria(criteria, true));
+        CriteriaEvaluation evaluation = evaluateCriteria(criteria, activeWeatherAlerts);
+        generatedAlerts.addAll(applyStateAndMaybeNotify(criteria, evaluation, true));
 
         log.info("Immediate evaluation generated {} alerts for criteria {}", generatedAlerts.size(), criteria.getId());
         return generatedAlerts;
@@ -92,46 +95,38 @@ public class AlertProcessingService {
         return alerts;
     }
 
-    private List<Alert> generateAlertsForCriteria(
-            AlertCriteria criteria,
-            List<WeatherData> weatherDataList,
-            boolean publish) {
+    private CriteriaEvaluation evaluateCriteria(AlertCriteria criteria, List<WeatherData> activeWeatherAlerts) {
         if (criteria == null || !Boolean.TRUE.equals(criteria.getEnabled())) {
-            return List.of();
+            return CriteriaEvaluation.notMet();
         }
 
-        List<Alert> generatedAlerts = new ArrayList<>();
-        for (WeatherData weatherData : weatherDataList) {
-            if (!criteriaRuleEvaluator.matches(criteria, weatherData)) {
-                continue;
-            }
-            generatedAlerts.add(saveAndPublishAlert(criteria, weatherData, publish));
+        Optional<WeatherData> activeAlertMatch = activeWeatherAlerts.stream()
+                .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
+                .findFirst();
+        if (activeAlertMatch.isPresent()) {
+            return CriteriaEvaluation.met(activeAlertMatch.get());
         }
-        return generatedAlerts;
-    }
 
-    private List<Alert> generateConditionAlertsForCriteria(AlertCriteria criteria, boolean publish) {
-        if (criteria == null || !Boolean.TRUE.equals(criteria.getEnabled())) {
-            return List.of();
-        }
         if (!criteriaRuleEvaluator.hasWeatherConditionRules(criteria)) {
-            return List.of();
+            return CriteriaEvaluation.notMet();
         }
+
         if (criteria.getLatitude() == null || criteria.getLongitude() == null) {
             log.debug("Skipping condition evaluation for criteria {}: missing latitude/longitude", criteria.getId());
-            return List.of();
+            return CriteriaEvaluation.notMet();
         }
 
-        List<Alert> generatedAlerts = new ArrayList<>();
-
         if (shouldMonitorCurrent(criteria)) {
-            weatherDataPort.fetchCurrentConditions(criteria.getLatitude(), criteria.getLongitude())
-                    .ifPresent(current -> {
+            Optional<WeatherData> currentMatch = weatherDataPort
+                    .fetchCurrentConditions(criteria.getLatitude(), criteria.getLongitude())
+                    .map(current -> {
                         searchPort.indexWeatherData(current);
-                        if (criteriaRuleEvaluator.matches(criteria, current)) {
-                            generatedAlerts.add(saveAndPublishAlert(criteria, current, publish));
-                        }
-                    });
+                        return current;
+                    })
+                    .filter(current -> criteriaRuleEvaluator.matches(criteria, current));
+            if (currentMatch.isPresent()) {
+                return CriteriaEvaluation.met(currentMatch.get());
+            }
         }
 
         if (shouldMonitorForecast(criteria)) {
@@ -142,15 +137,105 @@ public class AlertProcessingService {
                     forecastWindowHours
             );
             forecast.forEach(searchPort::indexWeatherData);
-
-            // In this chunk, send one alert for the first matching forecast period.
-            forecast.stream()
+            Optional<WeatherData> forecastMatch = forecast.stream()
                     .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
-                    .findFirst()
-                    .ifPresent(match -> generatedAlerts.add(saveAndPublishAlert(criteria, match, publish)));
+                    .findFirst();
+            if (forecastMatch.isPresent()) {
+                return CriteriaEvaluation.met(forecastMatch.get());
+            }
         }
 
-        return generatedAlerts;
+        return CriteriaEvaluation.notMet();
+    }
+
+    private List<Alert> applyStateAndMaybeNotify(AlertCriteria criteria, CriteriaEvaluation evaluation, boolean publish) {
+        if (criteria == null || criteria.getId() == null || criteria.getId().isBlank()) {
+            return List.of();
+        }
+
+        Instant now = Instant.now();
+        AlertCriteriaState state = criteriaStateRepository.findByCriteriaId(criteria.getId())
+                .orElseGet(() -> AlertCriteriaState.builder()
+                        .criteriaId(criteria.getId())
+                        .lastConditionMet(false)
+                        .createdAt(now)
+                        .updatedAt(now)
+                        .build());
+
+        if (!evaluation.conditionMet()) {
+            if (Boolean.TRUE.equals(state.getLastConditionMet())) {
+                state.setLastConditionMet(false);
+                state.setUpdatedAt(now);
+                criteriaStateRepository.save(state);
+            }
+            return List.of();
+        }
+
+        WeatherData matchedWeatherData = evaluation.matchedWeatherData();
+        String eventSignature = buildEventSignature(criteria, matchedWeatherData);
+        boolean wasMet = Boolean.TRUE.equals(state.getLastConditionMet());
+        boolean oncePerEvent = criteria.getOncePerEvent() == null || criteria.getOncePerEvent();
+        boolean signatureChanged = state.getLastEventSignature() == null || !state.getLastEventSignature().equals(eventSignature);
+        boolean cooldownElapsed = isCooldownElapsed(criteria, state, now);
+
+        boolean shouldNotify;
+        if (!wasMet) {
+            shouldNotify = cooldownElapsed;
+        } else if (oncePerEvent) {
+            shouldNotify = signatureChanged && cooldownElapsed;
+        } else {
+            shouldNotify = signatureChanged || cooldownElapsed;
+        }
+
+        if (shouldNotify) {
+            Alert savedAlert = saveAndPublishAlert(criteria, matchedWeatherData, publish);
+            state.setLastConditionMet(true);
+            state.setLastEventSignature(eventSignature);
+            state.setLastNotifiedAt(now);
+            state.setUpdatedAt(now);
+            criteriaStateRepository.save(state);
+            return List.of(savedAlert);
+        }
+
+        // Keep the state "not met" while still in cooldown after a fresh condition edge, so it can fire later.
+        if (!wasMet && !cooldownElapsed) {
+            state.setLastConditionMet(false);
+        } else {
+            state.setLastConditionMet(true);
+        }
+        state.setUpdatedAt(now);
+        criteriaStateRepository.save(state);
+        return List.of();
+    }
+
+    private boolean isCooldownElapsed(AlertCriteria criteria, AlertCriteriaState state, Instant now) {
+        int rearmWindowMinutes = criteria.getRearmWindowMinutes() == null ? 0 : Math.max(criteria.getRearmWindowMinutes(), 0);
+        if (rearmWindowMinutes == 0 || state.getLastNotifiedAt() == null) {
+            return true;
+        }
+        return !state.getLastNotifiedAt().plusSeconds(rearmWindowMinutes * 60L).isAfter(now);
+    }
+
+    private String buildEventSignature(AlertCriteria criteria, WeatherData weatherData) {
+        if (weatherData == null) {
+            return "none";
+        }
+        String eventType = safeValue(weatherData.getEventType());
+        if ("CURRENT_CONDITIONS".equalsIgnoreCase(eventType)) {
+            return "current|" + criteria.getId();
+        }
+        if ("FORECAST_CONDITIONS".equalsIgnoreCase(eventType)) {
+            String onset = weatherData.getOnset() != null ? weatherData.getOnset().toString() : "unknown";
+            return "forecast|" + criteria.getId() + "|" + onset + "|" + safeValue(weatherData.getHeadline());
+        }
+        if (weatherData.getId() != null && !weatherData.getId().isBlank()) {
+            return "alert|" + weatherData.getId();
+        }
+        return "alert|" + safeValue(weatherData.getEventType()) + "|" + safeValue(weatherData.getLocation());
+    }
+
+    private String safeValue(String value) {
+        return value == null ? "unknown" : value;
     }
 
     private Alert saveAndPublishAlert(AlertCriteria criteria, WeatherData weatherData, boolean publish) {
@@ -191,5 +276,15 @@ public class AlertProcessingService {
                 .alertTime(Instant.now())
                 .status(Alert.AlertStatus.PENDING)
                 .build();
+    }
+
+    private record CriteriaEvaluation(boolean conditionMet, WeatherData matchedWeatherData) {
+        static CriteriaEvaluation notMet() {
+            return new CriteriaEvaluation(false, null);
+        }
+
+        static CriteriaEvaluation met(WeatherData matchedWeatherData) {
+            return new CriteriaEvaluation(true, matchedWeatherData);
+        }
     }
 }

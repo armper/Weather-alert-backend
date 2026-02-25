@@ -52,14 +52,14 @@
 - [x] Update README/API docs with rule semantics.
 
 ## Chunk 5: One-Time-Per-Event Anti-Spam State
-- [ ] Add `criteria_state` persistence model for edge-triggering.
-- [ ] Store last condition status (`met`/`not met`) and last notified event signature.
-- [ ] Implement transition logic (`not met -> met` triggers notify).
-- [ ] Implement rearm logic for repeat events after condition clears.
-- [ ] Ensure repeated rain events can notify multiple times per week without spam.
-- [ ] Add DB indexes for efficient scheduler scans.
-- [ ] Add integration tests for dedupe/rearm behavior.
-- [ ] Document anti-spam logic and examples in README.
+- [x] Add `criteria_state` persistence model for edge-triggering.
+- [x] Store last condition status (`met`/`not met`) and last notified event signature.
+- [x] Implement transition logic (`not met -> met` triggers notify).
+- [x] Implement rearm logic for repeat events after condition clears.
+- [x] Ensure repeated rain events can notify multiple times per week without spam.
+- [x] Add DB indexes for efficient scheduler scans.
+- [x] Add integration tests for dedupe/rearm behavior.
+- [x] Document anti-spam logic and examples in README.
 
 ## Chunk 6: Alert Persistence + Lifecycle
 - [ ] Extend alert schema with `eventKey`, `reason`, and weather-condition metadata.
