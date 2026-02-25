@@ -77,6 +77,9 @@ app:
     request-timeout-seconds: ${APP_NOAA_REQUEST_TIMEOUT_SECONDS:8}
     retry-max-attempts: ${APP_NOAA_RETRY_MAX_ATTEMPTS:2}
     retry-backoff-millis: ${APP_NOAA_RETRY_BACKOFF_MILLIS:250}
+    min-request-interval-millis: ${APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS:150}
+    outage-failure-threshold: ${APP_NOAA_OUTAGE_FAILURE_THRESHOLD:4}
+    outage-open-seconds: ${APP_NOAA_OUTAGE_OPEN_SECONDS:30}
   rate-limit:
     max-requests: 120
     window-seconds: 60

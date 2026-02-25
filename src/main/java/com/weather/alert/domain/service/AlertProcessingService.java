@@ -4,8 +4,16 @@ import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertCriteriaState;
 import com.weather.alert.domain.model.WeatherData;
-import com.weather.alert.domain.port.*;
+import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
+import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
+import com.weather.alert.domain.port.AlertRepositoryPort;
+import com.weather.alert.domain.port.NotificationPort;
+import com.weather.alert.domain.port.WeatherDataPort;
+import com.weather.alert.domain.port.WeatherDataSearchPort;
+import com.weather.alert.domain.port.WeatherFetchResult;
 import com.weather.alert.domain.service.evaluation.AlertCriteriaRuleEvaluator;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,7 +33,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class AlertProcessingService {
-    
+
+    private static final int CRITERIA_BATCH_SIZE = 100;
+
     private final WeatherDataPort weatherDataPort;
     private final AlertCriteriaRepositoryPort criteriaRepository;
     private final AlertRepositoryPort alertRepository;
@@ -32,29 +43,93 @@ public class AlertProcessingService {
     private final WeatherDataSearchPort searchPort;
     private final AlertCriteriaStateRepositoryPort criteriaStateRepository;
     private final AlertCriteriaRuleEvaluator criteriaRuleEvaluator;
-    
+    private final MeterRegistry meterRegistry;
+
     /**
      * Process weather data and generate alerts based on user criteria
      */
     public void processWeatherAlerts() {
-        log.info("Starting weather alert processing");
-        
-        List<WeatherData> activeWeatherAlerts = weatherDataPort.fetchActiveAlerts();
-        log.info("Fetched {} active NOAA weather alerts", activeWeatherAlerts.size());
-        
-        activeWeatherAlerts.forEach(searchPort::indexWeatherData);
-        
-        List<AlertCriteria> allCriteria = criteriaRepository.findAllEnabled();
-        log.info("Found {} enabled alert criteria", allCriteria.size());
-        
-        int generatedAlertCount = 0;
-        
-        for (AlertCriteria criteria : allCriteria) {
-            CriteriaEvaluation evaluation = evaluateCriteria(criteria, activeWeatherAlerts);
-            generatedAlertCount += applyStateAndMaybeNotify(criteria, evaluation, true).size();
+        Timer.Sample processingTimer = Timer.start(meterRegistry);
+        try {
+            log.info("Starting weather alert processing");
+
+            WeatherFetchResult<List<WeatherData>> activeAlertsResult = weatherDataPort.fetchActiveAlertsWithStatus();
+            List<WeatherData> activeWeatherAlerts = activeAlertsResult.data() == null ? List.of() : activeAlertsResult.data();
+            log.info(
+                    "Fetched {} active NOAA weather alerts (providerSuccess={})",
+                    activeWeatherAlerts.size(),
+                    activeAlertsResult.successful());
+            if (!activeAlertsResult.successful()) {
+                log.warn("NOAA active alerts unavailable. reason={}", safeValue(activeAlertsResult.failureReason()));
+            }
+
+            activeWeatherAlerts.forEach(searchPort::indexWeatherData);
+
+            List<AlertCriteria> allCriteria = criteriaRepository.findAllEnabled();
+            log.info("Found {} enabled alert criteria", allCriteria.size());
+
+            int generatedAlertCount = 0;
+            int metCount = 0;
+            int notMetCount = 0;
+            int unavailableCount = 0;
+            int suppressedCount = 0;
+
+            HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache = new HashMap<>();
+            HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache = new HashMap<>();
+
+            List<List<AlertCriteria>> batches = partition(allCriteria, CRITERIA_BATCH_SIZE);
+            for (int i = 0; i < batches.size(); i++) {
+                List<AlertCriteria> batch = batches.get(i);
+                log.info("Processing criteria batch {}/{} (size={})", i + 1, batches.size(), batch.size());
+
+                for (AlertCriteria criteria : batch) {
+                    meterRegistry.counter("weather.alert.criteria.evaluated").increment();
+
+                    CriteriaEvaluation evaluation = evaluateCriteria(
+                            criteria,
+                            activeWeatherAlerts,
+                            activeAlertsResult.successful(),
+                            activeAlertsResult.failureReason(),
+                            currentConditionsCache,
+                            forecastConditionsCache);
+
+                    switch (evaluation.status()) {
+                        case MET -> {
+                            metCount++;
+                            meterRegistry.counter("weather.alert.criteria.met").increment();
+                        }
+                        case NOT_MET -> {
+                            notMetCount++;
+                            meterRegistry.counter("weather.alert.criteria.not_met").increment();
+                        }
+                        case UNAVAILABLE -> {
+                            unavailableCount++;
+                            meterRegistry.counter("weather.alert.criteria.unavailable").increment();
+                        }
+                    }
+
+                    List<Alert> generatedAlerts = applyStateAndMaybeNotify(criteria, evaluation, true);
+                    if (evaluation.status() == CriteriaEvaluationStatus.MET && generatedAlerts.isEmpty()) {
+                        suppressedCount++;
+                        meterRegistry.counter("weather.alert.criteria.suppressed").increment();
+                    }
+                    if (!generatedAlerts.isEmpty()) {
+                        meterRegistry.counter("weather.alert.triggered").increment(generatedAlerts.size());
+                    }
+                    generatedAlertCount += generatedAlerts.size();
+                }
+            }
+
+            log.info(
+                    "Weather alert processing completed: generated={}, met={}, notMet={}, unavailable={}, suppressed={}",
+                    generatedAlertCount,
+                    metCount,
+                    notMetCount,
+                    unavailableCount,
+                    suppressedCount);
+        } finally {
+            processingTimer.stop(meterRegistry.timer("weather.alert.processing.duration"));
         }
-        
-        log.info("Generated {} alerts", generatedAlertCount);
     }
 
     /**
@@ -67,24 +142,34 @@ public class AlertProcessingService {
         }
 
         log.info("Running immediate evaluation for criteria {} (user={})", criteria.getId(), criteria.getUserId());
-        List<Alert> generatedAlerts = new ArrayList<>();
 
-        List<WeatherData> activeWeatherAlerts = weatherDataPort.fetchActiveAlerts();
+        WeatherFetchResult<List<WeatherData>> activeAlertsResult = weatherDataPort.fetchActiveAlertsWithStatus();
+        List<WeatherData> activeWeatherAlerts = activeAlertsResult.data() == null ? List.of() : activeAlertsResult.data();
         activeWeatherAlerts.forEach(searchPort::indexWeatherData);
-        CriteriaEvaluation evaluation = evaluateCriteria(criteria, activeWeatherAlerts);
-        generatedAlerts.addAll(applyStateAndMaybeNotify(criteria, evaluation, true));
+
+        HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache = new HashMap<>();
+        HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache = new HashMap<>();
+
+        CriteriaEvaluation evaluation = evaluateCriteria(
+                criteria,
+                activeWeatherAlerts,
+                activeAlertsResult.successful(),
+                activeAlertsResult.failureReason(),
+                currentConditionsCache,
+                forecastConditionsCache);
+        List<Alert> generatedAlerts = applyStateAndMaybeNotify(criteria, evaluation, true);
 
         log.info("Immediate evaluation generated {} alerts for criteria {}", generatedAlerts.size(), criteria.getId());
         return generatedAlerts;
     }
-    
+
     /**
      * Process alerts for a specific location
      */
     public List<Alert> processAlertsForLocation(double latitude, double longitude) {
         List<WeatherData> weatherDataList = weatherDataPort.fetchAlertsForLocation(latitude, longitude);
         List<AlertCriteria> allCriteria = criteriaRepository.findAllEnabled();
-        
+
         List<Alert> alerts = new ArrayList<>();
         for (WeatherData weatherData : weatherDataList) {
             for (AlertCriteria criteria : allCriteria) {
@@ -96,61 +181,98 @@ public class AlertProcessingService {
         return alerts;
     }
 
-    private CriteriaEvaluation evaluateCriteria(AlertCriteria criteria, List<WeatherData> activeWeatherAlerts) {
+    private CriteriaEvaluation evaluateCriteria(
+            AlertCriteria criteria,
+            List<WeatherData> activeWeatherAlerts,
+            boolean activeAlertsSuccessful,
+            String activeAlertsFailureReason,
+            HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache,
+            HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache) {
         if (criteria == null || !Boolean.TRUE.equals(criteria.getEnabled())) {
-            return CriteriaEvaluation.notMet();
+            return CriteriaEvaluation.notMet("criteria disabled");
         }
 
         Optional<WeatherData> activeAlertMatch = activeWeatherAlerts.stream()
                 .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
                 .findFirst();
         if (activeAlertMatch.isPresent()) {
-            return CriteriaEvaluation.met(activeAlertMatch.get());
+            return CriteriaEvaluation.met(activeAlertMatch.get(), "active alert match");
         }
 
-        if (!criteriaRuleEvaluator.hasWeatherConditionRules(criteria)) {
-            return CriteriaEvaluation.notMet();
+        boolean hasConditionRules = criteriaRuleEvaluator.hasWeatherConditionRules(criteria);
+        if (!hasConditionRules) {
+            if (!activeAlertsSuccessful) {
+                return CriteriaEvaluation.unavailable("active alerts unavailable: " + safeValue(activeAlertsFailureReason));
+            }
+            return CriteriaEvaluation.notMet("no active alert match");
         }
 
         if (criteria.getLatitude() == null || criteria.getLongitude() == null) {
             log.debug("Skipping condition evaluation for criteria {}: missing latitude/longitude", criteria.getId());
-            return CriteriaEvaluation.notMet();
+            return CriteriaEvaluation.notMet("condition rules configured without coordinates");
+        }
+
+        List<String> unavailableReasons = new ArrayList<>();
+        if (!activeAlertsSuccessful) {
+            unavailableReasons.add("active alerts unavailable");
         }
 
         if (shouldMonitorCurrent(criteria)) {
-            Optional<WeatherData> currentMatch = weatherDataPort
-                    .fetchCurrentConditions(criteria.getLatitude(), criteria.getLongitude())
-                    .map(current -> {
-                        searchPort.indexWeatherData(current);
-                        return current;
-                    })
-                    .filter(current -> criteriaRuleEvaluator.matches(criteria, current));
-            if (currentMatch.isPresent()) {
-                return CriteriaEvaluation.met(currentMatch.get());
+            CoordinateKey key = new CoordinateKey(criteria.getLatitude(), criteria.getLongitude());
+            WeatherFetchResult<Optional<WeatherData>> currentResult = currentConditionsCache.computeIfAbsent(
+                    key,
+                    coordinateKey -> weatherDataPort.fetchCurrentConditionsWithStatus(coordinateKey.latitude(), coordinateKey.longitude()));
+            if (!currentResult.successful()) {
+                unavailableReasons.add("current conditions unavailable: " + safeValue(currentResult.failureReason()));
+            } else {
+                Optional<WeatherData> current = currentResult.data() == null ? Optional.empty() : currentResult.data();
+                current.ifPresent(searchPort::indexWeatherData);
+                if (current.isPresent() && criteriaRuleEvaluator.matches(criteria, current.get())) {
+                    return CriteriaEvaluation.met(current.get(), "current conditions match");
+                }
             }
         }
 
         if (shouldMonitorForecast(criteria)) {
             int forecastWindowHours = normalizeForecastWindowHours(criteria.getForecastWindowHours());
-            List<WeatherData> forecast = weatherDataPort.fetchForecastConditions(
-                    criteria.getLatitude(),
-                    criteria.getLongitude(),
-                    forecastWindowHours
-            );
-            forecast.forEach(searchPort::indexWeatherData);
-            Optional<WeatherData> forecastMatch = forecast.stream()
-                    .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
-                    .findFirst();
-            if (forecastMatch.isPresent()) {
-                return CriteriaEvaluation.met(forecastMatch.get());
+            ForecastKey key = new ForecastKey(criteria.getLatitude(), criteria.getLongitude(), forecastWindowHours);
+            WeatherFetchResult<List<WeatherData>> forecastResult = forecastConditionsCache.computeIfAbsent(
+                    key,
+                    forecastKey -> weatherDataPort.fetchForecastConditionsWithStatus(
+                            forecastKey.latitude(),
+                            forecastKey.longitude(),
+                            forecastKey.windowHours()));
+
+            if (!forecastResult.successful()) {
+                unavailableReasons.add("forecast unavailable: " + safeValue(forecastResult.failureReason()));
+            } else {
+                List<WeatherData> forecast = forecastResult.data() == null ? List.of() : forecastResult.data();
+                forecast.forEach(searchPort::indexWeatherData);
+                Optional<WeatherData> forecastMatch = forecast.stream()
+                        .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
+                        .findFirst();
+                if (forecastMatch.isPresent()) {
+                    return CriteriaEvaluation.met(forecastMatch.get(), "forecast match");
+                }
             }
         }
 
-        return CriteriaEvaluation.notMet();
+        if (!unavailableReasons.isEmpty()) {
+            return CriteriaEvaluation.unavailable(String.join("; ", unavailableReasons));
+        }
+        return CriteriaEvaluation.notMet("no condition match");
     }
 
     private List<Alert> applyStateAndMaybeNotify(AlertCriteria criteria, CriteriaEvaluation evaluation, boolean publish) {
         if (criteria == null || criteria.getId() == null || criteria.getId().isBlank()) {
+            return List.of();
+        }
+
+        if (evaluation.status() == CriteriaEvaluationStatus.UNAVAILABLE) {
+            log.warn(
+                    "Skipping state transition for criteria {} due to unavailable data. reason={}",
+                    criteria.getId(),
+                    safeValue(evaluation.reason()));
             return List.of();
         }
 
@@ -169,6 +291,7 @@ public class AlertProcessingService {
                 state.setUpdatedAt(now);
                 criteriaStateRepository.save(state);
             }
+            log.debug("Criteria {} evaluated outcome=NOT_MET reason={}", criteria.getId(), safeValue(evaluation.reason()));
             return List.of();
         }
 
@@ -195,6 +318,10 @@ public class AlertProcessingService {
             state.setLastNotifiedAt(now);
             state.setUpdatedAt(now);
             criteriaStateRepository.save(state);
+            log.info(
+                    "Criteria decision outcome=TRIGGERED criteriaId={} eventSignature={}",
+                    criteria.getId(),
+                    eventSignature);
             return savedAlert.map(List::of).orElseGet(List::of);
         }
 
@@ -206,6 +333,13 @@ public class AlertProcessingService {
         }
         state.setUpdatedAt(now);
         criteriaStateRepository.save(state);
+        log.info(
+                "Criteria decision outcome=SUPPRESSED criteriaId={} eventSignature={} oncePerEvent={} signatureChanged={} cooldownElapsed={}",
+                criteria.getId(),
+                eventSignature,
+                oncePerEvent,
+                signatureChanged,
+                cooldownElapsed);
         return List.of();
     }
 
@@ -243,7 +377,8 @@ public class AlertProcessingService {
         Alert alert = createAlert(criteria, weatherData);
         Optional<Alert> existing = alertRepository.findByCriteriaIdAndEventKey(criteria.getId(), alert.getEventKey());
         if (existing.isPresent()) {
-            log.debug("Skipping duplicate alert for criteria {} and eventKey {}", criteria.getId(), alert.getEventKey());
+            meterRegistry.counter("weather.alert.criteria.deduped").increment();
+            log.info("Criteria decision outcome=DEDUPED criteriaId={} eventKey={}", criteria.getId(), alert.getEventKey());
             return Optional.empty();
         }
 
@@ -251,8 +386,12 @@ public class AlertProcessingService {
         if (publish) {
             notificationPort.publishAlert(savedAlert);
         }
-        log.info("Generated alert {} for user {} based on criteria {}",
-                savedAlert.getId(), criteria.getUserId(), criteria.getId());
+        log.info(
+                "Generated alert {} for user {} based on criteria {} (eventKey={})",
+                savedAlert.getId(),
+                criteria.getUserId(),
+                criteria.getId(),
+                savedAlert.getEventKey());
         return Optional.of(savedAlert);
     }
 
@@ -268,7 +407,7 @@ public class AlertProcessingService {
         int value = hours == null ? 48 : hours;
         return Math.max(1, Math.min(value, 168));
     }
-    
+
     private Alert createAlert(AlertCriteria criteria, WeatherData weatherData) {
         Instant now = Instant.now();
         String eventKey = buildEventKey(criteria, weatherData, now);
@@ -346,13 +485,49 @@ public class AlertProcessingService {
         return Instant.now();
     }
 
-    private record CriteriaEvaluation(boolean conditionMet, WeatherData matchedWeatherData) {
-        static CriteriaEvaluation notMet() {
-            return new CriteriaEvaluation(false, null);
+    private List<List<AlertCriteria>> partition(List<AlertCriteria> criteria, int batchSize) {
+        if (criteria == null || criteria.isEmpty()) {
+            return List.of();
+        }
+        List<List<AlertCriteria>> partitions = new ArrayList<>();
+        for (int start = 0; start < criteria.size(); start += batchSize) {
+            int end = Math.min(start + batchSize, criteria.size());
+            partitions.add(criteria.subList(start, end));
+        }
+        return partitions;
+    }
+
+    private enum CriteriaEvaluationStatus {
+        MET,
+        NOT_MET,
+        UNAVAILABLE
+    }
+
+    private record CriteriaEvaluation(
+            CriteriaEvaluationStatus status,
+            WeatherData matchedWeatherData,
+            String reason) {
+
+        static CriteriaEvaluation notMet(String reason) {
+            return new CriteriaEvaluation(CriteriaEvaluationStatus.NOT_MET, null, reason);
         }
 
-        static CriteriaEvaluation met(WeatherData matchedWeatherData) {
-            return new CriteriaEvaluation(true, matchedWeatherData);
+        static CriteriaEvaluation met(WeatherData matchedWeatherData, String reason) {
+            return new CriteriaEvaluation(CriteriaEvaluationStatus.MET, matchedWeatherData, reason);
         }
+
+        static CriteriaEvaluation unavailable(String reason) {
+            return new CriteriaEvaluation(CriteriaEvaluationStatus.UNAVAILABLE, null, reason);
+        }
+
+        boolean conditionMet() {
+            return status == CriteriaEvaluationStatus.MET;
+        }
+    }
+
+    private record CoordinateKey(double latitude, double longitude) {
+    }
+
+    private record ForecastKey(double latitude, double longitude, int windowHours) {
     }
 }

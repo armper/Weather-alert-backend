@@ -77,11 +77,11 @@
 - [x] Add changelog-style notes in README for new endpoints/fields.
 
 ## Chunk 8: Scheduler + Orchestration
-- [ ] Update scheduler flow to fetch conditions, evaluate criteria, and publish alerts.
-- [ ] Add safe batching/rate limiting for external provider calls.
-- [ ] Add observability around rule evaluations and trigger counts.
-- [ ] Add guardrails for provider outages (no false positives, recover cleanly).
-- [ ] Document operational behavior in README/DEPLOYMENT.
+- [x] Update scheduler flow to fetch conditions, evaluate criteria, and publish alerts.
+- [x] Add safe batching/rate limiting for external provider calls.
+- [x] Add observability around rule evaluations and trigger counts.
+- [x] Add guardrails for provider outages (no false positives, recover cleanly).
+- [x] Document operational behavior in README/DEPLOYMENT.
 
 ## Chunk 9: Observability + Monitoring
 - [ ] Add metrics:

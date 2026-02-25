@@ -9,8 +9,10 @@ import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.NotificationPort;
 import com.weather.alert.domain.port.WeatherDataPort;
+import com.weather.alert.domain.port.WeatherFetchResult;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.domain.service.evaluation.AlertCriteriaRuleEvaluator;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,7 +60,8 @@ class AlertProcessingServiceTest {
                 notificationPort,
                 searchPort,
                 criteriaStateRepository,
-                new AlertCriteriaRuleEvaluator()
+                new AlertCriteriaRuleEvaluator(),
+                new SimpleMeterRegistry()
         );
         lenient().when(alertRepository.findByCriteriaIdAndEventKey(anyString(), anyString()))
                 .thenReturn(Optional.empty());
@@ -89,16 +92,17 @@ class AlertProcessingServiceTest {
                 .build();
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(current));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(current)));
         when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
         when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.processWeatherAlerts();
 
-        verify(weatherDataPort, times(1)).fetchCurrentConditions(28.5383, -81.3792);
-        verify(weatherDataPort, never()).fetchForecastConditions(anyDouble(), anyDouble(), anyInt());
+        verify(weatherDataPort, times(1)).fetchCurrentConditionsWithStatus(28.5383, -81.3792);
+        verify(weatherDataPort, never()).fetchForecastConditionsWithStatus(anyDouble(), anyDouble(), anyInt());
         verify(alertRepository, times(1)).save(any(Alert.class));
         verify(notificationPort, times(1)).publishAlert(any(Alert.class));
     }
@@ -142,17 +146,17 @@ class AlertProcessingServiceTest {
                 .build();
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchForecastConditions(28.5383, -81.3792, 48))
-                .thenReturn(List.of(forecastNonMatch, forecastMatchOne, forecastMatchTwo));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchForecastConditionsWithStatus(28.5383, -81.3792, 48))
+                .thenReturn(WeatherFetchResult.success(List.of(forecastNonMatch, forecastMatchOne, forecastMatchTwo)));
         when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
         when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.processWeatherAlerts();
 
-        verify(weatherDataPort, never()).fetchCurrentConditions(anyDouble(), anyDouble());
-        verify(weatherDataPort, times(1)).fetchForecastConditions(28.5383, -81.3792, 48);
+        verify(weatherDataPort, never()).fetchCurrentConditionsWithStatus(anyDouble(), anyDouble());
+        verify(weatherDataPort, times(1)).fetchForecastConditionsWithStatus(28.5383, -81.3792, 48);
         verify(alertRepository, times(1)).save(any(Alert.class));
         verify(notificationPort, times(1)).publishAlert(any(Alert.class));
     }
@@ -171,13 +175,13 @@ class AlertProcessingServiceTest {
                 .build();
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
         when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
 
         service.processWeatherAlerts();
 
-        verify(weatherDataPort, never()).fetchCurrentConditions(anyDouble(), anyDouble());
-        verify(weatherDataPort, never()).fetchForecastConditions(anyDouble(), anyDouble(), anyInt());
+        verify(weatherDataPort, never()).fetchCurrentConditionsWithStatus(anyDouble(), anyDouble());
+        verify(weatherDataPort, never()).fetchForecastConditionsWithStatus(anyDouble(), anyDouble(), anyInt());
         verify(alertRepository, never()).save(any(Alert.class));
     }
 
@@ -202,8 +206,9 @@ class AlertProcessingServiceTest {
                 .temperature(12.0)
                 .build();
 
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(current));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(current)));
         when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
         when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -244,14 +249,90 @@ class AlertProcessingServiceTest {
                 .build();
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(current));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(current)));
         when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
         when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.findByCriteriaIdAndEventKey(eq("criteria-dup"), anyString())).thenReturn(Optional.of(existing));
 
         service.processWeatherAlerts();
 
+        verify(alertRepository, never()).save(any(Alert.class));
+        verify(notificationPort, never()).publishAlert(any(Alert.class));
+    }
+
+    @Test
+    void shouldReuseCurrentConditionFetchForCriteriaSharingCoordinates() {
+        AlertCriteria first = AlertCriteria.builder()
+                .id("criteria-a")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        AlertCriteria second = AlertCriteria.builder()
+                .id("criteria-b")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .id("current-shared")
+                .eventType("CURRENT_CONDITIONS")
+                .temperature(12.0)
+                .build();
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(first, second));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(current)));
+        when(criteriaStateRepository.findByCriteriaId(anyString())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.processWeatherAlerts();
+
+        verify(weatherDataPort, times(1)).fetchCurrentConditionsWithStatus(28.5383, -81.3792);
+        verify(alertRepository, times(2)).save(any(Alert.class));
+    }
+
+    @Test
+    void shouldNotClearStateWhenProviderDataIsUnavailable() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .id("criteria-unavailable")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.failure(Optional.empty(), "upstream timeout"));
+
+        service.processWeatherAlerts();
+
+        verify(criteriaStateRepository, never()).save(any(AlertCriteriaState.class));
         verify(alertRepository, never()).save(any(Alert.class));
         verify(notificationPort, never()).publishAlert(any(Alert.class));
     }

@@ -401,10 +401,18 @@ LOGGING_LEVEL_ORG_SPRINGFRAMEWORK=WARN
 
 # JPA
 SPRING_JPA_SHOW_SQL=false
-SPRING_JPA_HIBERNATE_DDL_AUTO=update
+SPRING_JPA_HIBERNATE_DDL_AUTO=validate
 
 # Actuator
 MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics
+
+# NOAA client resilience/pacing
+APP_NOAA_REQUEST_TIMEOUT_SECONDS=8
+APP_NOAA_RETRY_MAX_ATTEMPTS=2
+APP_NOAA_RETRY_BACKOFF_MILLIS=250
+APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS=150
+APP_NOAA_OUTAGE_FAILURE_THRESHOLD=4
+APP_NOAA_OUTAGE_OPEN_SECONDS=30
 ```
 
 ---
@@ -470,6 +478,27 @@ logging:
     max-history: 30
 ```
 
+### Scheduler Orchestration (Operational Notes)
+
+- Scheduler uses fixed-delay execution (`5m`) with initial delay (`30s`) to avoid overlapping runs.
+- Criteria are processed in batches of `100`.
+- Current/forecast NOAA calls are cached per scheduler run by coordinate/window to reduce duplicate upstream calls.
+- Criteria evaluation outcomes include:
+  - `MET`
+  - `NOT_MET`
+  - `UNAVAILABLE` (provider outage/short-circuit)
+- `UNAVAILABLE` does not mutate `criteria_state`, preventing false clear/rearm transitions.
+
+Useful actuator metrics:
+
+```bash
+curl http://localhost:8080/actuator/metrics/weather.alert.processing.duration
+curl http://localhost:8080/actuator/metrics/weather.alert.criteria.evaluated
+curl http://localhost:8080/actuator/metrics/weather.alert.triggered
+curl http://localhost:8080/actuator/metrics/weather.noaa.requests
+curl http://localhost:8080/actuator/metrics/weather.noaa.request.duration
+```
+
 ---
 
 ## Troubleshooting
@@ -527,10 +556,10 @@ java -jar app.jar --debug
 ```
 
 #### 5. NOAA API Rate Limiting
-- Implement caching with Redis
-- Add exponential backoff
-- Respect NOAA's rate limits
-- Use appropriate User-Agent header
+- Tune `APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS` to reduce upstream pressure
+- Tune retries/timeouts (`APP_NOAA_REQUEST_TIMEOUT_SECONDS`, `APP_NOAA_RETRY_*`)
+- Use outage guard defaults (`APP_NOAA_OUTAGE_FAILURE_THRESHOLD`, `APP_NOAA_OUTAGE_OPEN_SECONDS`) to short-circuit repeated failures
+- Verify logs for `operation=point_metadata|hourly_forecast|latest_observation`
 
 ### Performance Tuning
 

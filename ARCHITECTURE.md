@@ -193,6 +193,12 @@ Elasticsearch Search
        ├─► Load enabled criteria
        │   └─► AlertCriteriaRepositoryPort
        │
+       ├─► Partition criteria into scheduler batches (size=100)
+       │
+       ├─► Reuse per-run NOAA caches
+       │   ├─► current conditions cache key: (lat, lon)
+       │   └─► forecast cache key: (lat, lon, forecastWindowHours)
+       │
        ├─► Evaluate criteria using explicit rules
        │   ├─► Filter rules: location, event type, severity
        │   └─► Trigger rules: temperature, rain, wind, precipitation
@@ -205,6 +211,11 @@ Elasticsearch Search
        │   ├─► If transition is not met -> met, generate alert
        │   ├─► If still met, suppress duplicates
        │   └─► If cleared then re-occurs, allow rearm notification
+       │
+       ├─► Outage guard behavior
+       │   ├─► NOAA failures can produce UNAVAILABLE evaluation status
+       │   ├─► UNAVAILABLE skips criteria_state mutation (no false transition)
+       │   └─► provider call pacing + short outage window reduce upstream load during failures
        │
        ├─► Persist alert + updated criteria_state
        │   ├─► Dedupe check by (criteria_id, event_key)
@@ -309,6 +320,8 @@ so criteria that are already true can produce an immediate alert.
   - `AlertCriteriaTest`: Tests matching logic
 - **Use Case Tests**: Test application logic with mocks
   - `ManageAlertCriteriaUseCaseTest`: Tests CQRS commands
+- **Scheduler/Orchestration Tests**:
+  - `AlertProcessingServiceTest`: batching cache reuse and outage-state guardrails
 
 ### Test Coverage
 - Domain models: 100% coverage

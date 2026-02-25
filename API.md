@@ -43,6 +43,8 @@ Evaluation semantics:
 - `rearmWindowMinutes` applies cooldown to prevent rapid re-notify loops.
 - Alerts are persisted with an `eventKey`; duplicate inserts for the same `criteriaId + eventKey` are skipped.
 - Lifecycle transitions: `PENDING -> SENT` (Kafka consumer), then `SENT -> ACKNOWLEDGED` or `SENT/PENDING -> EXPIRED`.
+- Scheduler orchestration uses batched criteria evaluation and per-run coordinate caches for current/forecast NOAA lookups.
+- During NOAA outages, criteria can evaluate as `UNAVAILABLE`; in that case no anti-spam state transition is persisted.
 
 #### Create Alert Criteria
 ```http

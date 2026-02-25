@@ -9,8 +9,10 @@ import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.NotificationPort;
 import com.weather.alert.domain.port.WeatherDataPort;
+import com.weather.alert.domain.port.WeatherFetchResult;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.domain.service.evaluation.AlertCriteriaRuleEvaluator;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,7 +60,8 @@ class AlertProcessingAntiSpamIntegrationTest {
                 notificationPort,
                 searchPort,
                 criteriaStateRepository,
-                new AlertCriteriaRuleEvaluator()
+                new AlertCriteriaRuleEvaluator(),
+                new SimpleMeterRegistry()
         );
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.findByCriteriaIdAndEventKey(anyString(), anyString())).thenReturn(Optional.empty());
@@ -70,9 +73,11 @@ class AlertProcessingAntiSpamIntegrationTest {
         WeatherData met = currentAtTemp(12.0);
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792))
-                .thenReturn(Optional.of(met), Optional.of(met));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(
+                        WeatherFetchResult.success(Optional.of(met)),
+                        WeatherFetchResult.success(Optional.of(met)));
 
         service.processWeatherAlerts();
         service.processWeatherAlerts();
@@ -89,9 +94,12 @@ class AlertProcessingAntiSpamIntegrationTest {
         WeatherData metAgain = currentAtTemp(11.5);
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792))
-                .thenReturn(Optional.of(met), Optional.of(notMet), Optional.of(metAgain));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(
+                        WeatherFetchResult.success(Optional.of(met)),
+                        WeatherFetchResult.success(Optional.of(notMet)),
+                        WeatherFetchResult.success(Optional.of(metAgain)));
 
         service.processWeatherAlerts();
         service.processWeatherAlerts();
@@ -109,9 +117,12 @@ class AlertProcessingAntiSpamIntegrationTest {
         WeatherData metAgain = currentAtTemp(11.0);
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792))
-                .thenReturn(Optional.of(met), Optional.of(notMet), Optional.of(metAgain));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(
+                        WeatherFetchResult.success(Optional.of(met)),
+                        WeatherFetchResult.success(Optional.of(notMet)),
+                        WeatherFetchResult.success(Optional.of(metAgain)));
 
         service.processWeatherAlerts();
         service.processWeatherAlerts();
@@ -134,8 +145,9 @@ class AlertProcessingAntiSpamIntegrationTest {
                 .build());
 
         when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
-        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
-        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(currentAtTemp(12.0)));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(currentAtTemp(12.0))));
 
         service.processWeatherAlerts();
 

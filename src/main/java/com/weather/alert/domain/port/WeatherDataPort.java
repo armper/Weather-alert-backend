@@ -34,4 +34,28 @@ public interface WeatherDataPort {
      * Fetch hourly forecast conditions for a coordinate, bounded by a forecast window.
      */
     List<WeatherData> fetchForecastConditions(double latitude, double longitude, int forecastWindowHours);
+
+    /**
+     * Fetch active alerts and include provider availability status.
+     */
+    default WeatherFetchResult<List<WeatherData>> fetchActiveAlertsWithStatus() {
+        return WeatherFetchResult.success(fetchActiveAlerts());
+    }
+
+    /**
+     * Fetch latest current conditions and include provider availability status.
+     */
+    default WeatherFetchResult<Optional<WeatherData>> fetchCurrentConditionsWithStatus(double latitude, double longitude) {
+        return WeatherFetchResult.success(fetchCurrentConditions(latitude, longitude));
+    }
+
+    /**
+     * Fetch forecast conditions and include provider availability status.
+     */
+    default WeatherFetchResult<List<WeatherData>> fetchForecastConditionsWithStatus(
+            double latitude,
+            double longitude,
+            int forecastWindowHours) {
+        return WeatherFetchResult.success(fetchForecastConditions(latitude, longitude, forecastWindowHours));
+    }
 }

@@ -1,6 +1,7 @@
 package com.weather.alert.infrastructure.adapter.noaa;
 
 import com.weather.alert.domain.model.WeatherData;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -173,9 +174,40 @@ class NoaaWeatherAdapterTest {
         assertTrue(forecast.isEmpty());
     }
 
+    @Test
+    void shouldShortCircuitRequestsWhenOutageGuardIsOpen() {
+        server.enqueue(new MockResponse().setResponseCode(500).setBody("{\"error\":\"boom\"}"));
+
+        WebClient webClient = WebClient.builder().baseUrl(server.url("/").toString()).build();
+        NoaaWeatherAdapter adapter = new NoaaWeatherAdapter(
+                webClient,
+                new SimpleMeterRegistry(),
+                2,
+                0,
+                100,
+                0,
+                1,
+                30);
+
+        Optional<WeatherData> first = adapter.fetchCurrentConditions(10.0, 10.0);
+        Optional<WeatherData> second = adapter.fetchCurrentConditions(10.0, 10.0);
+
+        assertTrue(first.isEmpty());
+        assertTrue(second.isEmpty());
+        assertEquals(1, server.getRequestCount());
+    }
+
     private NoaaWeatherAdapter newAdapter(String baseUrl, long timeoutSeconds, long retries, long retryBackoffMillis) {
         WebClient webClient = WebClient.builder().baseUrl(baseUrl).build();
-        return new NoaaWeatherAdapter(webClient, timeoutSeconds, retries, retryBackoffMillis);
+        return new NoaaWeatherAdapter(
+                webClient,
+                new SimpleMeterRegistry(),
+                timeoutSeconds,
+                retries,
+                retryBackoffMillis,
+                0,
+                1000,
+                30);
     }
 
     private MockResponse jsonResponse(String body) {

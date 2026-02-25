@@ -88,6 +88,15 @@ Implementation tracking for weather-condition alerts (temperature/rain current +
   - probability rain threshold bounds (`<= 100`)
 - Swagger/OpenAPI examples were updated to realistic, copy/paste-ready requests with Orlando coordinates.
 
+### 2026-02-25 (Chunk 8: Scheduler + Orchestration)
+
+- Scheduler execution now uses fixed-delay cadence to avoid overlapping runs.
+- Criteria processing is now batched and reuses per-run caches for current/forecast calls by coordinate window.
+- NOAA client now includes request pacing (`min-request-interval`) and outage guard short-circuiting after repeated failures.
+- Criteria evaluation now tracks `MET`, `NOT_MET`, and `UNAVAILABLE` outcomes:
+  - `UNAVAILABLE` skips state transitions to avoid clearing/rearming on provider outages.
+- Added Micrometer metrics and richer logs around evaluation outcomes, dedupe/suppression, and trigger counts.
+
 ## Setup
 
 ### 1. Start Local Dependencies with Docker
@@ -129,6 +138,9 @@ Optional NOAA client tuning values in `.env`:
 - `APP_NOAA_REQUEST_TIMEOUT_SECONDS` (default `8`)
 - `APP_NOAA_RETRY_MAX_ATTEMPTS` (default `2`)
 - `APP_NOAA_RETRY_BACKOFF_MILLIS` (default `250`)
+- `APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS` (default `150`)
+- `APP_NOAA_OUTAGE_FAILURE_THRESHOLD` (default `4`)
+- `APP_NOAA_OUTAGE_OPEN_SECONDS` (default `30`)
 
 ### 3. Database Migrations (Flyway)
 
@@ -208,6 +220,27 @@ docker compose --profile observability up -d
 ```text
 {app="weather-alert-backend"}
 ```
+5. Metrics are available via actuator (for local/manual checks):
+```text
+GET /actuator/metrics/weather.alert.processing.duration
+GET /actuator/metrics/weather.alert.criteria.evaluated
+GET /actuator/metrics/weather.alert.triggered
+GET /actuator/metrics/weather.noaa.requests
+```
+
+### Scheduler + Orchestration Behavior
+
+- Scheduler runs every 5 minutes with fixed delay and 30s initial delay.
+- Each run:
+  - fetches active NOAA alerts
+  - loads enabled criteria
+  - processes criteria in batches of 100
+  - reuses per-run caches for current conditions (`lat/lon`) and forecast (`lat/lon/window`)
+- Outage guard behavior:
+  - repeated NOAA request failures open a short outage window
+  - while open, NOAA requests are short-circuited
+  - criteria evaluations become `UNAVAILABLE`
+  - `UNAVAILABLE` does not mutate `criteria_state`, preventing false transitions/spam on recovery
 
 When you are done:
 
