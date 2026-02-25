@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Get started with Weather Alert Backend as an end user: token setup, first requests, and role expectations." />
+    <meta
+      name="description"
+      content="Get started with Weather Alert Backend: token setup, first criteria payload, filters, and current/forecast condition checks."
+    />
     <title>Weather Alert Hub | Getting Started</title>
     <link rel="stylesheet" href="./assets/styles.css" />
     <script defer src="./assets/site.js"></script>
@@ -31,16 +34,14 @@
         <div class="container hero-grid">
           <div class="reveal">
             <p class="kicker">Quick setup</p>
-            <h1>First successful call in under 5 minutes</h1>
-            <p class="lead">
-              Use this checklist if you are connecting a client app or testing directly with cURL/Postman.
-            </p>
+            <h1>First complete criteria flow in under 10 minutes</h1>
+            <p class="lead">Use this checklist to go from JWT token to condition-based alerts (current + forecast).</p>
           </div>
           <aside class="panel reveal">
             <h2>What you need</h2>
             <p><span class="inline-code">Base URL</span>: <span class="inline-code">http://localhost:8080</span> (or your hosted API URL)</p>
             <p><span class="inline-code">Credentials</span>: issued by your app team/admin</p>
-            <p><span class="inline-code">Role</span>: <span class="badge badge-user">USER</span> for read access, <span class="badge badge-admin">ADMIN</span> for criteria management</p>
+            <p><span class="inline-code">Role</span>: <span class="badge badge-user">USER</span> for reads, <span class="badge badge-admin">ADMIN</span> for criteria writes</p>
           </aside>
         </div>
       </section>
@@ -55,7 +56,7 @@
     "username": "your-username",
     "password": "your-password"
   }'</code></pre>
-            <p>Save <span class="inline-code">accessToken</span> from the response. Token default lifetime is 1 hour.</p>
+            <p>Store <span class="inline-code">accessToken</span> from the response and send it as a bearer token.</p>
           </div>
         </div>
       </section>
@@ -63,16 +64,34 @@
       <section class="section">
         <div class="container grid-2">
           <article class="card reveal">
-            <h2>2. Set auth header</h2>
-            <pre class="code"><code>Authorization: Bearer YOUR_ACCESS_TOKEN</code></pre>
-            <p>All <span class="inline-code">/api/**</span> routes require this header except token creation.</p>
+            <h2>2. Create criteria (ADMIN)</h2>
+            <pre class="code"><code>curl -X POST "http://localhost:8080/api/criteria" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "location": "Orlando",
+    "latitude": 28.5383,
+    "longitude": -81.3792,
+    "temperatureThreshold": 60,
+    "temperatureDirection": "BELOW",
+    "temperatureUnit": "F",
+    "rainThreshold": 40,
+    "rainThresholdType": "PROBABILITY",
+    "monitorCurrent": true,
+    "monitorForecast": true,
+    "forecastWindowHours": 48,
+    "oncePerEvent": true,
+    "rearmWindowMinutes": 120
+  }'</code></pre>
+            <p class="small">If the criteria is already true at creation time, alert generation can happen immediately.</p>
           </article>
 
           <article class="card reveal">
-            <h2>3. Fetch your alerts</h2>
-            <pre class="code"><code>curl "http://localhost:8080/api/alerts/user/{userId}" \
+            <h2>3. Verify criteria with filters</h2>
+            <pre class="code"><code>curl "http://localhost:8080/api/criteria/user/user123?temperatureUnit=F&hasRainRule=true&monitorForecast=true" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"</code></pre>
-            <p>Replace <span class="inline-code">{userId}</span> with your assigned user identifier.</p>
+            <p>Optional filters: <span class="inline-code">temperatureUnit</span>, <span class="inline-code">monitorCurrent</span>, <span class="inline-code">monitorForecast</span>, <span class="inline-code">enabled</span>, <span class="inline-code">hasTemperatureRule</span>, <span class="inline-code">hasRainRule</span>.</p>
           </article>
         </div>
       </section>
@@ -80,30 +99,22 @@
       <section class="section">
         <div class="container grid-2">
           <article class="card reveal">
-            <h2>4. Optional: check local weather risk</h2>
-            <pre class="code"><code>curl "http://localhost:8080/api/weather/location?latitude=47.6062&longitude=-122.3321" \
+            <h2>4. Inspect current/forecast conditions</h2>
+            <pre class="code"><code>curl "http://localhost:8080/api/weather/conditions/current?latitude=28.5383&longitude=-81.3792" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+curl "http://localhost:8080/api/weather/conditions/forecast?latitude=28.5383&longitude=-81.3792&hours=48" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"</code></pre>
-            <p>Use coordinates for an on-demand location snapshot from NOAA-backed weather data.</p>
+            <p>Forecast window range is <span class="inline-code">1..168</span> hours. Default is 48.</p>
           </article>
 
           <article class="card reveal">
-            <h2>5. Admin-only criteria changes</h2>
-            <p>
-              Criteria write routes (<span class="inline-code">POST/PUT/DELETE /api/criteria</span>) require
-              <span class="badge badge-admin">ADMIN</span> role.
-            </p>
-            <pre class="code"><code>curl -X POST "http://localhost:8080/api/criteria" \
-  -H "Authorization: Bearer ADMIN_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "user123",
-    "location": "Seattle",
-    "latitude": 47.6062,
-    "longitude": -122.3321,
-    "radiusKm": 30,
-    "eventType": "Tornado",
-    "minSeverity": "SEVERE"
-  }'</code></pre>
+            <h2>5. Read and manage alerts</h2>
+            <pre class="code"><code>GET /api/alerts/user/{userId}
+GET /api/alerts/criteria/{criteriaId}/history
+POST /api/alerts/{alertId}/acknowledge
+POST /api/alerts/{alertId}/expire   # ADMIN</code></pre>
+            <p>Alerts include lifecycle fields and dedupe metadata such as <span class="inline-code">eventKey</span> and <span class="inline-code">reason</span>.</p>
           </article>
         </div>
       </section>
@@ -111,7 +122,7 @@
 
     <footer class="site-footer">
       <div class="container small">
-        Need endpoint details? Use the API reference page. <span data-year></span>
+        Need route-level permissions and full list? Open API Reference. <span data-year></span>
       </div>
     </footer>
   </body>

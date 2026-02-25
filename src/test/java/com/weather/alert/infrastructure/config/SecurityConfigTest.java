@@ -85,16 +85,45 @@ class SecurityConfigTest {
     }
 
     @Test
-    void shouldForbidCriteriaWriteForNonAdminUser() throws Exception {
+    void shouldAllowCriteriaWriteForUserRoleWhenUserOwnsCriteria() throws Exception {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .id("criteria-1")
+                .userId("user-1")
+                .enabled(true)
+                .build();
+        when(manageAlertCriteriaUseCase.createCriteria(any(CreateAlertCriteriaRequest.class))).thenReturn(criteria);
+
         CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
                 .userId("user-1")
                 .location("Seattle")
                 .build();
 
         mockMvc.perform(post("/api/criteria")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER")))
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("criteria-1"));
+    }
+
+    @Test
+    void shouldForbidCriteriaWriteWhenNonAdminSpoofsAnotherUserId() throws Exception {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("other-user")
+                .location("Seattle")
+                .build();
+
+        mockMvc.perform(post("/api/criteria")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldForbidCriteriaReadForAnotherUserWhenRequesterIsNotAdmin() throws Exception {
+        mockMvc.perform(get("/api/criteria/user/other-user")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
                 .andExpect(status().isForbidden());
     }
 

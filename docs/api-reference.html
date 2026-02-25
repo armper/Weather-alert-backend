@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Weather Alert Backend endpoint quick reference with role-based access requirements for end users and admins." />
+    <meta
+      name="description"
+      content="Weather Alert Backend endpoint quick reference with role requirements, criteria filters, and condition-monitoring routes."
+    />
     <title>Weather Alert Hub | API Reference</title>
     <link rel="stylesheet" href="./assets/styles.css" />
     <script defer src="./assets/site.js"></script>
@@ -33,13 +36,14 @@
             <p class="kicker">Endpoint map</p>
             <h1>Role-aware API quick reference</h1>
             <p class="lead">
-              Every route under <span class="inline-code">/api/**</span> requires bearer auth, except token creation.
+              All routes under <span class="inline-code">/api/**</span> require bearer auth except
+              <span class="inline-code">POST /api/auth/token</span>.
             </p>
           </div>
           <aside class="panel reveal">
             <h2>Role key</h2>
-            <p><span class="badge badge-user">USER</span> Read-only access to alerts, criteria reads, and weather data.</p>
-            <p><span class="badge badge-admin">ADMIN</span> Includes all USER access plus criteria writes and pending alerts endpoint.</p>
+            <p><span class="badge badge-user">USER</span> Read APIs for alerts, criteria, and weather data.</p>
+            <p><span class="badge badge-admin">ADMIN</span> Includes USER access plus criteria writes, pending alerts, and expire alert.</p>
           </aside>
         </div>
       </section>
@@ -85,7 +89,7 @@
                   <td>GET</td>
                   <td><span class="inline-code">/api/criteria/user/{userId}</span></td>
                   <td><span class="badge badge-user">USER</span></td>
-                  <td>Read criteria for a user</td>
+                  <td>Read user criteria (supports optional filters)</td>
                 </tr>
                 <tr>
                   <td>GET</td>
@@ -103,7 +107,13 @@
                   <td>GET</td>
                   <td><span class="inline-code">/api/alerts/{alertId}</span></td>
                   <td><span class="badge badge-user">USER</span></td>
-                  <td>Get specific alert detail</td>
+                  <td>Get alert details by ID</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/alerts/criteria/{criteriaId}/history</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Get alert history for one criteria</td>
                 </tr>
                 <tr>
                   <td>GET</td>
@@ -112,28 +122,52 @@
                   <td>Get all pending alerts</td>
                 </tr>
                 <tr>
-                  <td>GET</td>
-                  <td><span class="inline-code">/api/weather/active</span></td>
+                  <td>POST</td>
+                  <td><span class="inline-code">/api/alerts/{alertId}/acknowledge</span></td>
                   <td><span class="badge badge-user">USER</span></td>
-                  <td>Get active weather alerts</td>
+                  <td>Acknowledge an alert</td>
+                </tr>
+                <tr>
+                  <td>POST</td>
+                  <td><span class="inline-code">/api/alerts/{alertId}/expire</span></td>
+                  <td><span class="badge badge-admin">ADMIN</span></td>
+                  <td>Expire an alert</td>
                 </tr>
                 <tr>
                   <td>GET</td>
-                  <td><span class="inline-code">/api/weather/location?latitude={lat}&longitude={lon}</span></td>
+                  <td><span class="inline-code">/api/weather/active?page=0&amp;size=50</span></td>
                   <td><span class="badge badge-user">USER</span></td>
-                  <td>Weather alerts near coordinates</td>
+                  <td>Paginated active weather alerts from Elasticsearch read model</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/location?latitude={lat}&amp;longitude={lon}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>NOAA active alerts near coordinates</td>
                 </tr>
                 <tr>
                   <td>GET</td>
                   <td><span class="inline-code">/api/weather/state/{stateCode}</span></td>
                   <td><span class="badge badge-user">USER</span></td>
-                  <td>Weather alerts by state</td>
+                  <td>NOAA active alerts by US state code</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/conditions/current?latitude={lat}&amp;longitude={lon}</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>Latest NOAA observations for a coordinate</td>
+                </tr>
+                <tr>
+                  <td>GET</td>
+                  <td><span class="inline-code">/api/weather/conditions/forecast?latitude={lat}&amp;longitude={lon}&amp;hours=48</span></td>
+                  <td><span class="badge badge-user">USER</span></td>
+                  <td>NOAA hourly forecast conditions (1..168h window)</td>
                 </tr>
                 <tr>
                   <td>GET</td>
                   <td><span class="inline-code">/api/weather/search/location/{location}</span></td>
                   <td><span class="badge badge-user">USER</span></td>
-                  <td>Search indexed weather by location</td>
+                  <td>Search indexed weather by location text</td>
                 </tr>
                 <tr>
                   <td>GET</td>
@@ -150,19 +184,26 @@
       <section class="section">
         <div class="container grid-2">
           <article class="card reveal">
-            <h2>Common response codes</h2>
-            <p><span class="status-ok">200 / 204</span>: Request succeeded.</p>
-            <p><span class="status-warn">400</span>: Invalid request payload or parameters.</p>
-            <p><span class="status-warn">401</span>: Missing/expired/invalid token.</p>
-            <p><span class="status-warn">403</span>: Role does not allow this endpoint.</p>
+            <h2>Criteria query filters</h2>
+            <pre class="code"><code>GET /api/criteria/user/{userId}?temperatureUnit=F&amp;monitorForecast=true&amp;hasRainRule=true</code></pre>
+            <p>Supported filters: <span class="inline-code">temperatureUnit</span>, <span class="inline-code">monitorCurrent</span>, <span class="inline-code">monitorForecast</span>, <span class="inline-code">enabled</span>, <span class="inline-code">hasTemperatureRule</span>, <span class="inline-code">hasRainRule</span>.</p>
           </article>
 
           <article class="card reveal">
+            <h2>Common response codes</h2>
+            <p><span class="status-ok">200 / 204</span>: Request succeeded.</p>
+            <p><span class="status-warn">400</span>: Invalid payload or query parameters.</p>
+            <p><span class="status-warn">401</span>: Missing, expired, or invalid token.</p>
+            <p><span class="status-warn">403</span>: Role does not allow the endpoint.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <article class="card reveal">
             <h2>Built-in API explorer</h2>
-            <p>
-              Use Swagger UI when running locally:
-              <span class="inline-code">http://localhost:8080/swagger-ui/index.html</span>
-            </p>
+            <p>Swagger UI: <span class="inline-code">http://localhost:8080/swagger-ui/index.html</span></p>
             <p>OpenAPI JSON: <span class="inline-code">http://localhost:8080/v3/api-docs</span></p>
           </article>
         </div>
@@ -171,7 +212,7 @@
 
     <footer class="site-footer">
       <div class="container small">
-        For guided examples, open Getting Started. <span data-year></span>
+        Endpoint snapshot updated for checked TODO chunks 1-8. <span data-year></span>
       </div>
     </footer>
   </body>

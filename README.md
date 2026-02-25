@@ -1,6 +1,6 @@
 # Weather Alert Backend
 
-A sophisticated weather alert backend system built with Java 21, Spring Boot, and hexagonal clean architecture. This system integrates with NOAA's weather API to fetch real-time weather alerts and sends custom notifications to users based on their personalized criteria and thresholds.
+A sophisticated weather alert backend system built with Java 17, Spring Boot, and hexagonal clean architecture. This system integrates with NOAA's weather API to fetch real-time weather alerts and sends custom notifications to users based on their personalized criteria and thresholds.
 
 ## Architecture
 
@@ -38,6 +38,9 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Current + Forecast Monitoring Controls**: Criteria can target current conditions, forecast, or both
 - ✅ **Temperature Unit Preference**: Thresholds support Fahrenheit and Celsius
 - ✅ **NOAA Conditions Pipeline**: Current observations + hourly forecast retrieval by coordinate
+- ✅ **One-Time-Per-Event Anti-Spam**: Edge-triggering + rearm window prevents duplicate alert noise
+- ✅ **Immediate Evaluation on Criteria Create**: If conditions are already true, alerting can happen right away
+- ✅ **Alert Lifecycle + Dedupe**: `PENDING -> SENT -> ACKNOWLEDGED/EXPIRED` with `criteriaId + eventKey` duplicate protection
 - ✅ **Geographic Filtering**: Radius-based location matching using Haversine formula
 - ✅ **Async Processing**: Kafka-based message queue for scalable alert processing
 - ✅ **Search Capabilities**: Elasticsearch integration for fast weather data queries
@@ -47,6 +50,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
 - ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
 - ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
+- ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
 
 ## Technology Stack
 
@@ -71,7 +75,28 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 
 Implementation tracking for weather-condition alerts (temperature/rain current + forecast) lives in `IMPLEMENTATION_TODO.md`.
 
+### Implementation Status (from checked TODO items)
+
+- ✅ Chunk 1: Flyway baseline migration + migration-driven schema workflow
+- ✅ Chunk 2: Criteria model extensions (temperature/rain thresholds, monitor current/forecast, unit + cadence controls)
+- ✅ Chunk 3: NOAA current observations + hourly forecast integration with timeout/retry/fallback
+- ✅ Chunk 4: Rule-evaluation engine refactor for explicit current/forecast condition evaluation
+- ✅ Chunk 5: Anti-spam state model (`criteria_state`) with edge-trigger + rearm behavior
+- ✅ Chunk 6: Alert persistence lifecycle, event keys, and dedupe queries/indexes
+- ✅ Chunk 7: API/validation updates and criteria query filters
+- ✅ Chunk 8: Scheduler batching, provider pacing/outage guard, and evaluation metrics/logging
+- ⏳ Pending in TODO: Chunk 9 (expanded observability dashboards) and Chunk 10 (end-to-end matrix + manual playbook)
+
 ## Changelog
+
+### 2026-02-25 (Automated API Contract Testing)
+
+- Added `ApiIntegrationContractTest` using `@SpringBootTest(webEnvironment = RANDOM_PORT)` + RestAssured.
+- Added OpenAPI contract validation filter (`swagger-request-validator-restassured`) on authenticated API happy paths.
+- Added test-safe runtime overrides for this suite so it runs without external Kafka/Elasticsearch services.
+- Improved OpenAPI metadata:
+  - `DELETE /api/criteria/{criteriaId}` now documents `204` and `404` responses.
+  - Removed duplicate enum metadata that produced invalid generated request schema for criteria payloads.
 
 ### 2026-02-25 (Chunk 7: API Endpoints + UX Consistency)
 
@@ -224,8 +249,14 @@ docker compose --profile observability up -d
 ```text
 GET /actuator/metrics/weather.alert.processing.duration
 GET /actuator/metrics/weather.alert.criteria.evaluated
+GET /actuator/metrics/weather.alert.criteria.met
+GET /actuator/metrics/weather.alert.criteria.not_met
+GET /actuator/metrics/weather.alert.criteria.unavailable
+GET /actuator/metrics/weather.alert.criteria.suppressed
+GET /actuator/metrics/weather.alert.criteria.deduped
 GET /actuator/metrics/weather.alert.triggered
 GET /actuator/metrics/weather.noaa.requests
+GET /actuator/metrics/weather.noaa.request.duration
 ```
 
 ### Scheduler + Orchestration Behavior
@@ -254,8 +285,8 @@ docker compose down -v
 
 All `/api/**` endpoints now require JWT Bearer authentication (except token issuance).
 
-- **USER role**: read-only API access
-- **ADMIN role**: includes write access for criteria management, pending alerts endpoint, and alert-expire endpoint
+- **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), read weather/alerts/criteria, and acknowledge alerts
+- **ADMIN role**: can manage criteria for any user plus access `/api/alerts/pending` and alert-expire endpoint
 
 Credentials must be configured via environment variables:
 
@@ -315,6 +346,7 @@ PUT /api/criteria/{criteriaId}
 # Delete criteria
 DELETE /api/criteria/{criteriaId}
 ```
+`userId` is optional for non-admin requests and is inferred from the JWT subject.
 
 ### Alert Queries (Queries - CQRS)
 
@@ -463,8 +495,17 @@ The application implements CQRS (Command Query Responsibility Segregation):
 ### Running Tests
 
 ```bash
+# Full suite
 mvn test
+
+# Contract/integration suite only
+mvn -Dtest=ApiIntegrationContractTest test
 ```
+
+Contract test details:
+- Test class: `src/test/java/com/weather/alert/integration/ApiIntegrationContractTest.java`
+- Stack: RestAssured + `swagger-request-validator-restassured`
+- Validates auth token issuance, criteria CRUD happy path, and weather read endpoints against generated `/v3/api-docs`
 
 ## GitHub Pages User Site
 

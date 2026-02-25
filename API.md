@@ -70,6 +70,9 @@ Content-Type: application/json
   "rearmWindowMinutes": 120
 }
 ```
+`userId` ownership rules:
+- `ROLE_USER`: `userId` is optional and always resolved to the authenticated JWT subject.
+- `ROLE_ADMIN`: can create for another user by providing `userId`; if omitted, uses JWT subject.
 
 **Response (200 OK)**
 ```json
@@ -735,8 +738,8 @@ curl http://localhost:8080/api/weather/search/event/Hurricane
 Current version uses JWT bearer authentication for all `/api/**` endpoints except token issuance.
 
 - `POST /api/auth/token` issues JWTs.
-- `ROLE_USER` can access read endpoints.
-- `ROLE_ADMIN` is required for criteria write operations and alert-expire operations.
+- `ROLE_USER` can create/update/delete only their own criteria and access read endpoints.
+- `ROLE_ADMIN` can manage criteria for any user and access alert-expire operations.
 
 ---
 

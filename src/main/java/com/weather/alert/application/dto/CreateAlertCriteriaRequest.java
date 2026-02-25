@@ -7,7 +7,6 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -41,8 +40,7 @@ import lombok.NoArgsConstructor;
                 }
                 """)
 public class CreateAlertCriteriaRequest {
-    @NotBlank(message = "userId is required")
-    @Schema(description = "User identifier that owns this criteria", example = "user-123")
+    @Schema(description = "User identifier that owns this criteria (optional for non-admin; inferred from JWT subject)", example = "user-123")
     private String userId;
 
     @Schema(description = "Location name filter (case-insensitive contains match)", example = "Seattle")
@@ -83,14 +81,14 @@ public class CreateAlertCriteriaRequest {
     @Schema(description = "Single temperature threshold value", example = "60")
     private Double temperatureThreshold;
 
-    @Schema(description = "Direction for temperature threshold", allowableValues = {"BELOW", "ABOVE"}, example = "BELOW")
+    @Schema(description = "Direction for temperature threshold", example = "BELOW")
     private AlertCriteria.TemperatureDirection temperatureDirection;
 
     @DecimalMin(value = "0.0", message = "rainThreshold must be >= 0")
     @Schema(description = "Rain threshold used for alerting", example = "40")
     private Double rainThreshold;
 
-    @Schema(description = "Rain threshold mode", allowableValues = {"PROBABILITY", "AMOUNT"}, example = "PROBABILITY")
+    @Schema(description = "Rain threshold mode", example = "PROBABILITY")
     private AlertCriteria.RainThresholdType rainThresholdType;
 
     @Schema(description = "Evaluate current weather conditions", example = "true")
@@ -104,7 +102,7 @@ public class CreateAlertCriteriaRequest {
     @Schema(description = "Forecast lookahead window in hours", example = "48")
     private Integer forecastWindowHours;
 
-    @Schema(description = "Preferred temperature unit for thresholds", allowableValues = {"F", "C"}, example = "F")
+    @Schema(description = "Preferred temperature unit for thresholds", example = "F")
     private AlertCriteria.TemperatureUnit temperatureUnit;
 
     @Schema(description = "Notify only once per detected event/condition", example = "true")

@@ -75,7 +75,8 @@ class GlobalExceptionHandlerTest {
     @Test
     void shouldReturnValidationErrorForInvalidRequestBody() throws Exception {
         CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
-                .location("Seattle")
+                .latitude(120.0)
+                .longitude(-81.3792)
                 .build();
 
         mockMvc.perform(post("/api/criteria")
@@ -84,7 +85,7 @@ class GlobalExceptionHandlerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.errors[0].field").value("userId"));
+                .andExpect(jsonPath("$.errors[0].field").value("latitude"));
     }
 
     @Test

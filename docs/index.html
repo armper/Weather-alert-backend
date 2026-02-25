@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Weather Alert Backend user site: understand alerts, setup your account, and stay informed with location-based weather notifications."
+      content="Weather Alert Backend user site: current and forecast condition alerts, anti-spam behavior, and role-based API usage."
     />
     <title>Weather Alert Hub | Home</title>
     <link rel="stylesheet" href="./assets/styles.css" />
@@ -33,26 +33,24 @@
       <section class="hero">
         <div class="container hero-grid">
           <div class="reveal">
-            <p class="kicker">Noaa-powered weather awareness</p>
-            <h1>Get the weather alerts that matter to you, not just noise.</h1>
+            <p class="kicker">NOAA current + forecast monitoring</p>
+            <h1>Weather alerts with less noise and clearer trigger logic.</h1>
             <p class="lead">
-              This service watches live NOAA weather alerts, matches them to your criteria, and gives you clear,
-              timely warning data through API and real-time streams.
+              This backend evaluates NOAA active alerts, latest observations, and hourly forecasts against user-defined
+              criteria with one-time-per-event anti-spam controls.
             </p>
             <div class="actions">
               <a class="btn btn-primary" href="./getting-started.html">Set Up in Minutes</a>
-              <a class="btn btn-secondary" href="./use-alerts.html">See Daily Workflow</a>
+              <a class="btn btn-secondary" href="./api-reference.html">View Endpoints</a>
             </div>
           </div>
 
           <aside class="panel reveal">
             <h2>At a glance</h2>
-            <p><strong>Update cycle:</strong> system checks new NOAA alerts every 5 minutes.</p>
-            <p><strong>Coverage:</strong> active alerts, location searches, and state-level lookups.</p>
-            <p><strong>Access model:</strong> JWT bearer token with user/admin roles.</p>
-            <p class="small">
-              If you are using an app built on this backend, your product team will provide credentials and user ID.
-            </p>
+            <p><strong>Default forecast window:</strong> 48 hours (configurable per criteria up to 168h).</p>
+            <p><strong>Scheduler:</strong> every 5 minutes, fixed delay, batched criteria processing.</p>
+            <p><strong>Cadence controls:</strong> edge-triggered notifications + configurable rearm window.</p>
+            <p><strong>Create behavior:</strong> criteria are evaluated immediately after creation.</p>
           </aside>
         </div>
       </section>
@@ -61,23 +59,30 @@
         <div class="container">
           <div class="reveal">
             <p class="kicker">How it works</p>
-            <h2>Three simple stages</h2>
+            <h2>Three execution stages</h2>
           </div>
           <div class="grid-3">
             <article class="card reveal">
               <h3>1. Define criteria</h3>
-              <p>Choose location, event type, severity threshold, and weather limits such as wind or temperature.</p>
-            </article>
-            <article class="card reveal">
-              <h3>2. Automatic matching</h3>
               <p>
-                Incoming weather data is compared against your criteria with geographic radius matching and threshold
-                checks.
+                Configure location filters and condition rules like temperature direction, rain threshold type,
+                monitoring mode, and temperature unit.
               </p>
             </article>
             <article class="card reveal">
-              <h3>3. Read alert feed</h3>
-              <p>Use user alert endpoints or subscribe to the WebSocket stream for near real-time updates.</p>
+              <h3>2. Evaluate conditions</h3>
+              <p>
+                The engine checks active alerts, current observations, and forecast periods. Outcomes are
+                <span class="inline-code">MET</span>, <span class="inline-code">NOT_MET</span>, or
+                <span class="inline-code">UNAVAILABLE</span>.
+              </p>
+            </article>
+            <article class="card reveal">
+              <h3>3. Persist + notify</h3>
+              <p>
+                Matching events create deduped alerts with lifecycle state
+                <span class="inline-code">PENDING -&gt; SENT -&gt; ACKNOWLEDGED/EXPIRED</span>.
+              </p>
             </article>
           </div>
         </div>
@@ -86,29 +91,23 @@
       <section class="section">
         <div class="container grid-2">
           <article class="card reveal">
-            <p class="kicker">For End Users</p>
-            <h2>Your core flow</h2>
+            <p class="kicker">Implementation Status</p>
+            <h2>Completed TODO chunks</h2>
             <ol class="step-list">
-              <li>Request token with your username/password.</li>
-              <li>Call your alerts endpoint to view active or pending items for your account.</li>
-              <li>Track local weather risk with location and state lookups.</li>
+              <li>Chunks 1-3: Flyway migrations + NOAA current/forecast pipeline.</li>
+              <li>Chunks 4-6: Rule engine, anti-spam criteria state, alert lifecycle + dedupe.</li>
+              <li>Chunks 7-8: Criteria filters/validation improvements + scheduler batching/outage guard.</li>
             </ol>
-            <div class="actions">
-              <a class="btn btn-primary" href="./getting-started.html">Start Here</a>
-            </div>
           </article>
 
           <article class="card reveal">
-            <p class="kicker">For Team Admins</p>
-            <h2>Manage criteria</h2>
-            <p>
-              Criteria create/update/delete operations are admin-only. Admins tune thresholds and locations for each
-              user or tenant.
-            </p>
-            <p class="small">See role-specific endpoints on the API reference page.</p>
+            <p class="kicker">For Integrators</p>
+            <h2>Start with these pages</h2>
             <div class="actions">
-              <a class="btn btn-secondary" href="./api-reference.html">Open Endpoint List</a>
+              <a class="btn btn-primary" href="./getting-started.html">Token + First Calls</a>
+              <a class="btn btn-secondary" href="./use-alerts.html">Daily Usage Workflow</a>
             </div>
+            <p class="small">All routes under <span class="inline-code">/api/**</span> require JWT except token creation.</p>
           </article>
         </div>
       </section>
@@ -116,7 +115,7 @@
 
     <footer class="site-footer">
       <div class="container small">
-        Weather Alert Backend user docs. Updated for GitHub Pages. <span data-year></span>
+        Weather Alert Backend user docs (aligned with checked TODO chunks 1-8). <span data-year></span>
       </div>
     </footer>
   </body>
