@@ -71,6 +71,23 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 
 Implementation tracking for weather-condition alerts (temperature/rain current + forecast) lives in `IMPLEMENTATION_TODO.md`.
 
+## Changelog
+
+### 2026-02-25 (Chunk 7: API Endpoints + UX Consistency)
+
+- Criteria API responses now use a dedicated response model with null fields omitted for cleaner payloads.
+- `GET /api/criteria/user/{userId}` now supports optional filters:
+  - `temperatureUnit` (`F`/`C`)
+  - `monitorCurrent` / `monitorForecast`
+  - `enabled`
+  - `hasTemperatureRule` / `hasRainRule`
+- Create/update criteria validation now returns clearer request-level errors for:
+  - threshold pair requirements
+  - coordinate requirements for temperature/rain thresholds
+  - forecast-window usage when forecast monitoring is disabled
+  - probability rain threshold bounds (`<= 100`)
+- Swagger/OpenAPI examples were updated to realistic, copy/paste-ready requests with Orlando coordinates.
+
 ## Setup
 
 ### 1. Start Local Dependencies with Docker
@@ -245,6 +262,8 @@ POST /api/criteria
 {
   "userId": "dev-admin",
   "location": "Orlando",
+  "latitude": 28.5383,
+  "longitude": -81.3792,
   "temperatureThreshold": 60,
   "temperatureDirection": "BELOW",
   "temperatureUnit": "F",
@@ -287,6 +306,9 @@ POST /api/alerts/{alertId}/expire
 
 # Get criteria for a user
 GET /api/criteria/user/{userId}
+
+# Get criteria for a user with optional filters
+GET /api/criteria/user/{userId}?temperatureUnit=F&hasRainRule=true&monitorForecast=true
 
 # Get specific criteria
 GET /api/criteria/{criteriaId}

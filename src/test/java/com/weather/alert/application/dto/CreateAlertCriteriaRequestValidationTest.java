@@ -56,6 +56,8 @@ class CreateAlertCriteriaRequestValidationTest {
     void shouldPassWhenPairsAndMonitoringModesAreValid() {
         CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
                 .userId("user-1")
+                .latitude(28.5383)
+                .longitude(-81.3792)
                 .temperatureThreshold(60.0)
                 .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
                 .rainThreshold(40.0)
@@ -66,5 +68,44 @@ class CreateAlertCriteriaRequestValidationTest {
 
         Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
         assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenConditionThresholdsDoNotIncludeCoordinates() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user-1")
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenForecastWindowSetButMonitorForecastDisabled() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user-1")
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .forecastWindowHours(24)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenProbabilityRainThresholdExceeds100() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user-1")
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .rainThreshold(120.0)
+                .rainThresholdType(AlertCriteria.RainThresholdType.PROBABILITY)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
     }
 }

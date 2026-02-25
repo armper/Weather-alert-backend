@@ -16,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -84,5 +85,22 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.errors[0].field").value("userId"));
+    }
+
+    @Test
+    void shouldReturnGlobalValidationErrorsForCrossFieldRules() throws Exception {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("dev-admin")
+                .rainThreshold(40.0)
+                .build();
+
+        mockMvc.perform(post("/api/criteria")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER")))
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("request")))
+                .andExpect(jsonPath("$.errors[*].message", hasItem("rainThreshold and rainThresholdType must be provided together")));
     }
 }

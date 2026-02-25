@@ -70,11 +70,11 @@
 - [x] Update API docs for new response fields.
 
 ## Chunk 7: API Endpoints + UX Consistency
-- [ ] Update create/update criteria endpoints for new fields and validation errors.
-- [ ] Add query support for user preference and condition-specific filtering if needed.
-- [ ] Keep response payloads concise and predictable.
-- [ ] Ensure OpenAPI examples remain realistic and copy/paste usable.
-- [ ] Add changelog-style notes in README for new endpoints/fields.
+- [x] Update create/update criteria endpoints for new fields and validation errors.
+- [x] Add query support for user preference and condition-specific filtering if needed.
+- [x] Keep response payloads concise and predictable.
+- [x] Ensure OpenAPI examples remain realistic and copy/paste usable.
+- [x] Add changelog-style notes in README for new endpoints/fields.
 
 ## Chunk 8: Scheduler + Orchestration
 - [ ] Update scheduler flow to fetch conditions, evaluate criteria, and publish alerts.

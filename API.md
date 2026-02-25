@@ -22,6 +22,14 @@ Validation rules for weather-condition fields:
 - `temperatureThreshold` and `temperatureDirection` must be provided together.
 - `rainThreshold` and `rainThresholdType` must be provided together.
 - At least one of `monitorCurrent` or `monitorForecast` must be `true` (or both omitted to use defaults).
+- `latitude` and `longitude` must be provided together.
+- `radiusKm` requires both `latitude` and `longitude`.
+- `temperatureThreshold` or `rainThreshold` requires `latitude` and `longitude`.
+- `forecastWindowHours` can only be set when `monitorForecast` is enabled.
+- `rainThreshold` must be `<= 100` when `rainThresholdType=PROBABILITY`.
+
+Response payload behavior:
+- Criteria responses omit null fields for concise, predictable JSON.
 
 Evaluation semantics:
 - Criteria are evaluated as: `(all configured filters pass) AND (any configured trigger passes)`.
@@ -44,6 +52,8 @@ Content-Type: application/json
 {
   "userId": "dev-admin",
   "location": "Orlando",
+  "latitude": 28.5383,
+  "longitude": -81.3792,
   "eventType": "Rain",
   "minSeverity": "MODERATE",
   "temperatureThreshold": 60,
@@ -65,6 +75,8 @@ Content-Type: application/json
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "userId": "dev-admin",
   "location": "Orlando",
+  "latitude": 28.5383,
+  "longitude": -81.3792,
   "eventType": "Rain",
   "minSeverity": "MODERATE",
   "temperatureThreshold": 60,
@@ -89,6 +101,8 @@ Content-Type: application/json
 {
   "userId": "dev-admin",
   "location": "Orlando",
+  "latitude": 28.5383,
+  "longitude": -81.3792,
   "temperatureThreshold": 57,
   "temperatureDirection": "BELOW",
   "temperatureUnit": "F",
@@ -108,6 +122,8 @@ Content-Type: application/json
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "userId": "dev-admin",
   "location": "Orlando",
+  "latitude": 28.5383,
+  "longitude": -81.3792,
   "temperatureThreshold": 57,
   "temperatureDirection": "BELOW",
   "temperatureUnit": "F",
@@ -132,6 +148,19 @@ DELETE /api/criteria/{criteriaId}
 #### Get User's Alert Criteria
 ```http
 GET /api/criteria/user/{userId}
+```
+
+Optional query parameters:
+- `temperatureUnit` (`F` or `C`)
+- `monitorCurrent` (`true` or `false`)
+- `monitorForecast` (`true` or `false`)
+- `enabled` (`true` or `false`)
+- `hasTemperatureRule` (`true` or `false`)
+- `hasRainRule` (`true` or `false`)
+
+Example with filters:
+```http
+GET /api/criteria/user/dev-admin?temperatureUnit=F&hasRainRule=true&monitorForecast=true
 ```
 
 **Response (200 OK)**
@@ -549,33 +578,54 @@ GET /api/weather/search/event/{eventType}
 ### 400 Bad Request
 ```json
 {
-  "timestamp": "2026-02-23T10:30:00Z",
+  "type": "https://weather-alert-backend/errors/validation_error",
+  "title": "Bad Request",
   "status": 400,
-  "error": "Bad Request",
-  "message": "Invalid request parameters",
-  "path": "/api/criteria"
+  "detail": "Request validation failed",
+  "instance": "/api/criteria",
+  "timestamp": "2026-02-23T10:30:00Z",
+  "errorCode": "VALIDATION_ERROR",
+  "path": "/api/criteria",
+  "traceId": "n/a",
+  "correlationId": "0fce4f73-cb93-4a4f-a5f6-0346765ccaf0",
+  "errors": [
+    {
+      "field": "request",
+      "message": "rainThreshold and rainThresholdType must be provided together"
+    }
+  ]
 }
 ```
 
 ### 404 Not Found
 ```json
 {
-  "timestamp": "2026-02-23T10:30:00Z",
+  "type": "https://weather-alert-backend/errors/criteria_not_found",
+  "title": "Not Found",
   "status": 404,
-  "error": "Not Found",
-  "message": "Criteria not found",
-  "path": "/api/criteria/550e8400-e29b-41d4-a716-446655440000"
+  "detail": "Criteria not found: 550e8400-e29b-41d4-a716-446655440000",
+  "instance": "/api/criteria/550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2026-02-23T10:30:00Z",
+  "errorCode": "CRITERIA_NOT_FOUND",
+  "path": "/api/criteria/550e8400-e29b-41d4-a716-446655440000",
+  "traceId": "n/a",
+  "correlationId": "9d53c62a-89c8-4b31-87b5-cf8db29f2e38"
 }
 ```
 
 ### 500 Internal Server Error
 ```json
 {
-  "timestamp": "2026-02-23T10:30:00Z",
+  "type": "https://weather-alert-backend/errors/internal_server_error",
+  "title": "Internal Server Error",
   "status": 500,
-  "error": "Internal Server Error",
-  "message": "An unexpected error occurred",
-  "path": "/api/weather/active"
+  "detail": "An unexpected error occurred",
+  "instance": "/api/weather/active",
+  "timestamp": "2026-02-23T10:30:00Z",
+  "errorCode": "INTERNAL_SERVER_ERROR",
+  "path": "/api/weather/active",
+  "traceId": "n/a",
+  "correlationId": "7639d4f8-c7c4-49e5-a7f3-2bf7fd36a47f"
 }
 ```
 
@@ -680,12 +730,11 @@ curl http://localhost:8080/api/weather/search/event/Hurricane
 
 ## Authentication & Authorization
 
-> **Note**: Current version does not implement authentication.
-> Future versions will include:
-> - JWT token-based authentication
-> - Role-based access control (RBAC)
-> - API key management
-> - OAuth2 integration
+Current version uses JWT bearer authentication for all `/api/**` endpoints except token issuance.
+
+- `POST /api/auth/token` issues JWTs.
+- `ROLE_USER` can access read endpoints.
+- `ROLE_ADMIN` is required for criteria write operations and alert-expire operations.
 
 ---
 

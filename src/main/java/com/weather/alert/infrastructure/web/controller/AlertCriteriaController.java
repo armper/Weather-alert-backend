@@ -1,5 +1,7 @@
 package com.weather.alert.infrastructure.web.controller;
 
+import com.weather.alert.application.dto.AlertCriteriaQueryFilter;
+import com.weather.alert.application.dto.AlertCriteriaResponse;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
@@ -9,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,11 +39,13 @@ public class AlertCriteriaController {
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "temperature-and-rain-criteria",
+                                    name = "orlando-temp-drop-and-rain",
                                     value = """
                                             {
                                               "userId": "dev-admin",
                                               "location": "Orlando",
+                                              "latitude": 28.5383,
+                                              "longitude": -81.3792,
                                               "temperatureThreshold": 60,
                                               "temperatureDirection": "BELOW",
                                               "temperatureUnit": "F",
@@ -55,11 +60,39 @@ public class AlertCriteriaController {
                                             """
                             )
                     )
-            )
+            ),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Criteria created"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Validation error",
+                            content = @Content(
+                                    mediaType = "application/problem+json",
+                                    examples = @ExampleObject(
+                                            name = "validation-error",
+                                            value = """
+                                                    {
+                                                      "type": "https://weather-alert-backend/errors/validation_error",
+                                                      "title": "Bad Request",
+                                                      "status": 400,
+                                                      "detail": "Request validation failed",
+                                                      "errorCode": "VALIDATION_ERROR",
+                                                      "errors": [
+                                                        {
+                                                          "field": "request",
+                                                          "message": "rainThreshold and rainThresholdType must be provided together"
+                                                        }
+                                                      ]
+                                                    }
+                                                    """
+                                    )
+                            )
+                    )
+            }
     )
-    public ResponseEntity<AlertCriteria> createCriteria(@Valid @RequestBody CreateAlertCriteriaRequest request) {
+    public ResponseEntity<AlertCriteriaResponse> createCriteria(@Valid @RequestBody CreateAlertCriteriaRequest request) {
         AlertCriteria criteria = manageAlertCriteriaUseCase.createCriteria(request);
-        return ResponseEntity.ok(criteria);
+        return ResponseEntity.ok(AlertCriteriaResponse.fromDomain(criteria));
     }
     
     @PutMapping("/{criteriaId}")
@@ -70,15 +103,17 @@ public class AlertCriteriaController {
                     content = @Content(
                             mediaType = "application/json",
                             examples = @ExampleObject(
-                                    name = "update-forecast-window",
+                                    name = "update-threshold-and-cooldown",
                                     value = """
                                             {
                                               "userId": "dev-admin",
                                               "location": "Orlando",
+                                              "latitude": 28.5383,
+                                              "longitude": -81.3792,
                                               "temperatureThreshold": 60,
                                               "temperatureDirection": "BELOW",
                                               "temperatureUnit": "F",
-                                              "rainThreshold": 50,
+                                              "rainThreshold": 55,
                                               "rainThresholdType": "PROBABILITY",
                                               "monitorCurrent": true,
                                               "monitorForecast": true,
@@ -89,13 +124,21 @@ public class AlertCriteriaController {
                                             """
                             )
                     )
-            )
+            ),
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Criteria updated"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Validation error",
+                            content = @Content(mediaType = "application/problem+json")
+                    )
+            }
     )
-    public ResponseEntity<AlertCriteria> updateCriteria(
+    public ResponseEntity<AlertCriteriaResponse> updateCriteria(
             @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId,
             @Valid @RequestBody CreateAlertCriteriaRequest request) {
         AlertCriteria criteria = manageAlertCriteriaUseCase.updateCriteria(criteriaId, request);
-        return ResponseEntity.ok(criteria);
+        return ResponseEntity.ok(AlertCriteriaResponse.fromDomain(criteria));
     }
     
     @DeleteMapping("/{criteriaId}")
@@ -107,18 +150,38 @@ public class AlertCriteriaController {
     }
     
     @GetMapping("/user/{userId}")
-    @Operation(summary = "Get all criteria for a user")
-    public ResponseEntity<List<AlertCriteria>> getCriteriaByUserId(
-            @Parameter(example = "user-123") @PathVariable String userId) {
-        List<AlertCriteria> criteria = queryAlertsUseCase.getCriteriaByUserId(userId);
-        return ResponseEntity.ok(criteria);
+    @Operation(summary = "Get criteria for a user with optional filters")
+    public ResponseEntity<List<AlertCriteriaResponse>> getCriteriaByUserId(
+            @Parameter(example = "user-123") @PathVariable String userId,
+            @Parameter(description = "Filter by temperature unit preference", example = "F")
+            @RequestParam(required = false) AlertCriteria.TemperatureUnit temperatureUnit,
+            @Parameter(description = "Filter by monitorCurrent flag", example = "true")
+            @RequestParam(required = false) Boolean monitorCurrent,
+            @Parameter(description = "Filter by monitorForecast flag", example = "true")
+            @RequestParam(required = false) Boolean monitorForecast,
+            @Parameter(description = "Filter by enabled flag", example = "true")
+            @RequestParam(required = false) Boolean enabled,
+            @Parameter(description = "Only include criteria that do (or do not) define a temperature rule", example = "true")
+            @RequestParam(required = false) Boolean hasTemperatureRule,
+            @Parameter(description = "Only include criteria that do (or do not) define a rain rule", example = "true")
+            @RequestParam(required = false) Boolean hasRainRule) {
+        AlertCriteriaQueryFilter filter = AlertCriteriaQueryFilter.builder()
+                .temperatureUnit(temperatureUnit)
+                .monitorCurrent(monitorCurrent)
+                .monitorForecast(monitorForecast)
+                .enabled(enabled)
+                .hasTemperatureRule(hasTemperatureRule)
+                .hasRainRule(hasRainRule)
+                .build();
+        List<AlertCriteria> criteria = queryAlertsUseCase.getCriteriaByUserId(userId, filter);
+        return ResponseEntity.ok(AlertCriteriaResponse.fromDomainList(criteria));
     }
     
     @GetMapping("/{criteriaId}")
     @Operation(summary = "Get criteria by ID")
-    public ResponseEntity<AlertCriteria> getCriteriaById(
+    public ResponseEntity<AlertCriteriaResponse> getCriteriaById(
             @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId) {
         AlertCriteria criteria = queryAlertsUseCase.getCriteriaById(criteriaId);
-        return ResponseEntity.ok(criteria);
+        return ResponseEntity.ok(AlertCriteriaResponse.fromDomain(criteria));
     }
 }

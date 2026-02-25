@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -118,11 +119,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> {
                     Map<String, String> item = new LinkedHashMap<>();
-                    item.put("field", error.getField());
+                    String field = "AssertTrue".equals(error.getCode()) ? "request" : error.getField();
+                    item.put("field", field);
                     item.put("message", error.getDefaultMessage());
                     return item;
                 })
                 .toList();
+
+        List<Map<String, String>> globalErrors = ex.getBindingResult().getGlobalErrors().stream()
+                .map(error -> {
+                    Map<String, String> item = new LinkedHashMap<>();
+                    item.put("field", "request");
+                    item.put("message", error.getDefaultMessage());
+                    return item;
+                })
+                .toList();
+
+        List<Map<String, String>> combinedErrors = Stream.concat(errors.stream(), globalErrors.stream()).toList();
 
         HttpServletRequest servletRequest = ((ServletWebRequest) request).getRequest();
         ProblemDetail problem = buildProblem(
@@ -130,7 +143,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "VALIDATION_ERROR",
                 "Request validation failed",
                 servletRequest,
-                errors
+                combinedErrors
         );
 
         return ResponseEntity.badRequest().body(problem);

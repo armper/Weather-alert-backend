@@ -88,12 +88,13 @@ This document provides a detailed overview of the Weather Alert Backend architec
   - Get alerts by user ID
   - Get alert by ID
   - Get alert history by criteria ID
-  - Get criteria by user ID
+  - Get criteria by user ID (with optional query filters: unit/monitoring/rule presence/enabled)
   - Get pending alerts
   - Acknowledge / expire alert lifecycle transitions
 
 #### DTOs (Data Transfer Objects)
 - `CreateAlertCriteriaRequest` (supports temperature/rain threshold pairs, monitoring scope, and cadence controls)
+- `AlertCriteriaResponse` (concise criteria payload, null fields omitted)
 - `AlertResponse`
 - `WeatherDataResponse`
 
@@ -156,7 +157,7 @@ Elasticsearch Search
 - POST `/` - Create criteria
 - PUT `/{criteriaId}` - Update criteria
 - DELETE `/{criteriaId}` - Delete criteria
-- GET `/user/{userId}` - Get user's criteria
+- GET `/user/{userId}` - Get user's criteria (supports optional filters via query params)
 - GET `/{criteriaId}` - Get specific criteria
 
 **Weather Data Controller** (`/api/weather`)

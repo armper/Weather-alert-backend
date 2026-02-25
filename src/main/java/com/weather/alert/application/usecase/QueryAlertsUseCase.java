@@ -1,5 +1,6 @@
 package com.weather.alert.application.usecase;
 
+import com.weather.alert.application.dto.AlertCriteriaQueryFilter;
 import com.weather.alert.application.exception.AlertNotFoundException;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.application.exception.InvalidAlertTransitionException;
@@ -39,6 +40,21 @@ public class QueryAlertsUseCase {
     public List<AlertCriteria> getCriteriaByUserId(String userId) {
         return criteriaRepository.findByUserId(userId);
     }
+
+    public List<AlertCriteria> getCriteriaByUserId(String userId, AlertCriteriaQueryFilter filter) {
+        List<AlertCriteria> criteria = criteriaRepository.findByUserId(userId);
+        if (filter == null) {
+            return criteria;
+        }
+        return criteria.stream()
+                .filter(item -> filter.getTemperatureUnit() == null || item.getTemperatureUnit() == filter.getTemperatureUnit())
+                .filter(item -> filter.getMonitorCurrent() == null || filter.getMonitorCurrent().equals(item.getMonitorCurrent()))
+                .filter(item -> filter.getMonitorForecast() == null || filter.getMonitorForecast().equals(item.getMonitorForecast()))
+                .filter(item -> filter.getEnabled() == null || filter.getEnabled().equals(item.getEnabled()))
+                .filter(item -> filter.getHasTemperatureRule() == null || filter.getHasTemperatureRule().equals(hasTemperatureRule(item)))
+                .filter(item -> filter.getHasRainRule() == null || filter.getHasRainRule().equals(hasRainRule(item)))
+                .toList();
+    }
     
     public AlertCriteria getCriteriaById(String criteriaId) {
         return criteriaRepository.findById(criteriaId)
@@ -67,5 +83,16 @@ public class QueryAlertsUseCase {
                         current.getStatus() != null ? current.getStatus().name() : "UNKNOWN",
                         Alert.AlertStatus.EXPIRED.name()
                 ));
+    }
+
+    private boolean hasTemperatureRule(AlertCriteria criteria) {
+        return criteria.getTemperatureThreshold() != null
+                || criteria.getMaxTemperature() != null
+                || criteria.getMinTemperature() != null;
+    }
+
+    private boolean hasRainRule(AlertCriteria criteria) {
+        return criteria.getRainThreshold() != null
+                || criteria.getMaxPrecipitation() != null;
     }
 }

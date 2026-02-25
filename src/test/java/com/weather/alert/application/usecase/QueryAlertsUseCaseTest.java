@@ -1,9 +1,11 @@
 package com.weather.alert.application.usecase;
 
+import com.weather.alert.application.dto.AlertCriteriaQueryFilter;
 import com.weather.alert.application.exception.AlertNotFoundException;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.application.exception.InvalidAlertTransitionException;
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,5 +94,61 @@ class QueryAlertsUseCaseTest {
         Alert result = useCase.expireAlert("alert-3");
 
         assertEquals(Alert.AlertStatus.EXPIRED, result.getStatus());
+    }
+
+    @Test
+    void shouldFilterCriteriaByTemperatureUnitAndRainRule() {
+        AlertCriteria first = AlertCriteria.builder()
+                .id("criteria-1")
+                .userId("user-1")
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .rainThreshold(40.0)
+                .rainThresholdType(AlertCriteria.RainThresholdType.PROBABILITY)
+                .build();
+        AlertCriteria second = AlertCriteria.builder()
+                .id("criteria-2")
+                .userId("user-1")
+                .temperatureUnit(AlertCriteria.TemperatureUnit.C)
+                .temperatureThreshold(10.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .build();
+        when(criteriaRepository.findByUserId("user-1")).thenReturn(List.of(first, second));
+
+        AlertCriteriaQueryFilter filter = AlertCriteriaQueryFilter.builder()
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .hasRainRule(true)
+                .build();
+
+        List<AlertCriteria> result = useCase.getCriteriaByUserId("user-1", filter);
+
+        assertEquals(1, result.size());
+        assertEquals("criteria-1", result.get(0).getId());
+    }
+
+    @Test
+    void shouldFilterCriteriaByMonitoringFlags() {
+        AlertCriteria first = AlertCriteria.builder()
+                .id("criteria-1")
+                .userId("user-1")
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+        AlertCriteria second = AlertCriteria.builder()
+                .id("criteria-2")
+                .userId("user-1")
+                .monitorCurrent(true)
+                .monitorForecast(true)
+                .build();
+        when(criteriaRepository.findByUserId("user-1")).thenReturn(List.of(first, second));
+
+        AlertCriteriaQueryFilter filter = AlertCriteriaQueryFilter.builder()
+                .monitorCurrent(true)
+                .monitorForecast(true)
+                .build();
+
+        List<AlertCriteria> result = useCase.getCriteriaByUserId("user-1", filter);
+
+        assertEquals(1, result.size());
+        assertEquals("criteria-2", result.get(0).getId());
     }
 }

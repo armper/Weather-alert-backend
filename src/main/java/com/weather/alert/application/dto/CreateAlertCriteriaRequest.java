@@ -134,4 +134,34 @@ public class CreateAlertCriteriaRequest {
         }
         return Boolean.TRUE.equals(monitorCurrent) || Boolean.TRUE.equals(monitorForecast);
     }
+
+    @AssertTrue(message = "latitude and longitude must be provided together")
+    public boolean isCoordinatePairValid() {
+        return (latitude == null && longitude == null)
+                || (latitude != null && longitude != null);
+    }
+
+    @AssertTrue(message = "radiusKm requires both latitude and longitude")
+    public boolean isRadiusCoordinatesValid() {
+        return radiusKm == null || (latitude != null && longitude != null);
+    }
+
+    @AssertTrue(message = "latitude and longitude are required when using temperatureThreshold or rainThreshold")
+    public boolean isCoordinatesPresentForConditionThresholds() {
+        boolean conditionThresholdConfigured = temperatureThreshold != null || rainThreshold != null;
+        return !conditionThresholdConfigured || (latitude != null && longitude != null);
+    }
+
+    @AssertTrue(message = "forecastWindowHours can only be set when monitorForecast is enabled")
+    public boolean isForecastWindowUsageValid() {
+        return forecastWindowHours == null || !Boolean.FALSE.equals(monitorForecast);
+    }
+
+    @AssertTrue(message = "rainThreshold must be <= 100 when rainThresholdType is PROBABILITY")
+    public boolean isProbabilityThresholdValid() {
+        if (rainThreshold == null || rainThresholdType == null) {
+            return true;
+        }
+        return rainThresholdType != AlertCriteria.RainThresholdType.PROBABILITY || rainThreshold <= 100.0;
+    }
 }
