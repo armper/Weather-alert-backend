@@ -2,6 +2,8 @@ package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.exception.AlertNotFoundException;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
+import com.weather.alert.application.exception.InvalidAlertTransitionException;
+import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +13,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -41,5 +45,52 @@ class QueryAlertsUseCaseTest {
     void shouldThrowTypedExceptionWhenCriteriaNotFound() {
         when(criteriaRepository.findById("missing-criteria")).thenReturn(Optional.empty());
         assertThrows(CriteriaNotFoundException.class, () -> useCase.getCriteriaById("missing-criteria"));
+    }
+
+    @Test
+    void shouldReturnHistoryByCriteriaId() {
+        Alert alert = Alert.builder().id("alert-1").criteriaId("criteria-1").build();
+        when(alertRepository.findHistoryByCriteriaId("criteria-1")).thenReturn(List.of(alert));
+
+        List<Alert> history = useCase.getAlertHistoryByCriteriaId("criteria-1");
+
+        assertEquals(1, history.size());
+        assertEquals("alert-1", history.get(0).getId());
+    }
+
+    @Test
+    void shouldAcknowledgeAlertWhenTransitionIsValid() {
+        Alert current = Alert.builder().id("alert-1").status(Alert.AlertStatus.SENT).build();
+        Alert acknowledged = Alert.builder().id("alert-1").status(Alert.AlertStatus.ACKNOWLEDGED).build();
+        when(alertRepository.findById("alert-1")).thenReturn(Optional.of(current));
+        when(alertRepository.acknowledge(org.mockito.ArgumentMatchers.eq("alert-1"), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.of(acknowledged));
+
+        Alert result = useCase.acknowledgeAlert("alert-1");
+
+        assertEquals(Alert.AlertStatus.ACKNOWLEDGED, result.getStatus());
+    }
+
+    @Test
+    void shouldThrowConflictWhenAcknowledgeTransitionIsInvalid() {
+        Alert current = Alert.builder().id("alert-2").status(Alert.AlertStatus.PENDING).build();
+        when(alertRepository.findById("alert-2")).thenReturn(Optional.of(current));
+        when(alertRepository.acknowledge(org.mockito.ArgumentMatchers.eq("alert-2"), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(InvalidAlertTransitionException.class, () -> useCase.acknowledgeAlert("alert-2"));
+    }
+
+    @Test
+    void shouldExpireAlertWhenTransitionIsValid() {
+        Alert current = Alert.builder().id("alert-3").status(Alert.AlertStatus.SENT).build();
+        Alert expired = Alert.builder().id("alert-3").status(Alert.AlertStatus.EXPIRED).build();
+        when(alertRepository.findById("alert-3")).thenReturn(Optional.of(current));
+        when(alertRepository.expire(org.mockito.ArgumentMatchers.eq("alert-3"), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(Optional.of(expired));
+
+        Alert result = useCase.expireAlert("alert-3");
+
+        assertEquals(Alert.AlertStatus.EXPIRED, result.getStatus());
     }
 }

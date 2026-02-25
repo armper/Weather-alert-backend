@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +61,7 @@ class AlertProcessingAntiSpamIntegrationTest {
                 new AlertCriteriaRuleEvaluator()
         );
         when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.findByCriteriaIdAndEventKey(anyString(), anyString())).thenReturn(Optional.empty());
     }
 
     @Test

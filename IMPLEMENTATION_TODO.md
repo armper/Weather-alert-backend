@@ -62,12 +62,12 @@
 - [x] Document anti-spam logic and examples in README.
 
 ## Chunk 6: Alert Persistence + Lifecycle
-- [ ] Extend alert schema with `eventKey`, `reason`, and weather-condition metadata.
-- [ ] Set explicit alert lifecycle transitions (`PENDING -> SENT -> ACKNOWLEDGED/EXPIRED`) where applicable.
-- [ ] Prevent duplicate inserts for same criteria/event window.
-- [ ] Add repository queries for dedupe checks and alert history.
-- [ ] Add tests for lifecycle and duplicate protection.
-- [ ] Update API docs for new response fields.
+- [x] Extend alert schema with `eventKey`, `reason`, and weather-condition metadata.
+- [x] Set explicit alert lifecycle transitions (`PENDING -> SENT -> ACKNOWLEDGED/EXPIRED`) where applicable.
+- [x] Prevent duplicate inserts for same criteria/event window.
+- [x] Add repository queries for dedupe checks and alert history.
+- [x] Add tests for lifecycle and duplicate protection.
+- [x] Update API docs for new response fields.
 
 ## Chunk 7: API Endpoints + UX Consistency
 - [ ] Update create/update criteria endpoints for new fields and validation errors.

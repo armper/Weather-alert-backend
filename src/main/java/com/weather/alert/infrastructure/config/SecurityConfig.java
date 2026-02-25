@@ -59,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/criteria/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/criteria/**").hasRole("ADMIN")
                         .requestMatchers("/api/alerts/pending").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/alerts/*/expire").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)

@@ -27,6 +27,12 @@ public class AlertEntity {
     
     @Column(name = "weather_data_id")
     private String weatherDataId;
+
+    @Column(name = "event_key", length = 512)
+    private String eventKey;
+
+    @Column(name = "reason", length = 2000)
+    private String reason;
     
     @Column(name = "event_type")
     private String eventType;
@@ -42,6 +48,24 @@ public class AlertEntity {
     
     @Column(name = "location")
     private String location;
+
+    @Column(name = "condition_source", length = 64)
+    private String conditionSource;
+
+    @Column(name = "condition_onset")
+    private Instant conditionOnset;
+
+    @Column(name = "condition_expires")
+    private Instant conditionExpires;
+
+    @Column(name = "condition_temperature_c")
+    private Double conditionTemperatureC;
+
+    @Column(name = "condition_precipitation_probability")
+    private Double conditionPrecipitationProbability;
+
+    @Column(name = "condition_precipitation_amount")
+    private Double conditionPrecipitationAmount;
     
     @Column(name = "alert_time")
     private Instant alertTime;
@@ -54,4 +78,7 @@ public class AlertEntity {
     
     @Column(name = "acknowledged_at")
     private Instant acknowledgedAt;
+
+    @Column(name = "expired_at")
+    private Instant expiredAt;
 }

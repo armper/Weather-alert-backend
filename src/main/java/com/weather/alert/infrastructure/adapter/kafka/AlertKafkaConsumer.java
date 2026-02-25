@@ -2,11 +2,14 @@ package com.weather.alert.infrastructure.adapter.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.port.AlertRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
 
 /**
  * Kafka consumer for processing alerts
@@ -18,6 +21,7 @@ public class AlertKafkaConsumer {
     
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final AlertRepositoryPort alertRepository;
     
     @KafkaListener(topics = "weather-alerts", groupId = "alert-processor")
     public void consumeAlert(String message) {
@@ -27,6 +31,9 @@ public class AlertKafkaConsumer {
             
             // Process the alert - send notifications via email, SMS, push, etc.
             processAlert(alert);
+            if (alert.getId() != null && !alert.getId().isBlank()) {
+                alertRepository.markAsSent(alert.getId(), Instant.now());
+            }
             if (alert.getUserId() != null && !alert.getUserId().isBlank()) {
                 simpMessagingTemplate.convertAndSend("/topic/alerts/" + alert.getUserId(), alert);
             }

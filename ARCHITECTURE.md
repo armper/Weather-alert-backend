@@ -87,8 +87,10 @@ This document provides a detailed overview of the Weather Alert Backend architec
 - `QueryAlertsUseCase`
   - Get alerts by user ID
   - Get alert by ID
+  - Get alert history by criteria ID
   - Get criteria by user ID
   - Get pending alerts
+  - Acknowledge / expire alert lifecycle transitions
 
 #### DTOs (Data Transfer Objects)
 - `CreateAlertCriteriaRequest` (supports temperature/rain threshold pairs, monitoring scope, and cadence controls)
@@ -118,7 +120,7 @@ JPA/PostgreSQL
 ├── AlertCriteriaEntity → AlertCriteriaRepositoryAdapter
 ├── AlertCriteriaStateEntity → AlertCriteriaStateRepositoryAdapter
 ├── UserEntity → UserRepositoryAdapter
-└── Flyway-managed schema migrations + Hibernate validation (including criteria extension in V2 and anti-spam state in V3)
+└── Flyway-managed schema migrations + Hibernate validation (including criteria extension in V2, anti-spam state in V3, and alert lifecycle/dedupe fields in V4)
 ```
 
 **Kafka Adapter**
@@ -145,7 +147,10 @@ Elasticsearch Search
 **Alert Query Controller** (`/api/alerts`)
 - GET `/user/{userId}` - Get user's alerts
 - GET `/{alertId}` - Get specific alert
+- GET `/criteria/{criteriaId}/history` - Get alert history for a criteria
 - GET `/pending` - Get pending alerts
+- POST `/{alertId}/acknowledge` - Acknowledge an alert
+- POST `/{alertId}/expire` - Expire an alert
 
 **Alert Criteria Controller** (`/api/criteria`)
 - POST `/` - Create criteria
@@ -201,6 +206,7 @@ Elasticsearch Search
        │   └─► If cleared then re-occurs, allow rearm notification
        │
        ├─► Persist alert + updated criteria_state
+       │   ├─► Dedupe check by (criteria_id, event_key)
        │   └─► AlertRepositoryPort.save() + AlertCriteriaStateRepositoryPort.save()
        │
        └─► Publish to Kafka

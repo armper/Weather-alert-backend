@@ -23,6 +23,15 @@ public class AlertResponse {
     @Schema(example = "user-123")
     private String userId;
 
+    @Schema(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6")
+    private String criteriaId;
+
+    @Schema(example = "forecast|ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6|2026-02-25T06:00:00Z")
+    private String eventKey;
+
+    @Schema(example = "Matched FORECAST: Chance Rain Showers")
+    private String reason;
+
     @Schema(example = "Tornado Warning")
     private String eventType;
 
@@ -38,9 +47,36 @@ public class AlertResponse {
     @Schema(example = "King County, WA")
     private String location;
 
+    @Schema(example = "FORECAST")
+    private String conditionSource;
+
+    @Schema(example = "2026-02-25T06:00:00Z")
+    private Instant conditionOnset;
+
+    @Schema(example = "2026-02-25T07:00:00Z")
+    private Instant conditionExpires;
+
+    @Schema(example = "13.4")
+    private Double conditionTemperatureC;
+
+    @Schema(example = "65")
+    private Double conditionPrecipitationProbability;
+
+    @Schema(example = "1.8")
+    private Double conditionPrecipitationAmount;
+
     @Schema(example = "2026-02-24T18:05:00Z")
     private Instant alertTime;
 
     @Schema(allowableValues = {"PENDING", "SENT", "ACKNOWLEDGED", "EXPIRED"}, example = "PENDING")
     private String status;
+
+    @Schema(example = "2026-02-24T18:05:03Z")
+    private Instant sentAt;
+
+    @Schema(example = "2026-02-24T18:07:00Z")
+    private Instant acknowledgedAt;
+
+    @Schema(example = "2026-02-24T19:00:00Z")
+    private Instant expiredAt;
 }

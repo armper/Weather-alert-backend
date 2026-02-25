@@ -10,7 +10,7 @@ http://localhost:8080
 - Database schema changes are managed with Flyway migrations in `src/main/resources/db/migration`.
 - Migrations run automatically at app startup.
 - JPA uses schema validation (`ddl-auto: validate`) to catch drift instead of mutating schema.
-- Latest anti-spam state migration is in `V3__add_criteria_state.sql`.
+- Latest alert lifecycle/dedupe migration is in `V4__extend_alerts_for_lifecycle_and_dedupe.sql`.
 
 ## API Endpoints
 
@@ -33,6 +33,8 @@ Evaluation semantics:
 - New criteria are immediately evaluated at creation time; if already true, an alert is generated right away.
 - Anti-spam state is persisted per criteria (`criteria_state`): notifications fire on `not met -> met` transition, are deduped while still met, and can re-fire after condition clears.
 - `rearmWindowMinutes` applies cooldown to prevent rapid re-notify loops.
+- Alerts are persisted with an `eventKey`; duplicate inserts for the same `criteriaId + eventKey` are skipped.
+- Lifecycle transitions: `PENDING -> SENT` (Kafka consumer), then `SENT -> ACKNOWLEDGED` or `SENT/PENDING -> EXPIRED`.
 
 #### Create Alert Criteria
 ```http
@@ -180,13 +182,25 @@ GET /api/alerts/user/{userId}
   {
     "id": "alert-001",
     "userId": "user123",
+    "criteriaId": "criteria-123",
+    "eventKey": "forecast|criteria-123|2026-02-23T10:00:00Z",
+    "reason": "Matched FORECAST: Rain likely",
     "eventType": "Tornado",
     "severity": "SEVERE",
     "headline": "Tornado Warning",
     "description": "Tornado warning in your area. Take immediate shelter.",
     "location": "Seattle, WA",
+    "conditionSource": "FORECAST",
+    "conditionOnset": "2026-02-23T10:00:00Z",
+    "conditionExpires": "2026-02-23T11:00:00Z",
+    "conditionTemperatureC": 12.8,
+    "conditionPrecipitationProbability": 70.0,
+    "conditionPrecipitationAmount": null,
     "alertTime": "2026-02-23T10:30:00Z",
-    "status": "PENDING"
+    "status": "SENT",
+    "sentAt": "2026-02-23T10:30:02Z",
+    "acknowledgedAt": null,
+    "expiredAt": null
   }
 ]
 ```
@@ -201,15 +215,46 @@ GET /api/alerts/{alertId}
 {
   "id": "alert-001",
   "userId": "user123",
+  "criteriaId": "criteria-123",
+  "eventKey": "forecast|criteria-123|2026-02-23T10:00:00Z",
+  "reason": "Matched FORECAST: Rain likely",
   "eventType": "Tornado",
   "severity": "SEVERE",
   "headline": "Tornado Warning",
   "description": "Tornado warning in your area. Take immediate shelter.",
   "location": "Seattle, WA",
+  "conditionSource": "FORECAST",
+  "conditionOnset": "2026-02-23T10:00:00Z",
+  "conditionExpires": "2026-02-23T11:00:00Z",
+  "conditionTemperatureC": 12.8,
+  "conditionPrecipitationProbability": 70.0,
+  "conditionPrecipitationAmount": null,
   "alertTime": "2026-02-23T10:30:00Z",
-  "status": "PENDING"
+  "status": "SENT",
+  "sentAt": "2026-02-23T10:30:02Z",
+  "acknowledgedAt": null,
+  "expiredAt": null
 }
 ```
+
+#### Get Alert History by Criteria
+```http
+GET /api/alerts/criteria/{criteriaId}/history
+```
+
+#### Acknowledge Alert
+```http
+POST /api/alerts/{alertId}/acknowledge
+```
+
+**Response (200 OK)** status changes to `ACKNOWLEDGED` and `acknowledgedAt` is set.
+
+#### Expire Alert (admin)
+```http
+POST /api/alerts/{alertId}/expire
+```
+
+**Response (200 OK)** status changes to `EXPIRED` and `expiredAt` is set.
 
 #### Get Pending Alerts
 ```http
@@ -454,13 +499,25 @@ GET /api/weather/search/event/{eventType}
 {
   "id": "string (UUID)",
   "userId": "string",
+  "criteriaId": "string",
+  "eventKey": "string (dedupe key per criteria/event window)",
+  "reason": "string (human readable trigger reason)",
   "eventType": "string",
   "severity": "string",
   "headline": "string",
   "description": "string",
   "location": "string",
+  "conditionSource": "string (CURRENT|FORECAST|ALERT)",
+  "conditionOnset": "string (ISO 8601)",
+  "conditionExpires": "string (ISO 8601)",
+  "conditionTemperatureC": "number (optional)",
+  "conditionPrecipitationProbability": "number (optional)",
+  "conditionPrecipitationAmount": "number (optional)",
   "alertTime": "string (ISO 8601)",
-  "status": "string - PENDING|SENT|ACKNOWLEDGED|EXPIRED"
+  "status": "string - PENDING|SENT|ACKNOWLEDGED|EXPIRED",
+  "sentAt": "string (ISO 8601, optional)",
+  "acknowledgedAt": "string (ISO 8601, optional)",
+  "expiredAt": "string (ISO 8601, optional)"
 }
 ```
 

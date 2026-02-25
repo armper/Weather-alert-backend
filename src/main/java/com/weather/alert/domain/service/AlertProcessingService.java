@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -88,7 +89,7 @@ public class AlertProcessingService {
         for (WeatherData weatherData : weatherDataList) {
             for (AlertCriteria criteria : allCriteria) {
                 if (criteriaRuleEvaluator.matches(criteria, weatherData)) {
-                    alerts.add(saveAndPublishAlert(criteria, weatherData, false));
+                    saveAndPublishAlert(criteria, weatherData, false).ifPresent(alerts::add);
                 }
             }
         }
@@ -188,13 +189,13 @@ public class AlertProcessingService {
         }
 
         if (shouldNotify) {
-            Alert savedAlert = saveAndPublishAlert(criteria, matchedWeatherData, publish);
+            Optional<Alert> savedAlert = saveAndPublishAlert(criteria, matchedWeatherData, publish);
             state.setLastConditionMet(true);
             state.setLastEventSignature(eventSignature);
             state.setLastNotifiedAt(now);
             state.setUpdatedAt(now);
             criteriaStateRepository.save(state);
-            return List.of(savedAlert);
+            return savedAlert.map(List::of).orElseGet(List::of);
         }
 
         // Keep the state "not met" while still in cooldown after a fresh condition edge, so it can fire later.
@@ -238,15 +239,21 @@ public class AlertProcessingService {
         return value == null ? "unknown" : value;
     }
 
-    private Alert saveAndPublishAlert(AlertCriteria criteria, WeatherData weatherData, boolean publish) {
+    private Optional<Alert> saveAndPublishAlert(AlertCriteria criteria, WeatherData weatherData, boolean publish) {
         Alert alert = createAlert(criteria, weatherData);
+        Optional<Alert> existing = alertRepository.findByCriteriaIdAndEventKey(criteria.getId(), alert.getEventKey());
+        if (existing.isPresent()) {
+            log.debug("Skipping duplicate alert for criteria {} and eventKey {}", criteria.getId(), alert.getEventKey());
+            return Optional.empty();
+        }
+
         Alert savedAlert = alertRepository.save(alert);
         if (publish) {
             notificationPort.publishAlert(savedAlert);
         }
         log.info("Generated alert {} for user {} based on criteria {}",
                 savedAlert.getId(), criteria.getUserId(), criteria.getId());
-        return savedAlert;
+        return Optional.of(savedAlert);
     }
 
     private boolean shouldMonitorCurrent(AlertCriteria criteria) {
@@ -263,19 +270,80 @@ public class AlertProcessingService {
     }
     
     private Alert createAlert(AlertCriteria criteria, WeatherData weatherData) {
+        Instant now = Instant.now();
+        String eventKey = buildEventKey(criteria, weatherData, now);
         return Alert.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(criteria.getUserId())
                 .criteriaId(criteria.getId())
                 .weatherDataId(weatherData.getId())
+                .eventKey(eventKey)
+                .reason(buildReason(weatherData))
                 .eventType(weatherData.getEventType())
                 .severity(weatherData.getSeverity())
                 .headline(weatherData.getHeadline())
                 .description(weatherData.getDescription())
                 .location(weatherData.getLocation())
-                .alertTime(Instant.now())
+                .conditionSource(resolveConditionSource(weatherData))
+                .conditionOnset(weatherData.getOnset())
+                .conditionExpires(weatherData.getExpires())
+                .conditionTemperatureC(weatherData.getTemperature())
+                .conditionPrecipitationProbability(weatherData.getPrecipitationProbability())
+                .conditionPrecipitationAmount(weatherData.getPrecipitationAmount())
+                .alertTime(now)
                 .status(Alert.AlertStatus.PENDING)
                 .build();
+    }
+
+    private String buildEventKey(AlertCriteria criteria, WeatherData weatherData, Instant now) {
+        String eventType = safeValue(weatherData.getEventType());
+        if ("CURRENT_CONDITIONS".equalsIgnoreCase(eventType)) {
+            Instant bucket = coalesce(weatherData.getTimestamp(), weatherData.getOnset(), now).truncatedTo(ChronoUnit.HOURS);
+            return "current|" + criteria.getId() + "|" + bucket;
+        }
+        if ("FORECAST_CONDITIONS".equalsIgnoreCase(eventType)) {
+            Instant bucket = coalesce(weatherData.getOnset(), weatherData.getTimestamp(), now).truncatedTo(ChronoUnit.HOURS);
+            return "forecast|" + criteria.getId() + "|" + bucket;
+        }
+        if (weatherData.getId() != null && !weatherData.getId().isBlank()) {
+            return "alert|" + criteria.getId() + "|" + weatherData.getId();
+        }
+        Instant bucket = coalesce(weatherData.getOnset(), now).truncatedTo(ChronoUnit.HOURS);
+        return "alert|" + criteria.getId() + "|" + eventType + "|" + bucket;
+    }
+
+    private String buildReason(WeatherData weatherData) {
+        String source = resolveConditionSource(weatherData);
+        if (weatherData.getHeadline() != null && !weatherData.getHeadline().isBlank()) {
+            return "Matched " + source + ": " + weatherData.getHeadline();
+        }
+        return "Matched " + source + " conditions";
+    }
+
+    private String resolveConditionSource(WeatherData weatherData) {
+        if (weatherData == null) {
+            return "UNKNOWN";
+        }
+        if (weatherData.getStatus() != null && !weatherData.getStatus().isBlank()) {
+            return weatherData.getStatus();
+        }
+        String eventType = weatherData.getEventType();
+        if ("CURRENT_CONDITIONS".equalsIgnoreCase(eventType)) {
+            return "CURRENT";
+        }
+        if ("FORECAST_CONDITIONS".equalsIgnoreCase(eventType)) {
+            return "FORECAST";
+        }
+        return "ALERT";
+    }
+
+    private Instant coalesce(Instant... candidates) {
+        for (Instant candidate : candidates) {
+            if (candidate != null) {
+                return candidate;
+            }
+        }
+        return Instant.now();
     }
 
     private record CriteriaEvaluation(boolean conditionMet, WeatherData matchedWeatherData) {

@@ -22,6 +22,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,6 +60,8 @@ class AlertProcessingServiceTest {
                 criteriaStateRepository,
                 new AlertCriteriaRuleEvaluator()
         );
+        lenient().when(alertRepository.findByCriteriaIdAndEventKey(anyString(), anyString()))
+                .thenReturn(Optional.empty());
     }
 
     @Test
@@ -210,5 +214,45 @@ class AlertProcessingServiceTest {
         verify(alertRepository, times(1)).save(any(Alert.class));
         verify(notificationPort, times(1)).publishAlert(any(Alert.class));
         verify(searchPort, atLeastOnce()).indexWeatherData(any(WeatherData.class));
+    }
+
+    @Test
+    void shouldSkipSaveAndPublishWhenDuplicateEventKeyExists() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .id("criteria-dup")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .id("current-dup")
+                .eventType("CURRENT_CONDITIONS")
+                .temperature(12.0)
+                .build();
+
+        Alert existing = Alert.builder()
+                .id("existing-alert")
+                .criteriaId("criteria-dup")
+                .eventKey("current|criteria-dup|2026-01-01T10:00:00Z")
+                .build();
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
+        when(weatherDataPort.fetchActiveAlerts()).thenReturn(List.of());
+        when(weatherDataPort.fetchCurrentConditions(28.5383, -81.3792)).thenReturn(Optional.of(current));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.findByCriteriaIdAndEventKey(eq("criteria-dup"), anyString())).thenReturn(Optional.of(existing));
+
+        service.processWeatherAlerts();
+
+        verify(alertRepository, never()).save(any(Alert.class));
+        verify(notificationPort, never()).publishAlert(any(Alert.class));
     }
 }

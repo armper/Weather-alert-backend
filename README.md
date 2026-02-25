@@ -126,6 +126,7 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
   - `V1__baseline.sql` (existing core tables)
   - `V2__extend_alert_criteria_for_weather_conditions.sql` (new weather-condition criteria fields)
   - `V3__add_criteria_state.sql` (anti-spam criteria edge/notification state)
+  - `V4__extend_alerts_for_lifecycle_and_dedupe.sql` (alert event key, lifecycle metadata, dedupe indexes)
 
 Common commands:
 
@@ -204,7 +205,7 @@ docker compose down -v
 All `/api/**` endpoints now require JWT Bearer authentication (except token issuance).
 
 - **USER role**: read-only API access
-- **ADMIN role**: includes write access for criteria management and pending alerts endpoint
+- **ADMIN role**: includes write access for criteria management, pending alerts endpoint, and alert-expire endpoint
 
 Credentials must be configured via environment variables:
 
@@ -272,8 +273,17 @@ GET /api/alerts/user/{userId}
 # Get specific alert
 GET /api/alerts/{alertId}
 
+# Get alert history for a criteria
+GET /api/alerts/criteria/{criteriaId}/history
+
 # Get pending alerts
 GET /api/alerts/pending
+
+# Acknowledge alert
+POST /api/alerts/{alertId}/acknowledge
+
+# Expire alert (admin)
+POST /api/alerts/{alertId}/expire
 
 # Get criteria for a user
 GET /api/criteria/user/{userId}
@@ -353,6 +363,12 @@ Anti-spam semantics:
 
 ### Alert
 Generated alert matching user criteria with weather data.
+
+Lifecycle + dedupe behavior:
+- Alerts are created with `PENDING` status and persisted `eventKey`.
+- Kafka consumer marks persisted alerts as `SENT` (`sentAt` set) when processed.
+- API supports transitions to `ACKNOWLEDGED` and `EXPIRED`.
+- Duplicate inserts for the same `criteriaId + eventKey` are skipped.
 
 ### User
 User profile with notification preferences.
