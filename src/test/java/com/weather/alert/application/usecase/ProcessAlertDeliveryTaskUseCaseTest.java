@@ -1,11 +1,14 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertDeliveryRecord;
 import com.weather.alert.domain.model.AlertDeliveryStatus;
 import com.weather.alert.domain.model.DeliveryFailureType;
+import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.model.NotificationChannel;
+import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
@@ -41,6 +44,9 @@ class ProcessAlertDeliveryTaskUseCaseTest {
     private AlertRepositoryPort alertRepository;
 
     @Mock
+    private AlertCriteriaRepositoryPort alertCriteriaRepository;
+
+    @Mock
     private EmailSenderPort emailSenderPort;
 
     @Mock
@@ -57,6 +63,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         useCase = new ProcessAlertDeliveryTaskUseCase(
                 alertDeliveryRepository,
                 alertRepository,
+                alertCriteriaRepository,
                 emailSenderPort,
                 dlqPublisher,
                 properties);
@@ -69,11 +76,36 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         when(alertDeliveryRepository.save(any(AlertDeliveryRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(alertRepository.findById("alert-1")).thenReturn(Optional.of(Alert.builder()
                 .id("alert-1")
-                .headline("Rain incoming")
+                .criteriaId("criteria-1")
+                .location("Orlando")
+                .conditionSource("CURRENT")
+                .conditionTemperatureC(24.4)
+                .reason("Matched CURRENT: Partly Cloudy")
+                .description("Latest NOAA observation from station KORL")
+                .alertTime(Instant.parse("2026-02-26T20:41:23.668488Z"))
+                .build()));
+        when(alertCriteriaRepository.findById("criteria-1")).thenReturn(Optional.of(AlertCriteria.builder()
+                .id("criteria-1")
+                .name("Bring a jacket")
+                .location("Orlando")
+                .temperatureThreshold(80.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .oncePerEvent(true)
                 .build()));
         when(emailSenderPort.send(any())).thenReturn(new EmailSendResult("provider-id-1"));
 
         useCase.processTask("delivery-1");
+
+        ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSenderPort).send(emailCaptor.capture());
+        assertEquals("Weather Alert: Bring a jacket", emailCaptor.getValue().subject());
+        assertTrue(emailCaptor.getValue().body().contains("Alert name: Bring a jacket"));
+        assertTrue(emailCaptor.getValue().body().contains("Area: Orlando"));
+        assertTrue(emailCaptor.getValue().body().contains("Rule: temperature is below 80 F"));
+        assertTrue(emailCaptor.getValue().body().contains("Matched reading: temperature 75.9 F"));
+        assertTrue(emailCaptor.getValue().body().contains("Source: Current conditions"));
+        assertTrue(emailCaptor.getValue().body().contains("Current conditions: Partly Cloudy"));
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
         verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
