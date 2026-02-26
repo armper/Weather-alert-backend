@@ -3,6 +3,7 @@ package com.weather.alert.domain.port;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -19,4 +20,6 @@ public interface WeatherDataSearchPort {
     List<WeatherData> searchByEventType(String eventType);
     
     List<WeatherData> searchBySeverity(String severity);
+
+    long deleteWeatherDataOlderThan(Instant cutoff);
 }

@@ -46,6 +46,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Search Capabilities**: Elasticsearch integration for fast weather data queries
 - ✅ **CQRS Pattern**: Separate command and query operations for optimal performance
 - ✅ **Scheduled Updates**: Automatic weather data fetching every 5 minutes
+- ✅ **Automatic Data Retention Cleanup**: Scheduled pruning of old alerts, criteria state, indexed weather data, and Kafka topic backlog
 - ✅ **RESTful API**: Comprehensive REST endpoints for all operations
 - ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
 - ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
@@ -88,6 +89,17 @@ Implementation tracking for weather-condition alerts (temperature/rain current +
 - ⏳ Pending in TODO: Chunk 9 (expanded observability dashboards) and Chunk 10 (end-to-end matrix + manual playbook)
 
 ## Changelog
+
+### 2026-02-26 (Data Retention + Cleanup)
+
+- Added scheduled retention cleanup with configurable TTLs:
+  - PostgreSQL `alerts` rows older than retention window
+  - PostgreSQL `criteria_state` rows older than retention window
+  - Orphaned `criteria_state` rows for deleted criteria
+  - Elasticsearch `weather-data` documents older than retention window
+- Added DB index `idx_alerts_alert_time` to keep alert pruning efficient.
+- Added Kafka topic retention policy for `weather-alerts` in `docker-compose.yml` (`retention.ms=86400000`).
+- Added retention configuration knobs under `app.retention.*` with `.env` support.
 
 ### 2026-02-25 (Automated API Contract Testing)
 
@@ -167,6 +179,16 @@ Optional NOAA client tuning values in `.env`:
 - `APP_NOAA_OUTAGE_FAILURE_THRESHOLD` (default `4`)
 - `APP_NOAA_OUTAGE_OPEN_SECONDS` (default `30`)
 
+Retention tuning values in `.env`:
+
+- `APP_RETENTION_ENABLED` (default `true`)
+- `APP_RETENTION_ALERTS_DAYS` (default `2`)
+- `APP_RETENTION_WEATHER_DATA_HOURS` (default `72`)
+- `APP_RETENTION_CRITERIA_STATE_DAYS` (default `14`)
+- `APP_RETENTION_CLEANUP_ORPHAN_CRITERIA_STATE` (default `true`)
+- `APP_RETENTION_CLEANUP_FIXED_DELAY_MS` (default `3600000`)
+- `APP_RETENTION_CLEANUP_INITIAL_DELAY_MS` (default `120000`)
+
 ### 3. Database Migrations (Flyway)
 
 Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
@@ -181,6 +203,7 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
   - `V2__extend_alert_criteria_for_weather_conditions.sql` (new weather-condition criteria fields)
   - `V3__add_criteria_state.sql` (anti-spam criteria edge/notification state)
   - `V4__extend_alerts_for_lifecycle_and_dedupe.sql` (alert event key, lifecycle metadata, dedupe indexes)
+  - `V5__add_retention_cleanup_index.sql` (alert retention cleanup index)
 
 Common commands:
 
@@ -272,6 +295,17 @@ GET /actuator/metrics/weather.noaa.request.duration
   - while open, NOAA requests are short-circuited
   - criteria evaluations become `UNAVAILABLE`
   - `UNAVAILABLE` does not mutate `criteria_state`, preventing false transitions/spam on recovery
+
+### Data Retention + Pruning
+
+- A separate scheduled cleanup job runs hourly (after a 2-minute startup delay by default).
+- Cleanup scopes:
+  - delete old `alerts` rows by `alert_time`
+  - delete stale `criteria_state` rows by `updated_at`
+  - delete orphaned `criteria_state` rows whose criteria no longer exists
+  - delete old Elasticsearch `weather-data` docs by `timestamp`
+- Kafka topic `weather-alerts` is configured with 24h retention in docker compose.
+- All retention windows are configurable via `APP_RETENTION_*` environment variables.
 
 When you are done:
 

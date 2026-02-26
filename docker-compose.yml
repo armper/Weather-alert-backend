@@ -64,7 +64,13 @@ services:
       --create --if-not-exists
       --topic weather-alerts
       --replication-factor 1
-      --partitions 3"
+      --partitions 3
+      &&
+      kafka-configs --bootstrap-server kafka:29092
+      --entity-type topics
+      --entity-name weather-alerts
+      --alter
+      --add-config retention.ms=86400000,cleanup.policy=delete"
     restart: "no"
 
   elasticsearch:

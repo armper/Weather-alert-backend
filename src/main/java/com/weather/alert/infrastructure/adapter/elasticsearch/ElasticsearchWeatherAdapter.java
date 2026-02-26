@@ -8,8 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.query.ByQueryResponse;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +24,7 @@ import java.util.stream.Collectors;
 public class ElasticsearchWeatherAdapter implements WeatherDataSearchPort {
     
     private final ElasticsearchWeatherRepository repository;
+    private final ElasticsearchOperations elasticsearchOperations;
     
     @Override
     public void indexWeatherData(WeatherData weatherData) {
@@ -69,6 +75,21 @@ public class ElasticsearchWeatherAdapter implements WeatherDataSearchPort {
         return repository.findBySeverity(severity).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public long deleteWeatherDataOlderThan(Instant cutoff) {
+        if (cutoff == null) {
+            return 0L;
+        }
+        try {
+            CriteriaQuery query = new CriteriaQuery(new Criteria("timestamp").lessThan(cutoff));
+            ByQueryResponse response = elasticsearchOperations.delete(query, WeatherDataDocument.class);
+            return response == null ? 0L : response.getDeleted();
+        } catch (Exception e) {
+            log.error("Error pruning weather documents older than {}", cutoff, e);
+            return 0L;
+        }
     }
     
     private WeatherDataDocument toDocument(WeatherData domain) {

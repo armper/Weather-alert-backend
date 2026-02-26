@@ -43,6 +43,12 @@ server:
 logging:
   file:
     name: ${LOGGING_FILE_NAME:logs/weather-alert-backend.log}
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOGGING_FILE_NAME:logs/weather-alert-backend.log}.%d{yyyy-MM-dd}.%i.gz
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 200MB
   pattern:
     correlation: "[traceId=%X{traceId:-},spanId=%X{spanId:-},correlationId=%X{correlationId:-}] "
   level:
@@ -84,6 +90,14 @@ app:
     max-requests: 120
     window-seconds: 60
     trust-forwarded-for: false
+  retention:
+    enabled: ${APP_RETENTION_ENABLED:true}
+    alerts-days: ${APP_RETENTION_ALERTS_DAYS:2}
+    weather-data-hours: ${APP_RETENTION_WEATHER_DATA_HOURS:72}
+    criteria-state-days: ${APP_RETENTION_CRITERIA_STATE_DAYS:14}
+    cleanup-orphan-criteria-state: ${APP_RETENTION_CLEANUP_ORPHAN_CRITERIA_STATE:true}
+    cleanup-fixed-delay-ms: ${APP_RETENTION_CLEANUP_FIXED_DELAY_MS:3600000}
+    cleanup-initial-delay-ms: ${APP_RETENTION_CLEANUP_INITIAL_DELAY_MS:120000}
   security:
     user:
       username: ${APP_SECURITY_USER_USERNAME}

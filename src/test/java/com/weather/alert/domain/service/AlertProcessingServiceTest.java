@@ -16,6 +16,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -308,6 +309,57 @@ class AlertProcessingServiceTest {
 
         verify(weatherDataPort, times(1)).fetchCurrentConditionsWithStatus(28.5383, -81.3792);
         verify(alertRepository, times(2)).save(any(Alert.class));
+    }
+
+    @Test
+    void shouldOnlyTriggerMatchingTemperatureCriteriaWhenDirectionsConflict() {
+        AlertCriteria belowThreshold = AlertCriteria.builder()
+                .id("criteria-below")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(69.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        AlertCriteria aboveThreshold = AlertCriteria.builder()
+                .id("criteria-above")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(93.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.ABOVE)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .id("current-18c")
+                .eventType("CURRENT_CONDITIONS")
+                .temperature(18.0) // 64.4F
+                .build();
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(belowThreshold, aboveThreshold));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(current)));
+        when(criteriaStateRepository.findByCriteriaId(anyString())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.processWeatherAlerts();
+
+        ArgumentCaptor<Alert> savedAlertCaptor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository, times(1)).save(savedAlertCaptor.capture());
+        verify(notificationPort, times(1)).publishAlert(any(Alert.class));
+        assertEquals("criteria-below", savedAlertCaptor.getValue().getCriteriaId());
+        assertEquals("current-18c", savedAlertCaptor.getValue().getWeatherDataId());
     }
 
     @Test
