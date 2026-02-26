@@ -351,6 +351,7 @@ Notes:
 - Persisted tokens are hashed; raw token is never stored.
 - Verification email delivery is controlled by `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL`.
 - In local Docker dev, verification emails are visible in MailHog (`http://localhost:8025`).
+- For real outbound delivery, enable `SPRING_PROFILES_ACTIVE=smtp-relay` and provide valid SMTP credentials.
 
 #### Confirm Verification
 ```http
@@ -476,10 +477,19 @@ APP_NOTIFICATION_EMAIL_FROM_ADDRESS=no-reply@weather-alert.local
 APP_NOTIFICATION_EMAIL_SES_REGION=us-east-1
 SPRING_MAIL_HOST=localhost
 SPRING_MAIL_PORT=1025
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=false
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=false
+SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE=false
 ```
 
 Local developer workflow:
 - Use MailHog SMTP (`localhost:1025`) and inspect sent messages in `http://localhost:8025`.
+
+External SMTP relay workflow (send to real inboxes):
+- Set `SPRING_PROFILES_ACTIVE=smtp-relay`.
+- Configure `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`.
+- Set TLS mode with `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` or `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE`.
+- Set `APP_NOTIFICATION_EMAIL_FROM_ADDRESS` to a sender identity allowed by your SMTP relay/provider.
 
 ---
 

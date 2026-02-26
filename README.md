@@ -106,6 +106,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - `APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT` (subject line for verification emails)
 - Kept token-in-response behavior configurable with `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` for environments that still want auto-token flow.
 - Added use-case tests for successful verification-email send and delivery-failure handling.
+- Added generic external SMTP relay mode via Spring profile `smtp-relay` (`application-smtp-relay.yml`) and `.env.smtp.example` to support real delivery to any recipient address.
 
 ### 2026-02-26 (Account Registration + Approval Workflow)
 
@@ -296,6 +297,17 @@ set +a
 
 This sets required security credentials and infrastructure endpoints without modifying `src/main/resources/application.yml`.
 It also includes `APP_NOAA_MAX_IN_MEMORY_SIZE` to avoid large NOAA payload buffer errors in local dev.
+
+For real outbound email delivery (instead of MailHog capture), use an SMTP relay/provider:
+
+```bash
+cp .env.smtp.example .env.smtp
+set -a
+source .env
+source .env.smtp
+set +a
+```
+
 Optional NOAA client tuning values in `.env`:
 
 - `APP_NOAA_REQUEST_TIMEOUT_SECONDS` (default `8`)
@@ -320,6 +332,11 @@ Notification verification tuning values in `.env`:
 - `APP_NOTIFICATION_EMAIL_PROVIDER` (`smtp` for local/MailHog, `ses` for AWS SES)
 - `APP_NOTIFICATION_EMAIL_FROM_ADDRESS` (default sender address)
 - `APP_NOTIFICATION_EMAIL_SES_REGION` (AWS region for SES, default `us-east-1`)
+- `SPRING_PROFILES_ACTIVE` (set `smtp-relay` to enable external SMTP relay defaults)
+- `SPRING_MAIL_HOST` / `SPRING_MAIL_PORT` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` (SMTP credentials)
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE` / `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` (TLS mode)
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_TRUST` (provider host for SSL trust pinning when needed)
+- `SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT` / `SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT` / `SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT`
 - `APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES` (default `15`)
 - `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` (default `true` for local/dev)
 - `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL` (default `false`; set `true` in local `.env` to deliver via MailHog)
@@ -631,6 +648,7 @@ POST /api/notifications/verifications/{verificationId}/confirm
 
 When `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL=true`, the same token is also sent as an email.
 In local Docker dev, inspect verification emails in MailHog at `http://localhost:8025`.
+With `SPRING_PROFILES_ACTIVE=smtp-relay` plus valid SMTP credentials, the same flow sends to real inboxes (any recipient address supported by your SMTP relay policy).
 
 ### Notification Preferences
 

@@ -24,7 +24,12 @@ public class NotificationEmailConfiguration {
             @Value("${spring.mail.username:}") String username,
             @Value("${spring.mail.password:}") String password,
             @Value("${spring.mail.properties.mail.smtp.auth:false}") boolean smtpAuth,
-            @Value("${spring.mail.properties.mail.smtp.starttls.enable:false}") boolean startTlsEnable) {
+            @Value("${spring.mail.properties.mail.smtp.starttls.enable:false}") boolean startTlsEnable,
+            @Value("${spring.mail.properties.mail.smtp.ssl.enable:false}") boolean sslEnable,
+            @Value("${spring.mail.properties.mail.smtp.ssl.trust:}") String sslTrust,
+            @Value("${spring.mail.properties.mail.smtp.connectiontimeout:5000}") int connectionTimeoutMs,
+            @Value("${spring.mail.properties.mail.smtp.timeout:5000}") int timeoutMs,
+            @Value("${spring.mail.properties.mail.smtp.writetimeout:5000}") int writeTimeoutMs) {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
         sender.setHost(host);
         sender.setPort(port);
@@ -37,6 +42,13 @@ public class NotificationEmailConfiguration {
         Properties javaMailProps = sender.getJavaMailProperties();
         javaMailProps.put("mail.smtp.auth", String.valueOf(smtpAuth));
         javaMailProps.put("mail.smtp.starttls.enable", String.valueOf(startTlsEnable));
+        javaMailProps.put("mail.smtp.ssl.enable", String.valueOf(sslEnable));
+        if (sslTrust != null && !sslTrust.isBlank()) {
+            javaMailProps.put("mail.smtp.ssl.trust", sslTrust);
+        }
+        javaMailProps.put("mail.smtp.connectiontimeout", String.valueOf(connectionTimeoutMs));
+        javaMailProps.put("mail.smtp.timeout", String.valueOf(timeoutMs));
+        javaMailProps.put("mail.smtp.writetimeout", String.valueOf(writeTimeoutMs));
         return sender;
     }
 
