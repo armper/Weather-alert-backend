@@ -219,6 +219,10 @@ public class AlertCriteriaRuleEvaluator {
     private static final class LegacyTemperatureRangeRule implements CriteriaRule {
         @Override
         public boolean applies(AlertCriteria criteria) {
+            // New threshold mode takes precedence when configured, to avoid mixed-mode false positives.
+            if (criteria.getTemperatureThreshold() != null || criteria.getTemperatureDirection() != null) {
+                return false;
+            }
             return criteria.getMaxTemperature() != null || criteria.getMinTemperature() != null;
         }
 
@@ -249,6 +253,10 @@ public class AlertCriteriaRuleEvaluator {
     private static final class LegacyPrecipitationRule implements CriteriaRule {
         @Override
         public boolean applies(AlertCriteria criteria) {
+            // New rain threshold mode takes precedence when configured.
+            if (criteria.getRainThreshold() != null || criteria.getRainThresholdType() != null) {
+                return false;
+            }
             return criteria.getMaxPrecipitation() != null;
         }
 

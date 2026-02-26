@@ -21,6 +21,8 @@ Create, update, and manage alert criteria for users.
 Validation rules for weather-condition fields:
 - `temperatureThreshold` and `temperatureDirection` must be provided together.
 - `rainThreshold` and `rainThresholdType` must be provided together.
+- `temperatureThreshold`/`temperatureDirection` cannot be combined with legacy `minTemperature`/`maxTemperature`.
+- `rainThreshold`/`rainThresholdType` cannot be combined with legacy `maxPrecipitation`.
 - At least one of `monitorCurrent` or `monitorForecast` must be `true` (or both omitted to use defaults).
 - `latitude` and `longitude` must be provided together.
 - `radiusKm` requires both `latitude` and `longitude`.

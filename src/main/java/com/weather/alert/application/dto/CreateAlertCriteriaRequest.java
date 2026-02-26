@@ -162,4 +162,18 @@ public class CreateAlertCriteriaRequest {
         }
         return rainThresholdType != AlertCriteria.RainThresholdType.PROBABILITY || rainThreshold <= 100.0;
     }
+
+    @AssertTrue(message = "temperatureThreshold/temperatureDirection cannot be combined with legacy minTemperature/maxTemperature")
+    public boolean isTemperatureModeConsistent() {
+        boolean thresholdMode = temperatureThreshold != null || temperatureDirection != null;
+        boolean legacyRangeMode = minTemperature != null || maxTemperature != null;
+        return !(thresholdMode && legacyRangeMode);
+    }
+
+    @AssertTrue(message = "rainThreshold/rainThresholdType cannot be combined with legacy maxPrecipitation")
+    public boolean isRainModeConsistent() {
+        boolean thresholdMode = rainThreshold != null || rainThresholdType != null;
+        boolean legacyMode = maxPrecipitation != null;
+        return !(thresholdMode && legacyMode);
+    }
 }

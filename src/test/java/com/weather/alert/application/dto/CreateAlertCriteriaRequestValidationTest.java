@@ -108,4 +108,30 @@ class CreateAlertCriteriaRequestValidationTest {
         Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
         assertFalse(violations.isEmpty());
     }
+
+    @Test
+    void shouldFailWhenThresholdTemperatureModeIsMixedWithLegacyRangeMode() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .temperatureThreshold(93.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.ABOVE)
+                .minTemperature(10.0)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenThresholdRainModeIsMixedWithLegacyPrecipitationMode() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .rainThreshold(60.0)
+                .rainThresholdType(AlertCriteria.RainThresholdType.PROBABILITY)
+                .maxPrecipitation(5.0)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
 }

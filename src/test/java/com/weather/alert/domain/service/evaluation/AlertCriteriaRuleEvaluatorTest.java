@@ -94,6 +94,40 @@ class AlertCriteriaRuleEvaluatorTest {
     }
 
     @Test
+    void shouldNotMatchTemperatureAboveThresholdWhenCurrentTemperatureIsLower() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .temperatureThreshold(93.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.ABOVE)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .temperature(18.0) // 64.4F
+                .build();
+
+        assertFalse(evaluator.matches(criteria, current));
+    }
+
+    @Test
+    void shouldIgnoreLegacyTemperatureRangeWhenThresholdModeIsConfigured() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .temperatureThreshold(93.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.ABOVE)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                // Legacy field is conflicting and should be ignored when threshold mode is used.
+                .minTemperature(93.0)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .temperature(18.0) // 64.4F
+                .build();
+
+        assertFalse(evaluator.matches(criteria, current));
+    }
+
+    @Test
     void shouldMatchEventTypeAgainstConditionTextForCurrentAndForecastData() {
         AlertCriteria criteria = AlertCriteria.builder()
                 .enabled(true)
