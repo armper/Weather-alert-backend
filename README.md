@@ -52,6 +52,8 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
 - ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
 - ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
+- ✅ **Email Verification Flow**: Start/confirm verification tokens for channel readiness
+- ✅ **Verified Channel Resolution**: Unverified channels are excluded from delivery preference resolution
 
 ## Technology Stack
 
@@ -127,6 +129,20 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - preferred channel not present in enabled channels
   - contradictory criteria config (`useUserDefaults=true` with explicit overrides)
 - Added unit tests covering core resolution matrix and invalid configurations.
+
+### 2026-02-26 (Notification Verification Flow - Chunk 3)
+
+- Added verification API endpoints:
+  - `POST /api/notifications/verifications/start`
+  - `POST /api/notifications/verifications/{verificationId}/confirm`
+- Added `ManageChannelVerificationUseCase` with:
+  - secure token generation
+  - SHA-256 token hashing at rest
+  - expiry handling (`PENDING_VERIFICATION -> EXPIRED`)
+  - confirmation flow (`PENDING_VERIFICATION -> VERIFIED`)
+- Added local-dev response support for one-time raw token visibility (`app.notification.verification.expose-raw-token`).
+- Added verified-channel enforcement in `NotificationPreferenceResolverService` so unverified channels are removed from effective routing.
+- Added unit and integration contract tests for verification and resolver filtering behavior.
 
 ### 2026-02-25 (Automated API Contract Testing)
 
@@ -215,6 +231,11 @@ Retention tuning values in `.env`:
 - `APP_RETENTION_CLEANUP_ORPHAN_CRITERIA_STATE` (default `true`)
 - `APP_RETENTION_CLEANUP_FIXED_DELAY_MS` (default `3600000`)
 - `APP_RETENTION_CLEANUP_INITIAL_DELAY_MS` (default `120000`)
+
+Notification verification tuning values in `.env`:
+
+- `APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES` (default `15`)
+- `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` (default `true` for local/dev)
 
 ### 3. Database Migrations (Flyway)
 
@@ -439,6 +460,23 @@ GET /api/criteria/user/{userId}?temperatureUnit=F&hasRainRule=true&monitorForeca
 
 # Get specific criteria
 GET /api/criteria/{criteriaId}
+```
+
+### Notification Verification
+
+```bash
+# Start email verification (returns verificationToken in local/dev)
+POST /api/notifications/verifications/start
+{
+  "channel": "EMAIL",
+  "destination": "dev-admin@example.com"
+}
+
+# Confirm token
+POST /api/notifications/verifications/{verificationId}/confirm
+{
+  "token": "paste-token-from-start-response"
+}
 ```
 
 ### Weather Data

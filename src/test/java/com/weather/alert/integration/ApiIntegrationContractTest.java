@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
@@ -183,6 +184,45 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("id", equalTo("weather-current-1"))
                 .body("location", equalTo("Orlando"));
+    }
+
+    @Test
+    void shouldStartAndConfirmEmailVerificationWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> startResponse = given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "channel", "EMAIL",
+                        "destination", "test-admin@example.com"))
+                .when()
+                .post("/api/notifications/verifications/start")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", notNullValue())
+                .body("channel", equalTo("EMAIL"))
+                .body("status", equalTo("PENDING_VERIFICATION"))
+                .body("verificationToken", notNullValue())
+                .extract()
+                ;
+
+        String verificationId = startResponse.path("id");
+        String verificationToken = startResponse.path("verificationToken");
+
+        given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(Map.of("token", verificationToken))
+                .when()
+                .post("/api/notifications/verifications/{verificationId}/confirm", verificationId)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("status", equalTo("VERIFIED"))
+                .body("verifiedAt", notNullValue())
+                .body("verificationToken", nullValue());
     }
 
     private String issueAdminToken() {

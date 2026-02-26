@@ -50,6 +50,7 @@ Evaluation semantics:
 - Retention cleanup runs on a separate schedule and prunes old `alerts`, old/orphaned `criteria_state`, and old indexed weather read-model documents.
 - Notification delivery foundations now persist user/criteria channel preferences, verification state, and per-channel delivery attempts for future email/SMS flows.
 - Notification routing resolution now follows precedence: user defaults, then criteria override only when `useUserDefaults=false`; invalid channel configs are rejected by validation logic.
+- Effective routing now excludes unverified channels (EMAIL/SMS require a `VERIFIED` channel verification record for the current user destination).
 
 #### Create Alert Criteria
 ```http
@@ -201,6 +202,63 @@ GET /api/criteria/{criteriaId}
   "eventType": "Tornado",
   "minSeverity": "SEVERE",
   "enabled": true
+}
+```
+
+---
+
+### 1.5 Notification Channel Verification
+
+Start and confirm verification for delivery channels (email in current version).
+
+#### Start Verification
+```http
+POST /api/notifications/verifications/start
+Content-Type: application/json
+
+{
+  "channel": "EMAIL",
+  "destination": "dev-admin@example.com"
+}
+```
+
+**Response (200 OK)**
+```json
+{
+  "id": "2b4f4f31-5a4c-45d8-b274-301f8c6fb5f4",
+  "channel": "EMAIL",
+  "destination": "dev-admin@example.com",
+  "status": "PENDING_VERIFICATION",
+  "tokenExpiresAt": "2026-02-26T18:42:12Z",
+  "verifiedAt": null,
+  "verificationToken": "2aQWQCi4k9c43-SprCuhbkJYE1S8rFf5"
+}
+```
+
+Notes:
+- Raw `verificationToken` is intended for local/dev workflow and is controlled by `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN`.
+- Persisted tokens are hashed; raw token is never stored.
+
+#### Confirm Verification
+```http
+POST /api/notifications/verifications/{verificationId}/confirm
+Content-Type: application/json
+
+{
+  "token": "2aQWQCi4k9c43-SprCuhbkJYE1S8rFf5"
+}
+```
+
+**Response (200 OK)**
+```json
+{
+  "id": "2b4f4f31-5a4c-45d8-b274-301f8c6fb5f4",
+  "channel": "EMAIL",
+  "destination": "dev-admin@example.com",
+  "status": "VERIFIED",
+  "tokenExpiresAt": null,
+  "verifiedAt": "2026-02-26T18:40:00Z",
+  "verificationToken": null
 }
 ```
 

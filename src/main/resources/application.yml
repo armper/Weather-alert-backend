@@ -109,3 +109,7 @@ app:
       secret: ${APP_SECURITY_JWT_SECRET}
       # JWT lifetime in seconds (default 3600 = 1 hour)
       expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:3600}
+  notification:
+    verification:
+      token-ttl-minutes: ${APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES:15}
+      expose-raw-token: ${APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN:true}

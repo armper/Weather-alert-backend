@@ -24,11 +24,11 @@
 - [x] Add unit tests for resolution matrix.
 
 ## Chunk 3: Verification Flow
-- [ ] Add email verification flow:
-- [ ] Start verification (token issue + persistence).
-- [ ] Confirm verification (token validation + status update).
-- [ ] Block unverified channels from delivery selection.
-- [ ] Add API endpoints + DTOs + tests.
+- [x] Add email verification flow:
+- [x] Start verification (token issue + persistence).
+- [x] Confirm verification (token validation + status update).
+- [x] Block unverified channels from delivery selection.
+- [x] Add API endpoints + DTOs + tests.
 
 ## Chunk 4: Email Delivery Adapter
 - [ ] Add `EmailSenderPort` and concrete adapter.

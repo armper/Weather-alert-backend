@@ -4,9 +4,13 @@ import com.weather.alert.domain.model.CriteriaNotificationPreference;
 import com.weather.alert.domain.model.DeliveryFallbackStrategy;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.ResolvedNotificationPreference;
+import com.weather.alert.domain.model.ChannelVerificationStatus;
+import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserNotificationPreference;
+import com.weather.alert.domain.port.ChannelVerificationRepositoryPort;
 import com.weather.alert.domain.port.CriteriaNotificationPreferenceRepositoryPort;
 import com.weather.alert.domain.port.UserNotificationPreferenceRepositoryPort;
+import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +18,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +27,8 @@ public class NotificationPreferenceResolverService {
 
     private final UserNotificationPreferenceRepositoryPort userNotificationPreferenceRepository;
     private final CriteriaNotificationPreferenceRepositoryPort criteriaNotificationPreferenceRepository;
+    private final ChannelVerificationRepositoryPort channelVerificationRepository;
+    private final UserRepositoryPort userRepository;
 
     public ResolvedNotificationPreference resolve(String userId, String criteriaId) {
         if (userId == null || userId.isBlank()) {
@@ -42,7 +50,7 @@ public class NotificationPreferenceResolverService {
             if (criteriaPreference != null) {
                 validateNoExplicitCriteriaOverride(criteriaPreference, criteriaId);
             }
-            return ResolvedNotificationPreference.builder()
+            ResolvedNotificationPreference resolved = ResolvedNotificationPreference.builder()
                     .userId(userId)
                     .criteriaId(criteriaId)
                     .criteriaOverrideApplied(false)
@@ -50,12 +58,13 @@ public class NotificationPreferenceResolverService {
                     .preferredChannel(normalizedUserPreference.preferredChannel())
                     .fallbackStrategy(normalizedUserPreference.fallbackStrategy())
                     .build();
+            return applyVerificationFilter(resolved);
         }
 
         NormalizedPreference normalizedCriteriaPreference =
                 normalize("criteria " + criteriaId, criteriaPreference.getEnabledChannels(), criteriaPreference.getPreferredChannel(),
                         criteriaPreference.getFallbackStrategy(), false);
-        return ResolvedNotificationPreference.builder()
+        ResolvedNotificationPreference resolved = ResolvedNotificationPreference.builder()
                 .userId(userId)
                 .criteriaId(criteriaId)
                 .criteriaOverrideApplied(true)
@@ -63,6 +72,7 @@ public class NotificationPreferenceResolverService {
                 .preferredChannel(normalizedCriteriaPreference.preferredChannel())
                 .fallbackStrategy(normalizedCriteriaPreference.fallbackStrategy())
                 .build();
+        return applyVerificationFilter(resolved);
     }
 
     private void validateNoExplicitCriteriaOverride(CriteriaNotificationPreference criteriaPreference, String criteriaId) {
@@ -136,6 +146,60 @@ public class NotificationPreferenceResolverService {
             }
         }
         return ordered;
+    }
+
+    private ResolvedNotificationPreference applyVerificationFilter(ResolvedNotificationPreference resolved) {
+        Optional<User> user = userRepository.findById(resolved.getUserId());
+        List<NotificationChannel> verifiedChannels = resolved.getOrderedChannels().stream()
+                .filter(channel -> isChannelVerified(resolved.getUserId(), channel, user))
+                .toList();
+
+        if (verifiedChannels.isEmpty()) {
+            throw new InvalidNotificationPreferenceConfigurationException(
+                    "no verified notification channels are available for user " + resolved.getUserId());
+        }
+
+        NotificationChannel preferred = resolved.getPreferredChannel();
+        if (preferred == null || !verifiedChannels.contains(preferred)) {
+            preferred = verifiedChannels.get(0);
+        }
+
+        return ResolvedNotificationPreference.builder()
+                .userId(resolved.getUserId())
+                .criteriaId(resolved.getCriteriaId())
+                .criteriaOverrideApplied(resolved.isCriteriaOverrideApplied())
+                .orderedChannels(prioritize(verifiedChannels, preferred))
+                .preferredChannel(preferred)
+                .fallbackStrategy(resolved.getFallbackStrategy())
+                .build();
+    }
+
+    private boolean isChannelVerified(String userId, NotificationChannel channel, Optional<User> user) {
+        if (channel == NotificationChannel.PUSH) {
+            return true;
+        }
+        String destination = resolveDestination(channel, user);
+        if (destination == null || destination.isBlank()) {
+            return false;
+        }
+        return channelVerificationRepository.findByUserIdAndChannelAndDestination(userId, channel, destination)
+                .filter(verification -> verification.getStatus() == ChannelVerificationStatus.VERIFIED)
+                .isPresent();
+    }
+
+    private String resolveDestination(NotificationChannel channel, Optional<User> user) {
+        if (user.isEmpty()) {
+            return null;
+        }
+        if (channel == NotificationChannel.EMAIL) {
+            String email = user.get().getEmail();
+            return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+        }
+        if (channel == NotificationChannel.SMS) {
+            String phone = user.get().getPhoneNumber();
+            return phone == null ? null : phone.trim();
+        }
+        return null;
     }
 
     private record NormalizedPreference(
