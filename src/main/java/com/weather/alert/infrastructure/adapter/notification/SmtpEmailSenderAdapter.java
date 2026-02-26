@@ -10,7 +10,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailException;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.notification.email.provider", havingValue = "smtp", matchIfMissing = true)
-@ConditionalOnBean(JavaMailSender.class)
 public class SmtpEmailSenderAdapter implements EmailSenderPort {
 
     private final JavaMailSender mailSender;

@@ -97,6 +97,16 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 
 ## Changelog
 
+### 2026-02-26 (Verification Email Delivery for Local Dev)
+
+- Added verification-email sending on `POST /api/auth/register` and `POST /api/auth/register/resend-verification`.
+- Verification emails now use the existing `EmailSenderPort` provider stack (SMTP/MailHog locally, SES in production).
+- Added config flags:
+  - `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL` (enable/disable sending verification emails)
+  - `APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT` (subject line for verification emails)
+- Kept token-in-response behavior configurable with `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` for environments that still want auto-token flow.
+- Added use-case tests for successful verification-email send and delivery-failure handling.
+
 ### 2026-02-26 (Account Registration + Approval Workflow)
 
 - Added Flyway migration `V7__add_user_registration_and_approval.sql`:
@@ -312,6 +322,8 @@ Notification verification tuning values in `.env`:
 - `APP_NOTIFICATION_EMAIL_SES_REGION` (AWS region for SES, default `us-east-1`)
 - `APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES` (default `15`)
 - `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` (default `true` for local/dev)
+- `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL` (default `false`; set `true` in local `.env` to deliver via MailHog)
+- `APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT` (default `Weather Alert email verification`)
 
 Notification delivery worker tuning values in `.env`:
 
@@ -616,6 +628,9 @@ POST /api/notifications/verifications/{verificationId}/confirm
   "token": "paste-token-from-start-response"
 }
 ```
+
+When `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL=true`, the same token is also sent as an email.
+In local Docker dev, inspect verification emails in MailHog at `http://localhost:8025`.
 
 ### Notification Preferences
 

@@ -349,6 +349,8 @@ Content-Type: application/json
 Notes:
 - Raw `verificationToken` is intended for local/dev workflow and is controlled by `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN`.
 - Persisted tokens are hashed; raw token is never stored.
+- Verification email delivery is controlled by `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL`.
+- In local Docker dev, verification emails are visible in MailHog (`http://localhost:8025`).
 
 #### Confirm Verification
 ```http

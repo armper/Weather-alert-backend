@@ -6,13 +6,18 @@ import com.weather.alert.application.dto.StartChannelVerificationRequest;
 import com.weather.alert.application.exception.ChannelDestinationInUseException;
 import com.weather.alert.application.exception.InvalidVerificationTokenException;
 import com.weather.alert.application.exception.UnsupportedNotificationChannelException;
+import com.weather.alert.application.exception.VerificationDeliveryFailedException;
 import com.weather.alert.application.exception.VerificationTokenExpiredException;
 import com.weather.alert.domain.model.ChannelVerification;
 import com.weather.alert.domain.model.ChannelVerificationStatus;
+import com.weather.alert.domain.model.DeliveryFailureType;
+import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.ChannelVerificationRepositoryPort;
+import com.weather.alert.domain.port.EmailSenderPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
+import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,13 +53,18 @@ class ManageChannelVerificationUseCaseTest {
     @Mock
     private UserRepositoryPort userRepository;
 
+    @Mock
+    private EmailSenderPort emailSenderPort;
+
     private ManageChannelVerificationUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ManageChannelVerificationUseCase(channelVerificationRepository, userRepository);
+        useCase = new ManageChannelVerificationUseCase(channelVerificationRepository, userRepository, emailSenderPort);
         ReflectionTestUtils.setField(useCase, "tokenTtlMinutes", 15L);
         ReflectionTestUtils.setField(useCase, "exposeRawToken", true);
+        ReflectionTestUtils.setField(useCase, "sendEmail", false);
+        ReflectionTestUtils.setField(useCase, "verificationEmailSubject", "Weather Alert email verification");
     }
 
     @Test
@@ -232,6 +242,52 @@ class ManageChannelVerificationUseCaseTest {
         assertNotNull(captor.getValue().getVerificationTokenHash());
         assertNotEquals(response.getVerificationToken(), captor.getValue().getVerificationTokenHash());
         assertEquals(hash(response.getVerificationToken()), captor.getValue().getVerificationTokenHash());
+    }
+
+    @Test
+    void shouldSendVerificationEmailWhenEnabled() {
+        ReflectionTestUtils.setField(useCase, "sendEmail", true);
+
+        StartChannelVerificationRequest request = new StartChannelVerificationRequest();
+        request.setChannel(NotificationChannel.EMAIL);
+        request.setDestination("dev-admin@example.com");
+
+        when(userRepository.findByEmail("dev-admin@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findById("dev-admin")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(channelVerificationRepository.findByUserIdAndChannelAndDestination(
+                "dev-admin", NotificationChannel.EMAIL, "dev-admin@example.com")).thenReturn(Optional.empty());
+        when(channelVerificationRepository.save(any(ChannelVerification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(emailSenderPort.send(any())).thenReturn(new EmailSendResult("provider-id"));
+
+        ChannelVerificationResponse response = useCase.startVerification("dev-admin", request);
+
+        assertNotNull(response.getVerificationToken());
+        verify(emailSenderPort).send(any());
+    }
+
+    @Test
+    void shouldFailStartVerificationWhenEmailDeliveryFails() {
+        ReflectionTestUtils.setField(useCase, "sendEmail", true);
+
+        StartChannelVerificationRequest request = new StartChannelVerificationRequest();
+        request.setChannel(NotificationChannel.EMAIL);
+        request.setDestination("dev-admin@example.com");
+
+        when(userRepository.findByEmail("dev-admin@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findById("dev-admin")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(channelVerificationRepository.findByUserIdAndChannelAndDestination(
+                "dev-admin", NotificationChannel.EMAIL, "dev-admin@example.com")).thenReturn(Optional.empty());
+        when(channelVerificationRepository.save(any(ChannelVerification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(emailSenderPort.send(any())).thenThrow(new EmailDeliveryException(
+                DeliveryFailureType.RETRYABLE,
+                "smtp timeout",
+                new RuntimeException("smtp timeout")));
+
+        assertThrows(
+                VerificationDeliveryFailedException.class,
+                () -> useCase.startVerification("dev-admin", request));
     }
 
     private String hash(String token) {

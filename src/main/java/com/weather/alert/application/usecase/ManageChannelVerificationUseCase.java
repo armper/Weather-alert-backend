@@ -8,14 +8,18 @@ import com.weather.alert.application.exception.ChannelVerificationNotFoundExcept
 import com.weather.alert.application.exception.ForbiddenOperationException;
 import com.weather.alert.application.exception.InvalidVerificationTokenException;
 import com.weather.alert.application.exception.UnsupportedNotificationChannelException;
+import com.weather.alert.application.exception.VerificationDeliveryFailedException;
 import com.weather.alert.application.exception.VerificationTokenExpiredException;
 import com.weather.alert.domain.model.ChannelVerification;
 import com.weather.alert.domain.model.ChannelVerificationStatus;
+import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
 import com.weather.alert.domain.port.ChannelVerificationRepositoryPort;
+import com.weather.alert.domain.port.EmailSenderPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
+import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -41,12 +45,19 @@ public class ManageChannelVerificationUseCase {
 
     private final ChannelVerificationRepositoryPort channelVerificationRepository;
     private final UserRepositoryPort userRepository;
+    private final EmailSenderPort emailSenderPort;
 
     @Value("${app.notification.verification.token-ttl-minutes:15}")
     private long tokenTtlMinutes;
 
     @Value("${app.notification.verification.expose-raw-token:true}")
     private boolean exposeRawToken;
+
+    @Value("${app.notification.verification.send-email:false}")
+    private boolean sendEmail;
+
+    @Value("${app.notification.verification.email-subject:Weather Alert email verification}")
+    private String verificationEmailSubject;
 
     @Transactional
     public ChannelVerificationResponse startVerification(String userId, StartChannelVerificationRequest request) {
@@ -92,6 +103,9 @@ public class ManageChannelVerificationUseCase {
                         .build());
 
         ChannelVerification saved = channelVerificationRepository.save(verification);
+        if (sendEmail) {
+            sendVerificationEmail(saved, rawToken);
+        }
         String token = exposeRawToken ? rawToken : null;
         return ChannelVerificationResponse.fromDomain(saved, token);
     }
@@ -202,6 +216,43 @@ public class ManageChannelVerificationUseCase {
 
     private String normalizeDestination(String destination) {
         return destination == null ? null : destination.trim().toLowerCase();
+    }
+
+    private void sendVerificationEmail(ChannelVerification verification, String rawToken) {
+        try {
+            String body = """
+                    Your Weather Alert verification token is below.
+
+                    Verification ID: %s
+                    Token: %s
+                    Expires At: %s
+
+                    Confirm using:
+                    POST /api/auth/register/verify-email
+                    {
+                      "userId": "%s",
+                      "verificationId": "%s",
+                      "token": "%s"
+                    }
+                    """
+                    .formatted(
+                            verification.getId(),
+                            rawToken,
+                            verification.getTokenExpiresAt(),
+                            verification.getUserId(),
+                            verification.getId(),
+                            rawToken);
+
+            emailSenderPort.send(EmailMessage.builder()
+                    .to(verification.getDestination())
+                    .subject(verificationEmailSubject)
+                    .body(body)
+                    .build());
+        } catch (EmailDeliveryException ex) {
+            throw new VerificationDeliveryFailedException(verification.getDestination(), ex);
+        } catch (RuntimeException ex) {
+            throw new VerificationDeliveryFailedException(verification.getDestination(), ex);
+        }
     }
 
     private String generateToken() {
