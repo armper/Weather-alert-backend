@@ -1,6 +1,7 @@
 package com.weather.alert.infrastructure.adapter.persistence;
 
 import com.weather.alert.domain.model.User;
+import com.weather.alert.domain.model.UserApprovalStatus;
 import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -50,9 +51,14 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .name(user.getName())
+                .passwordHash(user.getPasswordHash())
+                .role(user.getRole() == null || user.getRole().isBlank() ? "ROLE_USER" : user.getRole())
+                .approvalStatus((user.getApprovalStatus() == null ? UserApprovalStatus.ACTIVE : user.getApprovalStatus()).name())
+                .emailVerified(Boolean.TRUE.equals(user.getEmailVerified()))
                 .emailEnabled(user.getEmailEnabled())
                 .smsEnabled(user.getSmsEnabled())
                 .pushEnabled(user.getPushEnabled())
+                .approvedAt(user.getApprovedAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
@@ -64,9 +70,16 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .email(entity.getEmail())
                 .phoneNumber(entity.getPhoneNumber())
                 .name(entity.getName())
+                .passwordHash(entity.getPasswordHash())
+                .role(entity.getRole() == null || entity.getRole().isBlank() ? "ROLE_USER" : entity.getRole())
+                .approvalStatus(entity.getApprovalStatus() == null || entity.getApprovalStatus().isBlank()
+                        ? UserApprovalStatus.ACTIVE
+                        : UserApprovalStatus.valueOf(entity.getApprovalStatus()))
+                .emailVerified(Boolean.TRUE.equals(entity.getEmailVerified()))
                 .emailEnabled(entity.getEmailEnabled())
                 .smsEnabled(entity.getSmsEnabled())
                 .pushEnabled(entity.getPushEnabled())
+                .approvedAt(entity.getApprovedAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

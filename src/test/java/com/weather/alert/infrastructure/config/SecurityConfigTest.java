@@ -3,6 +3,7 @@ package com.weather.alert.infrastructure.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
+import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.ManageNotificationPreferencesUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
@@ -32,6 +33,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -79,6 +81,9 @@ class SecurityConfigTest {
 
     @MockBean
     private JwtEncoder jwtEncoder;
+
+    @MockBean
+    private AuthenticateRegisteredUserUseCase authenticateRegisteredUserUseCase;
 
     @Test
     void shouldRequireAuthenticationForApiEndpoints() throws Exception {
@@ -198,6 +203,7 @@ class SecurityConfigTest {
 
     @Test
     void shouldIssueJwtTokenForValidCredentials() throws Exception {
+        when(authenticateRegisteredUserUseCase.authenticate(any(), any())).thenReturn(Optional.empty());
         when(authenticationManager.authenticate(any())).thenReturn(
                 new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
                         "test-user", "n/a", List.of(new SimpleGrantedAuthority("ROLE_USER"))));

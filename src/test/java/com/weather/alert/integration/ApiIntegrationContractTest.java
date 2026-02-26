@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static io.restassured.http.ContentType.JSON;
 import static io.restassured.RestAssured.given;
@@ -294,6 +295,124 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("criteriaId", equalTo(criteriaId))
                 .body("useUserDefaults", equalTo(false));
+    }
+
+    @Test
+    void shouldRegisterVerifyApproveAndCreateCriteriaHappyPath() {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        String username = "user" + unique;
+        String email = username + "@example.com";
+        String password = "StrongPass123!";
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> registerResponse = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", password,
+                        "email", email,
+                        "name", "Test User"))
+                .when()
+                .post("/api/auth/register")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("account.id", equalTo(username))
+                .body("account.approvalStatus", equalTo("PENDING_APPROVAL"))
+                .body("account.emailVerified", equalTo(false))
+                .body("emailVerification.id", notNullValue())
+                .body("emailVerification.verificationToken", notNullValue())
+                .extract();
+
+        String originalVerificationId = registerResponse.path("emailVerification.id");
+        String originalVerificationToken = registerResponse.path("emailVerification.verificationToken");
+        org.junit.jupiter.api.Assertions.assertNotNull(originalVerificationId);
+        org.junit.jupiter.api.Assertions.assertNotNull(originalVerificationToken);
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> resendResponse = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of("username", username))
+                .when()
+                .post("/api/auth/register/resend-verification")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", notNullValue())
+                .body("verificationToken", notNullValue())
+                .extract();
+
+        String verificationId = resendResponse.path("id");
+        String verificationToken = resendResponse.path("verificationToken");
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "userId", username,
+                        "verificationId", verificationId,
+                        "token", verificationToken))
+                .when()
+                .post("/api/auth/register/verify-email")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", equalTo(username))
+                .body("emailVerified", equalTo(true));
+
+        String adminToken = issueAdminToken();
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/admin/users/{userId}/approve", username)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", equalTo(username))
+                .body("approvalStatus", equalTo("ACTIVE"));
+
+        String userToken = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", password))
+                .when()
+                .post("/api/auth/token")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract()
+                .path("accessToken");
+
+        String criteriaId = given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .body(Map.ofEntries(
+                        Map.entry("userId", username),
+                        Map.entry("location", "Orlando"),
+                        Map.entry("latitude", 28.5383),
+                        Map.entry("longitude", -81.3792),
+                        Map.entry("temperatureThreshold", 60),
+                        Map.entry("temperatureDirection", "BELOW"),
+                        Map.entry("temperatureUnit", "F"),
+                        Map.entry("monitorCurrent", true),
+                        Map.entry("monitorForecast", true),
+                        Map.entry("forecastWindowHours", 48),
+                        Map.entry("oncePerEvent", true),
+                        Map.entry("rearmWindowMinutes", 120)))
+                .when()
+                .post("/api/criteria")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("userId", equalTo(username))
+                .extract()
+                .path("id");
+
+        given()
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .delete("/api/criteria/{criteriaId}", criteriaId)
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
     }
 
     private String issueAdminToken() {

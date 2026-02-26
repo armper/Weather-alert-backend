@@ -20,10 +20,15 @@ public class User {
     private String email;
     private String phoneNumber;
     private String name;
+    private String passwordHash;
+    private String role;
+    private UserApprovalStatus approvalStatus;
+    private Boolean emailVerified;
     private List<String> preferredNotificationChannels;
     private Boolean emailEnabled;
     private Boolean smsEnabled;
     private Boolean pushEnabled;
+    private Instant approvedAt;
     private Instant createdAt;
     private Instant updatedAt;
 }

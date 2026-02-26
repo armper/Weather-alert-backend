@@ -10,9 +10,110 @@ http://localhost:8080
 - Database schema changes are managed with Flyway migrations in `src/main/resources/db/migration`.
 - Migrations run automatically at app startup.
 - JPA uses schema validation (`ddl-auto: validate`) to catch drift instead of mutating schema.
-- Latest notification foundation migration is in `V6__add_notification_delivery_foundation.sql`.
+- Latest user account lifecycle migration is in `V7__add_user_registration_and_approval.sql`.
 
 ## API Endpoints
+
+### 0. Account Onboarding and Authentication
+
+Unauthenticated onboarding/auth endpoints:
+- `POST /api/auth/register`
+- `POST /api/auth/register/verify-email`
+- `POST /api/auth/register/resend-verification`
+- `POST /api/auth/token`
+
+#### Register Account
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "StrongPass123!",
+  "email": "alice@example.com",
+  "name": "Alice",
+  "phoneNumber": "+14075551234"
+}
+```
+
+**Response (200 OK)**
+```json
+{
+  "account": {
+    "id": "alice",
+    "email": "alice@example.com",
+    "phoneNumber": "+14075551234",
+    "name": "Alice",
+    "role": "ROLE_USER",
+    "approvalStatus": "PENDING_APPROVAL",
+    "emailVerified": false
+  },
+  "emailVerification": {
+    "id": "2b4f4f31-5a4c-45d8-b274-301f8c6fb5f4",
+    "channel": "EMAIL",
+    "destination": "alice@example.com",
+    "status": "PENDING_VERIFICATION",
+    "tokenExpiresAt": "2026-02-26T18:42:12Z",
+    "verificationToken": "2aQWQCi4k9c43-SprCuhbkJYE1S8rFf5"
+  }
+}
+```
+
+#### Verify Registration Email
+```http
+POST /api/auth/register/verify-email
+Content-Type: application/json
+
+{
+  "userId": "alice",
+  "verificationId": "2b4f4f31-5a4c-45d8-b274-301f8c6fb5f4",
+  "token": "2aQWQCi4k9c43-SprCuhbkJYE1S8rFf5"
+}
+```
+
+#### Resend Registration Verification Token
+```http
+POST /api/auth/register/resend-verification
+Content-Type: application/json
+
+{
+  "username": "alice"
+}
+```
+
+#### Admin Approval
+```http
+GET /api/admin/users/pending
+Authorization: Bearer <admin-token>
+```
+
+```http
+POST /api/admin/users/{userId}/approve
+Authorization: Bearer <admin-token>
+```
+
+#### Login Gate Rules for Registered Users
+- `emailVerified` must be `true`
+- `approvalStatus` must be `ACTIVE`
+
+If either gate is not met, `POST /api/auth/token` returns `403`.
+
+#### My Account Profile
+```http
+GET /api/users/me
+Authorization: Bearer <token>
+```
+
+```http
+PUT /api/users/me
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Alice B",
+  "phoneNumber": "+14075550199"
+}
+```
 
 ### 1. Alert Criteria Management
 
@@ -914,11 +1015,15 @@ curl http://localhost:8080/api/weather/search/event/Hurricane
 
 ## Authentication & Authorization
 
-Current version uses JWT bearer authentication for all `/api/**` endpoints except token issuance.
+Current version uses JWT bearer authentication for all `/api/**` endpoints except onboarding/auth bootstrap routes:
+- `POST /api/auth/token`
+- `POST /api/auth/register`
+- `POST /api/auth/register/verify-email`
+- `POST /api/auth/register/resend-verification`
 
-- `POST /api/auth/token` issues JWTs.
-- `ROLE_USER` can create/update/delete only their own criteria and access read endpoints.
-- `ROLE_ADMIN` can manage criteria for any user and access alert-expire operations.
+Authorization summary:
+- `ROLE_USER` can manage only their own criteria and profile (`/api/users/me`), plus read endpoints.
+- `ROLE_ADMIN` can manage criteria for any user, approve users (`/api/admin/users/**`), and access alert-expire operations.
 
 ---
 

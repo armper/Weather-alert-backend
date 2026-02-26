@@ -49,6 +49,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Automatic Data Retention Cleanup**: Scheduled pruning of old alerts, criteria state, indexed weather data, and Kafka topic backlog
 - ✅ **RESTful API**: Comprehensive REST endpoints for all operations
 - ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
+- ✅ **Account Onboarding Flow**: Self-service registration, email verification, admin approval, and profile updates (including phone number)
 - ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
 - ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
 - ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
@@ -95,6 +96,30 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - ⏳ Pending in TODO: Chunk 9 (expanded observability dashboards) and Chunk 10 (end-to-end matrix + manual playbook)
 
 ## Changelog
+
+### 2026-02-26 (Account Registration + Approval Workflow)
+
+- Added Flyway migration `V7__add_user_registration_and_approval.sql`:
+  - `users.password_hash`
+  - `users.role`
+  - `users.approval_status`
+  - `users.email_verified`
+  - `users.approved_at`
+- Added self-service onboarding endpoints:
+  - `POST /api/auth/register`
+  - `POST /api/auth/register/verify-email`
+  - `POST /api/auth/register/resend-verification`
+- Added account profile endpoints:
+  - `GET /api/users/me`
+  - `PUT /api/users/me` (name + phone number updates)
+- Added admin approval endpoints:
+  - `GET /api/admin/users/pending`
+  - `POST /api/admin/users/{userId}/approve`
+- Added login gating for registered users:
+  - email must be verified
+  - admin approval status must be `ACTIVE`
+- Closed onboarding gap for expired verification tokens with resend support.
+- Added use-case and integration tests for register -> verify -> approve -> login -> criteria happy path.
 
 ### 2026-02-26 (Data Retention + Cleanup)
 
@@ -316,6 +341,7 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
   - `V4__extend_alerts_for_lifecycle_and_dedupe.sql` (alert event key, lifecycle metadata, dedupe indexes)
   - `V5__add_retention_cleanup_index.sql` (alert retention cleanup index)
   - `V6__add_notification_delivery_foundation.sql` (notification preferences, channel verification, and alert delivery tracking tables)
+  - `V7__add_user_registration_and_approval.sql` (credentials, account approval state, and email verification flags)
 
 Common commands:
 
@@ -429,10 +455,14 @@ docker compose down -v
 
 ## API Endpoints
 
-All `/api/**` endpoints now require JWT Bearer authentication (except token issuance).
+All `/api/**` endpoints require JWT Bearer authentication except onboarding/auth bootstrap routes:
+- `POST /api/auth/token`
+- `POST /api/auth/register`
+- `POST /api/auth/register/verify-email`
+- `POST /api/auth/register/resend-verification`
 
-- **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
-- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user plus access `/api/alerts/pending` and alert-expire endpoint
+- **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own profile (`/api/users/me`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
+- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, review/approve pending users (`/api/admin/users/**`), and access `/api/alerts/pending` and alert-expire endpoint
 
 Credentials must be configured via environment variables:
 
@@ -447,6 +477,51 @@ POST /api/auth/token
 {
   "username": "your-username",
   "password": "your-password"
+}
+```
+
+### Account Onboarding Flow
+
+```bash
+# 1) Register account (returns email verification token in local/dev)
+POST /api/auth/register
+{
+  "username": "alice",
+  "password": "StrongPass123!",
+  "email": "alice@example.com",
+  "name": "Alice",
+  "phoneNumber": "+14075551234"
+}
+
+# 2) Verify email from registration response
+POST /api/auth/register/verify-email
+{
+  "userId": "alice",
+  "verificationId": "<verification-id>",
+  "token": "<verification-token>"
+}
+
+# 2b) If token expired, resend verification
+POST /api/auth/register/resend-verification
+{
+  "username": "alice"
+}
+
+# 3) Admin approves account
+POST /api/admin/users/alice/approve
+
+# 4) User logs in and receives JWT
+POST /api/auth/token
+{
+  "username": "alice",
+  "password": "StrongPass123!"
+}
+
+# 5) User updates account profile (optional)
+PUT /api/users/me
+{
+  "name": "Alice B",
+  "phoneNumber": "+14075550199"
 }
 ```
 

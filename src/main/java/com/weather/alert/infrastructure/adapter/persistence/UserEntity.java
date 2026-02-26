@@ -27,6 +27,18 @@ public class UserEntity {
     
     @Column(name = "name")
     private String name;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Column(name = "role", nullable = false, length = 32)
+    private String role;
+
+    @Column(name = "approval_status", nullable = false, length = 32)
+    private String approvalStatus;
+
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified;
     
     @Column(name = "email_enabled")
     private Boolean emailEnabled;
@@ -36,6 +48,9 @@ public class UserEntity {
     
     @Column(name = "push_enabled")
     private Boolean pushEnabled;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
     
     @Column(name = "created_at")
     private Instant createdAt;

@@ -2,6 +2,8 @@ package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.AuthTokenResponse;
+import com.weather.alert.application.exception.InvalidCredentialsException;
+import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
+    private final AuthenticateRegisteredUserUseCase authenticateRegisteredUserUseCase;
     private final JwtEncoder jwtEncoder;
 
     @Value("${app.security.jwt.expiration-seconds:3600}")
@@ -38,8 +42,7 @@ public class AuthController {
             summary = "Issue JWT token",
             description = "Authenticate with configured local credentials and return a bearer JWT for protected endpoints.")
     public ResponseEntity<AuthTokenResponse> generateToken(@Valid @RequestBody AuthRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        Authentication authentication = authenticate(request);
 
         Instant now = Instant.now();
         String scope = authentication.getAuthorities().stream()
@@ -63,5 +66,16 @@ public class AuthController {
                 .tokenType("Bearer")
                 .expiresIn(jwtExpirationSeconds)
                 .build());
+    }
+
+    private Authentication authenticate(AuthRequest request) {
+        try {
+            return authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        } catch (AuthenticationException ignored) {
+            return authenticateRegisteredUserUseCase
+                    .authenticate(request.getUsername(), request.getPassword())
+                    .orElseThrow(InvalidCredentialsException::new);
+        }
     }
 }

@@ -13,6 +13,7 @@ import com.weather.alert.domain.model.ChannelVerification;
 import com.weather.alert.domain.model.ChannelVerificationStatus;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.User;
+import com.weather.alert.domain.model.UserApprovalStatus;
 import com.weather.alert.domain.port.ChannelVerificationRepositoryPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -134,6 +135,7 @@ public class ManageChannelVerificationUseCase {
         verification.setUpdatedAt(now);
 
         ChannelVerification saved = channelVerificationRepository.save(verification);
+        markEmailAsVerified(saved.getUserId(), saved.getDestination(), now);
         return ChannelVerificationResponse.fromDomain(saved, null);
     }
 
@@ -148,6 +150,9 @@ public class ManageChannelVerificationUseCase {
         User user = userRepository.findById(userId).orElseGet(() -> User.builder()
                 .id(userId)
                 .createdAt(now)
+                .role("ROLE_USER")
+                .approvalStatus(UserApprovalStatus.ACTIVE)
+                .emailVerified(false)
                 .build());
         user.setEmail(email);
         if (user.getName() == null || user.getName().isBlank()) {
@@ -167,6 +172,20 @@ public class ManageChannelVerificationUseCase {
         }
         user.setUpdatedAt(now);
         userRepository.save(user);
+    }
+
+    private void markEmailAsVerified(String userId, String verifiedEmail, Instant now) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional == null) {
+            return;
+        }
+        userOptional.ifPresent(user -> {
+            user.setEmail(verifiedEmail);
+            user.setEmailVerified(true);
+            user.setEmailEnabled(true);
+            user.setUpdatedAt(now);
+            userRepository.save(user);
+        });
     }
 
     private void enforceUserAccess(String userId, ChannelVerification verification) {
