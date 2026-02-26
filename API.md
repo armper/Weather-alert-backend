@@ -51,6 +51,10 @@ Evaluation semantics:
 - Notification delivery foundations now persist user/criteria channel preferences, verification state, and per-channel delivery attempts for future email/SMS flows.
 - Notification routing resolution now follows precedence: user defaults, then criteria override only when `useUserDefaults=false`; invalid channel configs are rejected by validation logic.
 - Effective routing now excludes unverified channels (EMAIL/SMS require a `VERIFIED` channel verification record for the current user destination).
+- Email sender providers:
+  - `smtp` for local/dev (MailHog)
+  - `ses` for production (AWS SES)
+- Delivery provider failures are mapped to `RETRYABLE` or `NON_RETRYABLE` classification for later retry workflow.
 
 #### Create Alert Criteria
 ```http
@@ -261,6 +265,23 @@ Content-Type: application/json
   "verificationToken": null
 }
 ```
+
+---
+
+### 1.6 Email Delivery Provider Configuration
+
+Environment-driven provider selection:
+
+```bash
+APP_NOTIFICATION_EMAIL_PROVIDER=smtp
+APP_NOTIFICATION_EMAIL_FROM_ADDRESS=no-reply@weather-alert.local
+APP_NOTIFICATION_EMAIL_SES_REGION=us-east-1
+SPRING_MAIL_HOST=localhost
+SPRING_MAIL_PORT=1025
+```
+
+Local developer workflow:
+- Use MailHog SMTP (`localhost:1025`) and inspect sent messages in `http://localhost:8025`.
 
 ---
 

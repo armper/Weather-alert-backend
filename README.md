@@ -54,6 +54,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
 - ✅ **Email Verification Flow**: Start/confirm verification tokens for channel readiness
 - ✅ **Verified Channel Resolution**: Unverified channels are excluded from delivery preference resolution
+- ✅ **Email Delivery Adapters**: SMTP (MailHog/local) and AWS SES (production) with retryability classification
 
 ## Technology Stack
 
@@ -144,6 +145,18 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Added verified-channel enforcement in `NotificationPreferenceResolverService` so unverified channels are removed from effective routing.
 - Added unit and integration contract tests for verification and resolver filtering behavior.
 
+### 2026-02-26 (Email Delivery Adapter - Chunk 4)
+
+- Added `EmailSenderPort` with provider adapters:
+  - SMTP adapter for local/dev (`app.notification.email.provider=smtp`)
+  - AWS SES adapter for production (`app.notification.email.provider=ses`)
+- Added provider error mapping to `RETRYABLE` vs `NON_RETRYABLE` via `EmailDeliveryException`.
+- Added MailHog service to `docker-compose.yml`:
+  - SMTP: `localhost:1025`
+  - UI: `http://localhost:8025`
+- Updated Kafka alert consumer to send email notifications when a user email is available.
+- Added adapter tests for SMTP/SES success + failure classification.
+
 ### 2026-02-25 (Automated API Contract Testing)
 
 - Added `ApiIntegrationContractTest` using `@SpringBootTest(webEnvironment = RANDOM_PORT)` + RestAssured.
@@ -198,6 +211,7 @@ This stack is defined in `docker-compose.yml` and includes:
 - PostgreSQL on `localhost:5432` (database: `weather_alerts`)
 - Kafka on `localhost:9092` (topic `weather-alerts` created automatically)
 - Elasticsearch on `localhost:9200`
+- MailHog SMTP on `localhost:1025` with web UI on `http://localhost:8025`
 - Optional observability profile:
   - Zipkin (distributed trace UI)
   - Loki + Promtail + Grafana (log aggregation/search)
@@ -234,6 +248,9 @@ Retention tuning values in `.env`:
 
 Notification verification tuning values in `.env`:
 
+- `APP_NOTIFICATION_EMAIL_PROVIDER` (`smtp` for local/MailHog, `ses` for AWS SES)
+- `APP_NOTIFICATION_EMAIL_FROM_ADDRESS` (default sender address)
+- `APP_NOTIFICATION_EMAIL_SES_REGION` (AWS region for SES, default `us-east-1`)
 - `APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES` (default `15`)
 - `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` (default `true` for local/dev)
 

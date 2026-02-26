@@ -31,11 +31,11 @@
 - [x] Add API endpoints + DTOs + tests.
 
 ## Chunk 4: Email Delivery Adapter
-- [ ] Add `EmailSenderPort` and concrete adapter.
-- [ ] Local dev sender via MailHog SMTP.
-- [ ] Production sender via AWS SES.
-- [ ] Add provider error mapping for retry vs non-retryable failures.
-- [ ] Add integration tests for sender behavior.
+- [x] Add `EmailSenderPort` and concrete adapter.
+- [x] Local dev sender via MailHog SMTP.
+- [x] Production sender via AWS SES.
+- [x] Add provider error mapping for retry vs non-retryable failures.
+- [x] Add integration tests for sender behavior.
 
 ## Chunk 5: Delivery Worker + Retry
 - [ ] Add async delivery worker consuming new delivery tasks.

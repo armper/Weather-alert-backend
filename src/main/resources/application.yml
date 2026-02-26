@@ -36,6 +36,18 @@ spring:
       
   elasticsearch:
     uris: http://localhost:9200
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:false}
     
 server:
   port: 8080
@@ -110,6 +122,11 @@ app:
       # JWT lifetime in seconds (default 3600 = 1 hour)
       expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:3600}
   notification:
+    email:
+      provider: ${APP_NOTIFICATION_EMAIL_PROVIDER:smtp}
+      from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:no-reply@weather-alert.local}
+      ses:
+        region: ${APP_NOTIFICATION_EMAIL_SES_REGION:us-east-1}
     verification:
       token-ttl-minutes: ${APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES:15}
       expose-raw-token: ${APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN:true}
