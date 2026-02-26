@@ -274,7 +274,96 @@ Content-Type: application/json
 
 ---
 
-### 1.6 Email Delivery Provider Configuration
+### 1.6 Notification Preferences
+
+Manage default user routing and optional criteria-level overrides.
+
+#### Get My Notification Preferences
+```http
+GET /api/users/me/notification-preferences
+Authorization: Bearer <token>
+```
+
+**Response (200 OK)**
+```json
+{
+  "userId": "dev-admin",
+  "enabledChannels": ["EMAIL", "SMS"],
+  "preferredChannel": "EMAIL",
+  "fallbackStrategy": "FIRST_SUCCESS",
+  "createdAt": "2026-02-26T18:40:00Z",
+  "updatedAt": "2026-02-26T18:41:30Z"
+}
+```
+
+#### Update My Notification Preferences
+```http
+PUT /api/users/me/notification-preferences
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "enabledChannels": ["EMAIL", "SMS"],
+  "preferredChannel": "EMAIL",
+  "fallbackStrategy": "FIRST_SUCCESS"
+}
+```
+
+Notes:
+- If no persisted profile exists for the authenticated user, update returns `400`.
+- In local/dev flow, start verification first (`POST /api/notifications/verifications/start`) to create the user profile.
+
+#### Get Criteria Notification Preference Override
+```http
+GET /api/criteria/{criteriaId}/notification-preferences
+Authorization: Bearer <token>
+```
+
+**Response (200 OK)**
+```json
+{
+  "criteriaId": "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6",
+  "useUserDefaults": false,
+  "enabledChannels": ["EMAIL"],
+  "preferredChannel": "EMAIL",
+  "fallbackStrategy": "FIRST_SUCCESS",
+  "createdAt": "2026-02-26T18:42:00Z",
+  "updatedAt": "2026-02-26T18:42:00Z"
+}
+```
+
+#### Update Criteria Notification Preference Override
+```http
+PUT /api/criteria/{criteriaId}/notification-preferences
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "useUserDefaults": false,
+  "enabledChannels": ["EMAIL"],
+  "preferredChannel": "EMAIL",
+  "fallbackStrategy": "FIRST_SUCCESS"
+}
+```
+
+To revert a criteria to inherited behavior:
+```http
+PUT /api/criteria/{criteriaId}/notification-preferences
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "useUserDefaults": true
+}
+```
+
+Auth rules:
+- non-admin users can only access overrides for criteria they own
+- admins can access any criteria override
+
+---
+
+### 1.7 Email Delivery Provider Configuration
 
 Environment-driven provider selection:
 

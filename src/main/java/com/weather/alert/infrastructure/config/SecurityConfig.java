@@ -55,6 +55,8 @@ public class SecurityConfig {
                                 "/webjars/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/me/notification-preferences").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/me/notification-preferences").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/criteria/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/criteria/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/criteria/**").hasAnyRole("USER", "ADMIN")

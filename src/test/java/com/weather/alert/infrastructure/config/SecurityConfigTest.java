@@ -4,14 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
+import com.weather.alert.application.usecase.ManageNotificationPreferencesUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.DeliveryFallbackStrategy;
+import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.infrastructure.error.CorrelationIdFilter;
 import com.weather.alert.infrastructure.error.RestAccessDeniedHandler;
 import com.weather.alert.infrastructure.error.RestAuthenticationEntryPoint;
 import com.weather.alert.infrastructure.error.SecurityErrorResponseWriter;
 import com.weather.alert.infrastructure.web.controller.AlertCriteriaController;
 import com.weather.alert.infrastructure.web.controller.AuthController;
+import com.weather.alert.infrastructure.web.controller.NotificationPreferenceController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,11 +37,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({AlertCriteriaController.class, AuthController.class})
+@WebMvcTest({AlertCriteriaController.class, AuthController.class, NotificationPreferenceController.class})
 @Import({
         SecurityConfig.class,
         RestAuthenticationEntryPoint.class,
@@ -65,6 +70,9 @@ class SecurityConfigTest {
 
     @MockBean
     private QueryAlertsUseCase queryAlertsUseCase;
+
+    @MockBean
+    private ManageNotificationPreferencesUseCase manageNotificationPreferencesUseCase;
 
     @MockBean
     private AuthenticationManager authenticationManager;
@@ -148,6 +156,44 @@ class SecurityConfigTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("criteria-1"))
                 .andExpect(jsonPath("$.eventType").doesNotExist());
+    }
+
+    @Test
+    void shouldAllowUserToUpdateOwnNotificationPreferences() throws Exception {
+        when(manageNotificationPreferencesUseCase.upsertUserPreference(any(), any()))
+                .thenReturn(com.weather.alert.domain.model.UserNotificationPreference.builder()
+                        .userId("user-1")
+                        .enabledChannels(List.of(NotificationChannel.EMAIL))
+                        .preferredChannel(NotificationChannel.EMAIL)
+                        .fallbackStrategy(DeliveryFallbackStrategy.FIRST_SUCCESS)
+                        .build());
+
+        mockMvc.perform(put("/api/users/me/notification-preferences")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "enabledChannels": ["EMAIL"],
+                                  "preferredChannel": "EMAIL",
+                                  "fallbackStrategy": "FIRST_SUCCESS"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("user-1"))
+                .andExpect(jsonPath("$.preferredChannel").value("EMAIL"));
+    }
+
+    @Test
+    void shouldForbidCriteriaPreferenceReadForNonOwner() throws Exception {
+        when(queryAlertsUseCase.getCriteriaById("criteria-1")).thenReturn(AlertCriteria.builder()
+                .id("criteria-1")
+                .userId("owner-user")
+                .enabled(true)
+                .build());
+
+        mockMvc.perform(get("/api/criteria/criteria-1/notification-preferences")
+                        .with(jwt().jwt(jwt -> jwt.subject("other-user")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

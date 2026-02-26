@@ -56,6 +56,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Verified Channel Resolution**: Unverified channels are excluded from delivery preference resolution
 - ✅ **Email Delivery Adapters**: SMTP (MailHog/local) and AWS SES (production) with retryability classification
 - ✅ **Async Delivery Worker + Retry/DLQ**: Per-alert delivery tasks, idempotency guard, exponential backoff, and dead-letter routing
+- ✅ **Notification Preference APIs**: User defaults plus criteria-level overrides (`inherit` or explicit channels)
 
 ## Technology Stack
 
@@ -172,6 +173,20 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - max-attempt cap with DLQ publish on terminal failure
 - Added scheduled republisher for due retries (`nextAttemptAt <= now`).
 - Added tests for enqueue idempotency, retry/failure behavior, scheduler publishing, and alert consumer integration.
+
+### 2026-02-26 (Notification Preference APIs - Chunk 6)
+
+- Added preference management endpoints:
+  - `GET /api/users/me/notification-preferences`
+  - `PUT /api/users/me/notification-preferences`
+  - `GET /api/criteria/{criteriaId}/notification-preferences`
+  - `PUT /api/criteria/{criteriaId}/notification-preferences`
+- Added criteria override modes:
+  - inherit user defaults (`useUserDefaults=true`)
+  - explicit per-criteria channels (`useUserDefaults=false`)
+- Added ownership enforcement for criteria-level preference operations (`owner` or `ROLE_ADMIN`).
+- Added request validation and `400` Problem Details mapping for invalid preference configurations.
+- Added unit/security/integration contract tests for preference APIs and auth rules.
 
 ### 2026-02-25 (Automated API Contract Testing)
 
@@ -416,8 +431,8 @@ docker compose down -v
 
 All `/api/**` endpoints now require JWT Bearer authentication (except token issuance).
 
-- **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), read weather/alerts/criteria, and acknowledge alerts
-- **ADMIN role**: can manage criteria for any user plus access `/api/alerts/pending` and alert-expire endpoint
+- **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
+- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user plus access `/api/alerts/pending` and alert-expire endpoint
 
 Credentials must be configured via environment variables:
 
@@ -524,6 +539,39 @@ POST /api/notifications/verifications/start
 POST /api/notifications/verifications/{verificationId}/confirm
 {
   "token": "paste-token-from-start-response"
+}
+```
+
+### Notification Preferences
+
+```bash
+# Get current user's notification preferences
+GET /api/users/me/notification-preferences
+
+# Update current user's defaults
+PUT /api/users/me/notification-preferences
+{
+  "enabledChannels": ["EMAIL", "SMS"],
+  "preferredChannel": "EMAIL",
+  "fallbackStrategy": "FIRST_SUCCESS"
+}
+
+# Get criteria-level override
+GET /api/criteria/{criteriaId}/notification-preferences
+
+# Set explicit criteria-level override
+PUT /api/criteria/{criteriaId}/notification-preferences
+{
+  "useUserDefaults": false,
+  "enabledChannels": ["EMAIL"],
+  "preferredChannel": "EMAIL",
+  "fallbackStrategy": "FIRST_SUCCESS"
+}
+
+# Revert a criteria to inherit user defaults
+PUT /api/criteria/{criteriaId}/notification-preferences
+{
+  "useUserDefaults": true
 }
 ```
 

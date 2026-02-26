@@ -45,11 +45,11 @@
 - [x] Add DLQ path for permanent failures.
 
 ## Chunk 6: API for Preferences
-- [ ] Add endpoints:
-- [ ] `GET/PUT /api/users/me/notification-preferences`
-- [ ] Criteria-level overrides (inherit or explicit channels).
-- [ ] Add request/response examples in OpenAPI.
-- [ ] Add auth rules and tests.
+- [x] Add endpoints:
+- [x] `GET/PUT /api/users/me/notification-preferences`
+- [x] Criteria-level overrides (inherit or explicit channels).
+- [x] Add request/response examples in OpenAPI.
+- [x] Add auth rules and tests.
 
 ## Chunk 7: Observability + Ops
 - [ ] Add metrics: attempts/success/failure/retry by channel/provider.

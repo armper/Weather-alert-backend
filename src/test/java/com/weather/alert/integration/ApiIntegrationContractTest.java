@@ -225,6 +225,77 @@ class ApiIntegrationContractTest {
                 .body("verificationToken", nullValue());
     }
 
+    @Test
+    void shouldManageNotificationPreferencesWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "channel", "EMAIL",
+                        "destination", "test-admin@example.com"))
+                .when()
+                .post("/api/notifications/verifications/start")
+                .then()
+                .statusCode(HttpStatus.OK.value());
+
+        given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "enabledChannels", List.of("EMAIL"),
+                        "preferredChannel", "EMAIL",
+                        "fallbackStrategy", "FIRST_SUCCESS"))
+                .when()
+                .put("/api/users/me/notification-preferences")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("userId", equalTo("test-admin"))
+                .body("preferredChannel", equalTo("EMAIL"));
+
+        String criteriaId = given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(validCriteriaRequest())
+                .when()
+                .post("/api/criteria")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract()
+                .path("id");
+
+        given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "useUserDefaults", false,
+                        "enabledChannels", List.of("EMAIL"),
+                        "preferredChannel", "EMAIL",
+                        "fallbackStrategy", "FIRST_SUCCESS"))
+                .when()
+                .put("/api/criteria/{criteriaId}/notification-preferences", criteriaId)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("criteriaId", equalTo(criteriaId))
+                .body("useUserDefaults", equalTo(false))
+                .body("preferredChannel", equalTo("EMAIL"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .when()
+                .get("/api/criteria/{criteriaId}/notification-preferences", criteriaId)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("criteriaId", equalTo(criteriaId))
+                .body("useUserDefaults", equalTo(false));
+    }
+
     private String issueAdminToken() {
         return given()
                 .contentType(JSON)

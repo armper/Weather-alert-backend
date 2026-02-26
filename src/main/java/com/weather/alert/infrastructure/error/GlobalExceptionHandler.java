@@ -1,6 +1,7 @@
 package com.weather.alert.infrastructure.error;
 
 import com.weather.alert.application.exception.ApiException;
+import com.weather.alert.domain.service.notification.InvalidNotificationPreferenceConfigurationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -75,6 +76,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "INVALID_PARAMETER",
                 detail,
+                request,
+                null
+        );
+        return ResponseEntity.badRequest().body(problem);
+    }
+
+    @ExceptionHandler(InvalidNotificationPreferenceConfigurationException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidNotificationPreferenceConfiguration(
+            InvalidNotificationPreferenceConfigurationException ex,
+            HttpServletRequest request) {
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_NOTIFICATION_PREFERENCE_CONFIGURATION",
+                ex.getMessage(),
                 request,
                 null
         );
