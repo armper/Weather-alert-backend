@@ -75,6 +75,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 ## Roadmap
 
 Implementation tracking for weather-condition alerts (temperature/rain current + forecast) lives in `IMPLEMENTATION_TODO.md`.
+Notification delivery tracking (email-first with SMS-ready channel preferences) lives in `NOTIFICATION_DELIVERY_TODO.md`.
 
 ### Implementation Status (from checked TODO items)
 
@@ -100,6 +101,32 @@ Implementation tracking for weather-condition alerts (temperature/rain current +
 - Added DB index `idx_alerts_alert_time` to keep alert pruning efficient.
 - Added Kafka topic retention policy for `weather-alerts` in `docker-compose.yml` (`retention.ms=86400000`).
 - Added retention configuration knobs under `app.retention.*` with `.env` support.
+
+### 2026-02-26 (Notification Delivery Foundations - Chunk 1)
+
+- Added Flyway migration `V6__add_notification_delivery_foundation.sql` with:
+  - `user_notification_preferences`
+  - `criteria_notification_preferences`
+  - `channel_verifications`
+  - `alert_delivery`
+- Added domain models/enums and repository ports for:
+  - channel preferences and fallback strategy
+  - channel verification state
+  - per-channel alert delivery records
+- Added JPA entities/repositories/adapters to persist notification preference, verification, and delivery foundation data.
+
+### 2026-02-26 (Notification Preference Resolution - Chunk 2)
+
+- Added `NotificationPreferenceResolverService` to compute effective delivery channels.
+- Resolution precedence:
+  - user defaults are baseline
+  - criteria overrides are used only when `useUserDefaults=false`
+- Default fallback strategy is enforced as `FIRST_SUCCESS`.
+- Added validation guardrails for invalid preference configurations:
+  - empty enabled-channel overrides
+  - preferred channel not present in enabled channels
+  - contradictory criteria config (`useUserDefaults=true` with explicit overrides)
+- Added unit tests covering core resolution matrix and invalid configurations.
 
 ### 2026-02-25 (Automated API Contract Testing)
 
@@ -204,6 +231,7 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
   - `V3__add_criteria_state.sql` (anti-spam criteria edge/notification state)
   - `V4__extend_alerts_for_lifecycle_and_dedupe.sql` (alert event key, lifecycle metadata, dedupe indexes)
   - `V5__add_retention_cleanup_index.sql` (alert retention cleanup index)
+  - `V6__add_notification_delivery_foundation.sql` (notification preferences, channel verification, and alert delivery tracking tables)
 
 Common commands:
 

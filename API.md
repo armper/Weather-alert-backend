@@ -10,7 +10,7 @@ http://localhost:8080
 - Database schema changes are managed with Flyway migrations in `src/main/resources/db/migration`.
 - Migrations run automatically at app startup.
 - JPA uses schema validation (`ddl-auto: validate`) to catch drift instead of mutating schema.
-- Latest retention/index migration is in `V5__add_retention_cleanup_index.sql`.
+- Latest notification foundation migration is in `V6__add_notification_delivery_foundation.sql`.
 
 ## API Endpoints
 
@@ -48,6 +48,8 @@ Evaluation semantics:
 - Scheduler orchestration uses batched criteria evaluation and per-run coordinate caches for current/forecast NOAA lookups.
 - During NOAA outages, criteria can evaluate as `UNAVAILABLE`; in that case no anti-spam state transition is persisted.
 - Retention cleanup runs on a separate schedule and prunes old `alerts`, old/orphaned `criteria_state`, and old indexed weather read-model documents.
+- Notification delivery foundations now persist user/criteria channel preferences, verification state, and per-channel delivery attempts for future email/SMS flows.
+- Notification routing resolution now follows precedence: user defaults, then criteria override only when `useUserDefaults=false`; invalid channel configs are rejected by validation logic.
 
 #### Create Alert Criteria
 ```http
