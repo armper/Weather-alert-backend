@@ -55,6 +55,7 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Email Verification Flow**: Start/confirm verification tokens for channel readiness
 - ✅ **Verified Channel Resolution**: Unverified channels are excluded from delivery preference resolution
 - ✅ **Email Delivery Adapters**: SMTP (MailHog/local) and AWS SES (production) with retryability classification
+- ✅ **Async Delivery Worker + Retry/DLQ**: Per-alert delivery tasks, idempotency guard, exponential backoff, and dead-letter routing
 
 ## Technology Stack
 
@@ -154,8 +155,23 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Added MailHog service to `docker-compose.yml`:
   - SMTP: `localhost:1025`
   - UI: `http://localhost:8025`
-- Updated Kafka alert consumer to send email notifications when a user email is available.
+- Updated Kafka alert consumer email path (superseded by chunk 5 async worker pipeline).
 - Added adapter tests for SMTP/SES success + failure classification.
+
+### 2026-02-26 (Delivery Worker + Retry - Chunk 5)
+
+- Added async delivery pipeline:
+  - `AlertKafkaConsumer` now enqueues delivery tasks instead of sending directly.
+  - `alert_delivery` records are created per `alertId + channel` (idempotent).
+- Added delivery task execution worker:
+  - Kafka task topic: `weather-alert-delivery-tasks`
+  - DLQ topic for permanent failures: `weather-alert-delivery-dlq`
+- Added retry policy:
+  - statuses: `PENDING -> IN_PROGRESS -> SENT` or `RETRY_SCHEDULED -> FAILED`
+  - exponential backoff with configurable base/max delay
+  - max-attempt cap with DLQ publish on terminal failure
+- Added scheduled republisher for due retries (`nextAttemptAt <= now`).
+- Added tests for enqueue idempotency, retry/failure behavior, scheduler publishing, and alert consumer integration.
 
 ### 2026-02-25 (Automated API Contract Testing)
 
@@ -209,7 +225,10 @@ docker compose --profile observability up -d
 
 This stack is defined in `docker-compose.yml` and includes:
 - PostgreSQL on `localhost:5432` (database: `weather_alerts`)
-- Kafka on `localhost:9092` (topic `weather-alerts` created automatically)
+- Kafka on `localhost:9092` (topics created automatically):
+  - `weather-alerts`
+  - `weather-alert-delivery-tasks`
+  - `weather-alert-delivery-dlq`
 - Elasticsearch on `localhost:9200`
 - MailHog SMTP on `localhost:1025` with web UI on `http://localhost:8025`
 - Optional observability profile:
@@ -253,6 +272,18 @@ Notification verification tuning values in `.env`:
 - `APP_NOTIFICATION_EMAIL_SES_REGION` (AWS region for SES, default `us-east-1`)
 - `APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES` (default `15`)
 - `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` (default `true` for local/dev)
+
+Notification delivery worker tuning values in `.env`:
+
+- `APP_NOTIFICATION_DELIVERY_WORKER_ENABLED` (default `true`)
+- `APP_NOTIFICATION_DELIVERY_TASKS_TOPIC` (default `weather-alert-delivery-tasks`)
+- `APP_NOTIFICATION_DELIVERY_DLQ_TOPIC` (default `weather-alert-delivery-dlq`)
+- `APP_NOTIFICATION_DELIVERY_MAX_ATTEMPTS` (default `5`)
+- `APP_NOTIFICATION_DELIVERY_RETRY_BASE_SECONDS` (default `30`)
+- `APP_NOTIFICATION_DELIVERY_RETRY_MAX_SECONDS` (default `900`)
+- `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_FIXED_DELAY_MS` (default `10000`)
+- `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_INITIAL_DELAY_MS` (default `15000`)
+- `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_BATCH_SIZE` (default `100`)
 
 ### 3. Database Migrations (Flyway)
 

@@ -66,11 +66,35 @@ services:
       --replication-factor 1
       --partitions 3
       &&
+      kafka-topics --bootstrap-server kafka:29092
+      --create --if-not-exists
+      --topic weather-alert-delivery-tasks
+      --replication-factor 1
+      --partitions 3
+      &&
+      kafka-topics --bootstrap-server kafka:29092
+      --create --if-not-exists
+      --topic weather-alert-delivery-dlq
+      --replication-factor 1
+      --partitions 3
+      &&
       kafka-configs --bootstrap-server kafka:29092
       --entity-type topics
       --entity-name weather-alerts
       --alter
-      --add-config retention.ms=86400000,cleanup.policy=delete"
+      --add-config retention.ms=86400000,cleanup.policy=delete
+      &&
+      kafka-configs --bootstrap-server kafka:29092
+      --entity-type topics
+      --entity-name weather-alert-delivery-tasks
+      --alter
+      --add-config retention.ms=86400000,cleanup.policy=delete
+      &&
+      kafka-configs --bootstrap-server kafka:29092
+      --entity-type topics
+      --entity-name weather-alert-delivery-dlq
+      --alter
+      --add-config retention.ms=604800000,cleanup.policy=delete"
     restart: "no"
 
   elasticsearch:

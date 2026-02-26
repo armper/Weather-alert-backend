@@ -5,8 +5,11 @@ import com.weather.alert.domain.model.AlertDeliveryStatus;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -23,8 +26,23 @@ public class AlertDeliveryRepositoryAdapter implements AlertDeliveryRepositoryPo
     }
 
     @Override
+    public Optional<AlertDeliveryRecord> findById(String id) {
+        return jpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
     public Optional<AlertDeliveryRecord> findByAlertIdAndChannel(String alertId, NotificationChannel channel) {
         return jpaRepository.findByAlertIdAndChannel(alertId, channel.name()).map(this::toDomain);
+    }
+
+    @Override
+    public List<AlertDeliveryRecord> findDueForDelivery(Instant now, int limit) {
+        int safeLimit = Math.max(limit, 1);
+        List<AlertDeliveryEntity> entities = jpaRepository.findByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(
+                List.of(AlertDeliveryStatus.PENDING.name(), AlertDeliveryStatus.RETRY_SCHEDULED.name()),
+                now,
+                PageRequest.of(0, safeLimit));
+        return entities.stream().map(this::toDomain).toList();
     }
 
     private AlertDeliveryEntity toEntity(AlertDeliveryRecord deliveryRecord) {

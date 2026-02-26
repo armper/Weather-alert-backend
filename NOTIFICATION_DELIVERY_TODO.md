@@ -38,11 +38,11 @@
 - [x] Add integration tests for sender behavior.
 
 ## Chunk 5: Delivery Worker + Retry
-- [ ] Add async delivery worker consuming new delivery tasks.
-- [ ] Persist delivery attempts in `alert_delivery`.
-- [ ] Add retry with backoff and max-attempt policy.
-- [ ] Add idempotency guard (`alert_id + channel`).
-- [ ] Add DLQ path for permanent failures.
+- [x] Add async delivery worker consuming new delivery tasks.
+- [x] Persist delivery attempts in `alert_delivery`.
+- [x] Add retry with backoff and max-attempt policy.
+- [x] Add idempotency guard (`alert_id + channel`).
+- [x] Add DLQ path for permanent failures.
 
 ## Chunk 6: API for Preferences
 - [ ] Add endpoints:
@@ -64,6 +64,6 @@
 - [ ] Add docs/tests for mixed channel behavior.
 
 ## Documentation Rule
-- [ ] Update README for each completed chunk before marking it done.
-- [ ] Update API.md whenever contracts change.
+- [x] Update README for each completed chunk before marking it done.
+- [x] Update API.md whenever contracts change.
 - [ ] Add migration notes when schema changes.

@@ -122,6 +122,16 @@ app:
       # JWT lifetime in seconds (default 3600 = 1 hour)
       expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:3600}
   notification:
+    delivery:
+      worker-enabled: ${APP_NOTIFICATION_DELIVERY_WORKER_ENABLED:true}
+      tasks-topic: ${APP_NOTIFICATION_DELIVERY_TASKS_TOPIC:weather-alert-delivery-tasks}
+      dlq-topic: ${APP_NOTIFICATION_DELIVERY_DLQ_TOPIC:weather-alert-delivery-dlq}
+      max-attempts: ${APP_NOTIFICATION_DELIVERY_MAX_ATTEMPTS:5}
+      retry-base-seconds: ${APP_NOTIFICATION_DELIVERY_RETRY_BASE_SECONDS:30}
+      retry-max-seconds: ${APP_NOTIFICATION_DELIVERY_RETRY_MAX_SECONDS:900}
+      retry-poller-fixed-delay-ms: ${APP_NOTIFICATION_DELIVERY_RETRY_POLLER_FIXED_DELAY_MS:10000}
+      retry-poller-initial-delay-ms: ${APP_NOTIFICATION_DELIVERY_RETRY_POLLER_INITIAL_DELAY_MS:15000}
+      retry-poller-batch-size: ${APP_NOTIFICATION_DELIVERY_RETRY_POLLER_BATCH_SIZE:100}
     email:
       provider: ${APP_NOTIFICATION_EMAIL_PROVIDER:smtp}
       from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:no-reply@weather-alert.local}

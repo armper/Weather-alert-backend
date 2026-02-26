@@ -5,10 +5,12 @@ import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.port.EmailSenderPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.services.ses.SesClient;
 
 @Component
-@ConditionalOnMissingBean(EmailSenderPort.class)
+@ConditionalOnMissingBean({JavaMailSender.class, SesClient.class})
 @Slf4j
 public class NoopEmailSenderAdapter implements EmailSenderPort {
 

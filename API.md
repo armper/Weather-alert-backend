@@ -44,7 +44,9 @@ Evaluation semantics:
 - Anti-spam state is persisted per criteria (`criteria_state`): notifications fire on `not met -> met` transition, are deduped while still met, and can re-fire after condition clears.
 - `rearmWindowMinutes` applies cooldown to prevent rapid re-notify loops.
 - Alerts are persisted with an `eventKey`; duplicate inserts for the same `criteriaId + eventKey` are skipped.
-- Lifecycle transitions: `PENDING -> SENT` (Kafka consumer), then `SENT -> ACKNOWLEDGED` or `SENT/PENDING -> EXPIRED`.
+- Lifecycle transitions:
+  - Alert entity: `PENDING -> SENT` (after successful channel delivery), then `SENT -> ACKNOWLEDGED` or `SENT/PENDING -> EXPIRED`.
+  - Delivery entity (`alert_delivery`): `PENDING -> IN_PROGRESS -> SENT` or `RETRY_SCHEDULED -> FAILED`.
 - Scheduler orchestration uses batched criteria evaluation and per-run coordinate caches for current/forecast NOAA lookups.
 - During NOAA outages, criteria can evaluate as `UNAVAILABLE`; in that case no anti-spam state transition is persisted.
 - Retention cleanup runs on a separate schedule and prunes old `alerts`, old/orphaned `criteria_state`, and old indexed weather read-model documents.
@@ -55,6 +57,10 @@ Evaluation semantics:
   - `smtp` for local/dev (MailHog)
   - `ses` for production (AWS SES)
 - Delivery provider failures are mapped to `RETRYABLE` or `NON_RETRYABLE` classification for later retry workflow.
+- Async delivery workflow:
+  - Alert events enqueue delivery tasks on Kafka topic `weather-alert-delivery-tasks`.
+  - Retries are scheduled via `nextAttemptAt` with exponential backoff and max-attempt cutoff.
+  - Permanent failures are published to `weather-alert-delivery-dlq`.
 
 #### Create Alert Criteria
 ```http
