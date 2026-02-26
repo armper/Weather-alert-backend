@@ -7,7 +7,6 @@ import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +14,6 @@ import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
-@ConditionalOnBean(KafkaTemplate.class)
 @Slf4j
 public class KafkaAlertDeliveryDlqPublisherAdapter implements AlertDeliveryDlqPublisherPort {
 

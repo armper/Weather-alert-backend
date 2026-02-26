@@ -134,4 +134,15 @@ class CreateAlertCriteriaRequestValidationTest {
         Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
         assertFalse(violations.isEmpty());
     }
+
+    @Test
+    void shouldFailWhenNameIsBlank() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .name("   ")
+                .location("Orlando")
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
 }

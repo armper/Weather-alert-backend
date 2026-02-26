@@ -45,6 +45,7 @@ public class AlertCriteriaController {
                                     value = """
                                             {
                                               "userId": "dev-admin",
+                                              "name": "Cool Evening Jacket Reminder",
                                               "location": "Orlando",
                                               "latitude": 28.5383,
                                               "longitude": -81.3792,
@@ -112,6 +113,7 @@ public class AlertCriteriaController {
                                     value = """
                                             {
                                               "userId": "dev-admin",
+                                              "name": "Cool Evening Jacket Reminder",
                                               "location": "Orlando",
                                               "latitude": 28.5383,
                                               "longitude": -81.3792,

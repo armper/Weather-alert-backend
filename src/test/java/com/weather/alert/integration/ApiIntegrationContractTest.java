@@ -127,6 +127,7 @@ class ApiIntegrationContractTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("id", notNullValue())
+                .body("name", equalTo("Orlando Temp + Rain"))
                 .body("userId", equalTo("dev-admin"))
                 .extract()
                 .path("id");
@@ -139,6 +140,7 @@ class ApiIntegrationContractTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("id", equalTo(criteriaId))
+                .body("name", equalTo("Orlando Temp + Rain"))
                 .body("userId", equalTo("dev-admin"))
                 .body("temperatureUnit", equalTo("F"));
 
@@ -387,6 +389,7 @@ class ApiIntegrationContractTest {
                 .filter(openApiValidationFilter)
                 .body(Map.ofEntries(
                         Map.entry("userId", username),
+                        Map.entry("name", "New User First Alert"),
                         Map.entry("location", "Orlando"),
                         Map.entry("latitude", 28.5383),
                         Map.entry("longitude", -81.3792),
@@ -402,6 +405,7 @@ class ApiIntegrationContractTest {
                 .post("/api/criteria")
                 .then()
                 .statusCode(HttpStatus.OK.value())
+                .body("name", equalTo("New User First Alert"))
                 .body("userId", equalTo(username))
                 .extract()
                 .path("id");
@@ -432,6 +436,7 @@ class ApiIntegrationContractTest {
     private Map<String, Object> validCriteriaRequest() {
         return Map.ofEntries(
                 Map.entry("userId", "dev-admin"),
+                Map.entry("name", "Orlando Temp + Rain"),
                 Map.entry("location", "Orlando"),
                 Map.entry("latitude", 28.5383),
                 Map.entry("longitude", -81.3792),

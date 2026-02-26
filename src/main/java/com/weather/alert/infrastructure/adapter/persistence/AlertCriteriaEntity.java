@@ -17,6 +17,9 @@ public class AlertCriteriaEntity {
     
     @Id
     private String id;
+
+    @Column(name = "name", length = 120)
+    private String name;
     
     @Column(name = "user_id", nullable = false)
     private String userId;

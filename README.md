@@ -107,6 +107,8 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Kept token-in-response behavior configurable with `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` for environments that still want auto-token flow.
 - Added use-case tests for successful verification-email send and delivery-failure handling.
 - Added generic external SMTP relay mode via Spring profile `smtp-relay` (`application-smtp-relay.yml`) and `.env.smtp.example` to support real delivery to any recipient address.
+- Added criteria-created confirmation emails (configurable) when users create new alert criteria.
+- Added criteria-deleted confirmation emails (configurable) when users delete alert criteria.
 
 ### 2026-02-26 (Account Registration + Approval Workflow)
 
@@ -340,7 +342,11 @@ Notification verification tuning values in `.env`:
 - `APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES` (default `15`)
 - `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` (default `true` for local/dev)
 - `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL` (default `false`; set `true` in local `.env` to deliver via MailHog)
-- `APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT` (default `Weather Alert email verification`)
+- `APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT` (default `Verify your email for Weather Alert`)
+- `APP_NOTIFICATION_CRITERIA_CREATED_SEND_EMAIL` (default `false`; when `true`, sends a confirmation email after criteria creation)
+- `APP_NOTIFICATION_CRITERIA_CREATED_EMAIL_SUBJECT` (default `Your weather alert is active`)
+- `APP_NOTIFICATION_CRITERIA_DELETED_SEND_EMAIL` (default `false`; when `true`, sends a confirmation email after criteria deletion)
+- `APP_NOTIFICATION_CRITERIA_DELETED_EMAIL_SUBJECT` (default `Your weather alert was removed`)
 
 Notification delivery worker tuning values in `.env`:
 
@@ -575,6 +581,7 @@ GET /v3/api-docs
 POST /api/criteria
 {
   "userId": "dev-admin",
+  "name": "Annoying Winds",
   "location": "Orlando",
   "latitude": 28.5383,
   "longitude": -81.3792,
@@ -597,6 +604,7 @@ PUT /api/criteria/{criteriaId}
 DELETE /api/criteria/{criteriaId}
 ```
 `userId` is optional for non-admin requests and is inferred from the JWT subject.
+`name` is optional and lets users keep multiple criteria for the same location/type with clear labels.
 
 ### Alert Queries (Queries - CQRS)
 

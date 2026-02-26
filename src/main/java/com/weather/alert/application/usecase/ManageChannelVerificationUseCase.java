@@ -221,23 +221,33 @@ public class ManageChannelVerificationUseCase {
     private void sendVerificationEmail(ChannelVerification verification, String rawToken) {
         try {
             String body = """
-                    Your Weather Alert verification token is below.
+                    Hi there,
 
-                    Verification ID: %s
-                    Token: %s
-                    Expires At: %s
+                    Please verify your email to finish setting up your Weather Alert account.
 
-                    Confirm using:
+                    Your verification code:
+                    %s
+
+                    Verification details:
+                    - Verification ID: %s
+                    - Expires at: %s
+
+                    If you are verifying via API, send:
+
                     POST /api/auth/register/verify-email
                     {
                       "userId": "%s",
                       "verificationId": "%s",
                       "token": "%s"
                     }
+
+                    If you did not request this, you can ignore this email.
+
+                    Weather Alert
                     """
                     .formatted(
-                            verification.getId(),
                             rawToken,
+                            verification.getId(),
                             verification.getTokenExpiresAt(),
                             verification.getUserId(),
                             verification.getId(),

@@ -147,4 +147,10 @@ app:
       token-ttl-minutes: ${APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES:15}
       expose-raw-token: ${APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN:true}
       send-email: ${APP_NOTIFICATION_VERIFICATION_SEND_EMAIL:false}
-      email-subject: ${APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT:Weather Alert email verification}
+      email-subject: ${APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT:Verify your email for Weather Alert}
+    criteria-created:
+      send-email: ${APP_NOTIFICATION_CRITERIA_CREATED_SEND_EMAIL:false}
+      email-subject: ${APP_NOTIFICATION_CRITERIA_CREATED_EMAIL_SUBJECT:Your weather alert is active}
+    criteria-deleted:
+      send-email: ${APP_NOTIFICATION_CRITERIA_DELETED_SEND_EMAIL:false}
+      email-subject: ${APP_NOTIFICATION_CRITERIA_DELETED_EMAIL_SUBJECT:Your weather alert was removed}

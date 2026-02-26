@@ -49,6 +49,7 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
     private AlertCriteriaEntity toEntity(AlertCriteria criteria) {
         return AlertCriteriaEntity.builder()
                 .id(criteria.getId())
+                .name(criteria.getName())
                 .userId(criteria.getUserId())
                 .location(criteria.getLocation())
                 .latitude(criteria.getLatitude())
@@ -77,6 +78,7 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
     private AlertCriteria toDomain(AlertCriteriaEntity entity) {
         return AlertCriteria.builder()
                 .id(entity.getId())
+                .name(entity.getName())
                 .userId(entity.getUserId())
                 .location(entity.getLocation())
                 .latitude(entity.getLatitude())

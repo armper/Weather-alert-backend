@@ -170,6 +170,7 @@ Content-Type: application/json
 
 {
   "userId": "dev-admin",
+  "name": "Annoying Winds",
   "location": "Orlando",
   "latitude": 28.5383,
   "longitude": -81.3792,
@@ -196,6 +197,7 @@ Content-Type: application/json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "userId": "dev-admin",
+  "name": "Annoying Winds",
   "location": "Orlando",
   "latitude": 28.5383,
   "longitude": -81.3792,
@@ -222,6 +224,7 @@ Content-Type: application/json
 
 {
   "userId": "dev-admin",
+  "name": "Annoying Winds",
   "location": "Orlando",
   "latitude": 28.5383,
   "longitude": -81.3792,
@@ -243,6 +246,7 @@ Content-Type: application/json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "userId": "dev-admin",
+  "name": "Annoying Winds",
   "location": "Orlando",
   "latitude": 28.5383,
   "longitude": -81.3792,
@@ -490,6 +494,10 @@ External SMTP relay workflow (send to real inboxes):
 - Configure `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`.
 - Set TLS mode with `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` or `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE`.
 - Set `APP_NOTIFICATION_EMAIL_FROM_ADDRESS` to a sender identity allowed by your SMTP relay/provider.
+- To send confirmation emails after criteria creation, enable `APP_NOTIFICATION_CRITERIA_CREATED_SEND_EMAIL=true`.
+- Optional subject override: `APP_NOTIFICATION_CRITERIA_CREATED_EMAIL_SUBJECT`.
+- To send confirmation emails after criteria deletion, enable `APP_NOTIFICATION_CRITERIA_DELETED_SEND_EMAIL=true`.
+- Optional subject override: `APP_NOTIFICATION_CRITERIA_DELETED_EMAIL_SUBJECT`.
 
 ---
 
@@ -794,6 +802,7 @@ GET /api/weather/search/event/{eventType}
 ```json
 {
   "id": "string (UUID)",
+  "name": "string (optional, user-defined label, max 120 chars)",
   "userId": "string",
   "location": "string (optional)",
   "latitude": "number (optional)",

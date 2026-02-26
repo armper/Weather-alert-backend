@@ -1,0 +1,2 @@
+ALTER TABLE alert_criteria
+    ADD COLUMN IF NOT EXISTS name VARCHAR(120);

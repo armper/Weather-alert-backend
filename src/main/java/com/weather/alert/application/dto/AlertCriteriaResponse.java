@@ -19,6 +19,7 @@ import java.util.List;
 public class AlertCriteriaResponse {
 
     private String id;
+    private String name;
     private String userId;
     private String location;
     private Double latitude;
@@ -48,6 +49,7 @@ public class AlertCriteriaResponse {
         }
         return AlertCriteriaResponse.builder()
                 .id(criteria.getId())
+                .name(criteria.getName())
                 .userId(criteria.getUserId())
                 .location(criteria.getLocation())
                 .latitude(criteria.getLatitude())

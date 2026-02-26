@@ -7,6 +7,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,6 +25,7 @@ import lombok.NoArgsConstructor;
         example = """
                 {
                   "userId": "dev-admin",
+                  "name": "Cool Evening Jacket Reminder",
                   "location": "Orlando",
                   "eventType": "Rain",
                   "minSeverity": "MODERATE",
@@ -42,6 +44,10 @@ import lombok.NoArgsConstructor;
 public class CreateAlertCriteriaRequest {
     @Schema(description = "User identifier that owns this criteria (optional for non-admin; inferred from JWT subject)", example = "user-123")
     private String userId;
+
+    @Size(max = 120, message = "name must be <= 120 characters")
+    @Schema(description = "User-facing alert name", example = "Annoying Winds")
+    private String name;
 
     @Schema(description = "Location name filter (case-insensitive contains match)", example = "Seattle")
     private String location;
@@ -175,5 +181,10 @@ public class CreateAlertCriteriaRequest {
         boolean thresholdMode = rainThreshold != null || rainThresholdType != null;
         boolean legacyMode = maxPrecipitation != null;
         return !(thresholdMode && legacyMode);
+    }
+
+    @AssertTrue(message = "name cannot be blank")
+    public boolean isNameValid() {
+        return name == null || !name.trim().isBlank();
     }
 }

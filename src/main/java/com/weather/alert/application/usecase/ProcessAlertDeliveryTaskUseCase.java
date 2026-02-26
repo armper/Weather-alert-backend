@@ -145,31 +145,52 @@ public class ProcessAlertDeliveryTaskUseCase {
 
     private String buildSubject(Alert alert) {
         if (alert != null && alert.getHeadline() != null && !alert.getHeadline().isBlank()) {
-            return "[Weather Alert] " + alert.getHeadline();
+            return "Weather Alert: " + alert.getHeadline();
         }
         if (alert != null && alert.getEventType() != null && !alert.getEventType().isBlank()) {
-            return "[Weather Alert] " + alert.getEventType();
+            return "Weather Alert: " + alert.getEventType();
         }
-        return "[Weather Alert] New alert triggered";
+        return "Weather Alert: New alert triggered";
     }
 
     private String buildBody(Alert alert) {
         if (alert == null) {
-            return "A weather alert has been triggered.";
+            return """
+                    Hi there,
+
+                    A weather alert has been triggered.
+
+                    Please check your Weather Alert app for details.
+
+                    Weather Alert
+                    """;
         }
-        StringBuilder body = new StringBuilder("A weather alert has been triggered.");
+        StringBuilder body = new StringBuilder("""
+                Hi there,
+
+                A weather alert has been triggered.
+                """);
+        if (alert.getHeadline() != null && !alert.getHeadline().isBlank()) {
+            body.append("\n\nAlert: ").append(alert.getHeadline());
+        } else if (alert.getEventType() != null && !alert.getEventType().isBlank()) {
+            body.append("\n\nAlert: ").append(alert.getEventType());
+        }
         if (alert.getLocation() != null && !alert.getLocation().isBlank()) {
-            body.append("\n\nLocation: ").append(alert.getLocation());
+            body.append("\nLocation: ").append(alert.getLocation());
         }
         if (alert.getSeverity() != null && !alert.getSeverity().isBlank()) {
             body.append("\nSeverity: ").append(alert.getSeverity());
         }
         if (alert.getReason() != null && !alert.getReason().isBlank()) {
-            body.append("\nReason: ").append(alert.getReason());
+            body.append("\nWhy you received this: ").append(alert.getReason());
+        }
+        if (alert.getAlertTime() != null) {
+            body.append("\nTriggered at: ").append(alert.getAlertTime());
         }
         if (alert.getDescription() != null && !alert.getDescription().isBlank()) {
             body.append("\n\nDetails:\n").append(alert.getDescription());
         }
+        body.append("\n\nStay safe,\nWeather Alert");
         return body.toString();
     }
 
