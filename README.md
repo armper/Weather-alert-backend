@@ -287,6 +287,7 @@ This stack is defined in `docker-compose.yml` and includes:
 - Elasticsearch on `localhost:9200`
 - MailHog SMTP on `localhost:1025` with web UI on `http://localhost:8025`
 - Spring Boot app container on `http://localhost:8088` (runs with `.env` + `.env.smtp`)
+- Optional lightweight app profile on `http://localhost:8090` (`weather-app-lite`, optimized container/runtime flags)
 - Optional observability profile:
   - Zipkin (distributed trace UI)
   - Loki + Promtail + Grafana (log aggregation/search)
@@ -407,6 +408,36 @@ docker compose logs -f weather-app
 ```
 
 ```bash
+# Lightweight experiment (ARM-friendly multi-arch image path + constrained runtime)
+docker compose --profile lite up -d --build weather-app-lite
+
+# Follow lite app logs
+docker compose logs -f weather-app-lite
+```
+
+```bash
+# Native-image experiment (currently WIP)
+./scripts/docker/build-native-image.sh weather-alert-backend-native:local
+docker compose --profile native up -d weather-app-native
+docker compose logs -f weather-app-native
+```
+
+```bash
+# Multi-arch build helper (linux/amd64 + linux/arm64)
+# local current-platform build:
+./scripts/docker/buildx-multiarch.sh weather-alert-backend-weather-app-lite:local Dockerfile.lite local
+
+# push multi-arch manifest to a registry:
+./scripts/docker/buildx-multiarch.sh ghcr.io/<org>/weather-alert-backend-lite:<tag> Dockerfile.lite push
+```
+
+```bash
+# Startup/memory benchmark helper (example: 2 runs)
+./scripts/bench/compose-startup-benchmark.sh weather-app 8088 2
+./scripts/bench/compose-startup-benchmark.sh weather-app-lite 8090 2
+```
+
+```bash
 # Build the project
 mvn clean install
 
@@ -419,6 +450,10 @@ java -jar target/weather-alert-backend-0.0.1-SNAPSHOT.jar
 
 The application will start on `http://localhost:8080`
 When running via Docker Compose, use `http://localhost:8088`.
+Lightweight profile endpoint: `http://localhost:8090`.
+Native profile endpoint (when build succeeds): `http://localhost:8091`.
+
+Detailed benchmark notes for this branch are in `docs/perf/lightweight-benchmarks.md`.
 
 ### Error Handling + Correlation
 
