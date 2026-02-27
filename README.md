@@ -109,6 +109,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Added generic external SMTP relay mode via Spring profile `smtp-relay` (`application-smtp-relay.yml`) and `.env.smtp.example` to support real delivery to any recipient address.
 - Added criteria-created confirmation emails (configurable) when users create new alert criteria.
 - Added criteria-deleted confirmation emails (configurable) when users delete alert criteria.
+- Improved trigger notification emails to be user-friendly and criteria-aware (alert name, rule summary, area, matched reading, source, and humanized reason text without internal IDs).
 
 ### 2026-02-26 (Account Registration + Approval Workflow)
 
@@ -264,16 +265,17 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 ### 1. Start Local Dependencies with Docker
 
 ```bash
-# Starts PostgreSQL, Zookeeper, Kafka, Kafka topic bootstrap, and Elasticsearch
-docker compose up -d
+# Starts PostgreSQL, Zookeeper, Kafka, Kafka topic bootstrap, Elasticsearch,
+# MailHog, and the Spring Boot app container on http://localhost:8088
+docker compose up -d --build
 
 # Optional: include Kafka UI on http://localhost:8081
-docker compose --profile tools up -d
+docker compose --profile tools up -d --build
 
 # Optional: include observability stack
 # Zipkin:  http://localhost:9411
 # Grafana: http://localhost:3000 (admin/admin)
-docker compose --profile observability up -d
+docker compose --profile observability up -d --build
 ```
 
 This stack is defined in `docker-compose.yml` and includes:
@@ -284,6 +286,7 @@ This stack is defined in `docker-compose.yml` and includes:
   - `weather-alert-delivery-dlq`
 - Elasticsearch on `localhost:9200`
 - MailHog SMTP on `localhost:1025` with web UI on `http://localhost:8025`
+- Spring Boot app container on `http://localhost:8088` (runs with `.env` + `.env.smtp`)
 - Optional observability profile:
   - Zipkin (distributed trace UI)
   - Loki + Promtail + Grafana (log aggregation/search)
@@ -396,6 +399,14 @@ docker compose up -d
 ## Running the Application
 
 ```bash
+# Dockerized app + dependencies (uses .env and .env.smtp)
+docker compose up -d --build
+
+# Follow app logs
+docker compose logs -f weather-app
+```
+
+```bash
 # Build the project
 mvn clean install
 
@@ -407,6 +418,7 @@ java -jar target/weather-alert-backend-0.0.1-SNAPSHOT.jar
 ```
 
 The application will start on `http://localhost:8080`
+When running via Docker Compose, use `http://localhost:8088`.
 
 ### Error Handling + Correlation
 

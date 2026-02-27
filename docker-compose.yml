@@ -127,6 +127,34 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  weather-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weather-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - .env
+      - .env.smtp
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_alerts
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      LOGGING_FILE_NAME: /app/logs/weather-alert-backend.log
+    ports:
+      - "8088:8080"
+    volumes:
+      - ./logs:/app/logs
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: weather-kafka-ui
