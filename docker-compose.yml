@@ -155,6 +155,66 @@ services:
     volumes:
       - ./logs:/app/logs
 
+  weather-app-lite:
+    build:
+      context: .
+      dockerfile: Dockerfile.lite
+    container_name: weather-app-lite
+    restart: unless-stopped
+    profiles: ["lite"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - .env
+      - .env.smtp
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_alerts
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      LOGGING_FILE_NAME: /app/logs/weather-alert-backend-lite.log
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./logs:/app/logs
+    mem_limit: 768m
+    cpus: 0.75
+
+  weather-app-native:
+    image: weather-alert-backend-native:local
+    container_name: weather-app-native
+    restart: unless-stopped
+    profiles: ["native"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - .env
+      - .env.smtp
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_alerts
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      LOGGING_FILE_NAME: /app/logs/weather-alert-backend-native.log
+    ports:
+      - "8091:8080"
+    volumes:
+      - ./logs:/app/logs
+    mem_limit: 768m
+    cpus: 0.75
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: weather-kafka-ui
