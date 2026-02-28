@@ -69,6 +69,32 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - **Maven**: Dependency management and build tool
 - **Lombok**: Reduces boilerplate code
 - **WebFlux**: Reactive HTTP client for NOAA API calls
+- **React + TypeScript (Vite)**: Modern frontend dashboard in `ui/`
+
+## Frontend UI
+
+A dedicated React dashboard is available in [`ui/`](./ui) for everyday operations:
+
+- Login and registration with email verification flow
+- Alert criteria creation and deletion
+- Triggered alert timeline with acknowledge actions
+- Account profile updates
+- Admin pending-user approval panel
+
+Run it locally:
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+The UI runs on `http://localhost:5174` and proxies API requests to `http://localhost:8092` by default.
+Override backend target if needed:
+
+```bash
+VITE_API_TARGET=http://localhost:8080 npm run dev
+```
 
 ## Prerequisites
 
@@ -96,6 +122,19 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - ⏳ Pending in TODO: Chunk 9 (expanded observability dashboards) and Chunk 10 (end-to-end matrix + manual playbook)
 
 ## Changelog
+
+### 2026-02-27 (Frontend Dashboard UI)
+
+- Added a dedicated React + TypeScript frontend in `ui/` with modern UX-focused layout and responsive design.
+- Added complete user flows:
+  - login (`/api/auth/token`)
+  - register + email verification (`/api/auth/register`, `/api/auth/register/verify-email`, resend)
+  - alert criteria create/list/delete
+  - triggered alerts list + acknowledge
+  - account profile updates (`/api/users/me`)
+  - admin pending approvals (`/api/admin/users/pending`, approve endpoint)
+- Added Vite dev proxy configuration for backend integration without CORS setup (`/api`, `/actuator`, `/swagger-ui`, `/v3`).
+- Added UI docs and run instructions in `ui/README.md` and root README.
 
 ### 2026-02-26 (Verification Email Delivery for Local Dev)
 

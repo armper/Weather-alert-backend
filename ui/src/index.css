@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-heading: 'Fraunces', 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --bg: #edf4f7;
+  --surface: rgba(255, 255, 255, 0.84);
+  --surface-border: rgba(30, 83, 114, 0.16);
+
+  --text-primary: #142331;
+  --text-secondary: #2d4a5e;
+  --text-muted: #5f7686;
+
+  --accent-500: #1d6a90;
+  --accent-700: #14435f;
+
+  font-family: var(--font-body);
+  line-height: 1.45;
+  font-weight: 500;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  background: linear-gradient(180deg, #edf4f7 0%, #e9f5ff 100%);
+}
+
+body {
+  color: var(--text-primary);
+}
+
+a {
+  color: inherit;
+}
