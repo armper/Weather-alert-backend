@@ -110,6 +110,22 @@ class AlertCriteriaRuleEvaluatorTest {
     }
 
     @Test
+    void shouldNotMatchWhenLocationFilterPassesButWindThresholdDoesNot() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .location("Orlando")
+                .maxWindSpeed(70.0)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .location("Orlando Executive Airport")
+                .windSpeed(20.0)
+                .build();
+
+        assertFalse(evaluator.matches(criteria, current));
+    }
+
+    @Test
     void shouldIgnoreLegacyTemperatureRangeWhenThresholdModeIsConfigured() {
         AlertCriteria criteria = AlertCriteria.builder()
                 .enabled(true)

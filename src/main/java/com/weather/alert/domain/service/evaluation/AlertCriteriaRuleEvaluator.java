@@ -68,7 +68,7 @@ public class AlertCriteriaRuleEvaluator {
             }
         }
 
-        return hasAnyFilterRule;
+        return !hasAnyTriggerRule && hasAnyFilterRule;
     }
 
     public boolean hasWeatherConditionRules(AlertCriteria criteria) {

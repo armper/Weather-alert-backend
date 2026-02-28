@@ -300,15 +300,20 @@ public class ProcessAlertDeliveryTaskUseCase {
         }
 
         List<String> readings = new ArrayList<>();
-        if (alert.getConditionTemperatureC() != null) {
+        boolean includeTemperature = criteria == null || hasTemperatureRule(criteria);
+        if (includeTemperature && alert.getConditionTemperatureC() != null) {
             String unit = criteria != null && criteria.getTemperatureUnit() == AlertCriteria.TemperatureUnit.C ? "C" : "F";
             double value = unit.equals("C") ? alert.getConditionTemperatureC() : celsiusToFahrenheit(alert.getConditionTemperatureC());
             readings.add("temperature " + formatNumberRounded(value) + " " + unit);
         }
-        if (alert.getConditionPrecipitationProbability() != null) {
+
+        boolean includeRainProbability = criteria == null || usesRainProbabilityRule(criteria);
+        if (includeRainProbability && alert.getConditionPrecipitationProbability() != null) {
             readings.add("rain chance " + formatNumberRounded(alert.getConditionPrecipitationProbability()) + "%");
         }
-        if (alert.getConditionPrecipitationAmount() != null) {
+
+        boolean includeRainAmount = criteria == null || usesRainAmountRule(criteria);
+        if (includeRainAmount && alert.getConditionPrecipitationAmount() != null) {
             readings.add("rain amount " + formatNumberRounded(alert.getConditionPrecipitationAmount()) + " mm");
         }
 
@@ -319,6 +324,32 @@ public class ProcessAlertDeliveryTaskUseCase {
             return readings.get(0);
         }
         return String.join(", ", readings);
+    }
+
+    private boolean hasTemperatureRule(AlertCriteria criteria) {
+        if (criteria == null) {
+            return false;
+        }
+        boolean thresholdMode = criteria.getTemperatureThreshold() != null && criteria.getTemperatureDirection() != null;
+        boolean legacyMode = criteria.getMinTemperature() != null || criteria.getMaxTemperature() != null;
+        return thresholdMode || legacyMode;
+    }
+
+    private boolean usesRainProbabilityRule(AlertCriteria criteria) {
+        if (criteria == null) {
+            return false;
+        }
+        return criteria.getRainThreshold() != null
+                && criteria.getRainThresholdType() == AlertCriteria.RainThresholdType.PROBABILITY;
+    }
+
+    private boolean usesRainAmountRule(AlertCriteria criteria) {
+        if (criteria == null) {
+            return false;
+        }
+        return (criteria.getRainThreshold() != null
+                && criteria.getRainThresholdType() == AlertCriteria.RainThresholdType.AMOUNT)
+                || criteria.getMaxPrecipitation() != null;
     }
 
     private String describeConditionSource(Alert alert) {

@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -116,6 +117,39 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         assertNotNull(finalState.getSentAt());
         verify(alertRepository).markAsSent("alert-1", finalState.getSentAt());
         verify(dlqPublisher, never()).publishFailure(any(), any(), any());
+    }
+
+    @Test
+    void shouldNotIncludeTemperatureMatchedReadingForWindOnlyAlert() {
+        AlertDeliveryRecord delivery = pending("delivery-2", 0);
+        when(alertDeliveryRepository.findById("delivery-2")).thenReturn(Optional.of(delivery));
+        when(alertDeliveryRepository.save(any(AlertDeliveryRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.findById("alert-1")).thenReturn(Optional.of(Alert.builder()
+                .id("alert-1")
+                .criteriaId("criteria-wind")
+                .location("Orlando")
+                .conditionSource("CURRENT")
+                .conditionTemperatureC(27.0)
+                .reason("Matched CURRENT: Mostly Cloudy")
+                .description("Latest NOAA observation from station KORL")
+                .alertTime(Instant.parse("2026-02-27T20:04:58.859797Z"))
+                .build()));
+        when(alertCriteriaRepository.findById("criteria-wind")).thenReturn(Optional.of(AlertCriteria.builder()
+                .id("criteria-wind")
+                .name("Disastrous Winds")
+                .location("Orlando")
+                .maxWindSpeed(70.0)
+                .oncePerEvent(true)
+                .build()));
+        when(emailSenderPort.send(any())).thenReturn(new EmailSendResult("provider-id-2"));
+
+        useCase.processTask("delivery-2");
+
+        ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSenderPort).send(emailCaptor.capture());
+        String body = emailCaptor.getValue().body();
+        assertTrue(body.contains("Rule: wind speed is above 70 km/h"));
+        assertFalse(body.contains("Matched reading: temperature"));
     }
 
     @Test
