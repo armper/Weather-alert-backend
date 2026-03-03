@@ -55,3 +55,28 @@ application-local.properties
 .env
 .env.local
 .env.smtp
+
+# Node / frontend (ui)
+**/node_modules/
+node_modules/
+ui/node_modules/
+ui/dist/
+ui/.vite/
+ui/coverage/
+.vite/
+dist/
+coverage/
+build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local dev runtime artifacts
+.ui-dev.pid
+.ui-dev.log
+.app.pid
+
+# Generated local log archives
+logs/*.gz

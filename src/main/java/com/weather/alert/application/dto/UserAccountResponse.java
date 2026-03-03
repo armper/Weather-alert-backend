@@ -34,6 +34,9 @@ public class UserAccountResponse {
     @Schema(example = "true")
     private Boolean emailVerified;
 
+    @Schema(example = "false")
+    private Boolean passwordResetRequired;
+
     @Schema(example = "2026-02-26T18:45:00Z", nullable = true)
     private Instant approvedAt;
 
@@ -52,10 +55,10 @@ public class UserAccountResponse {
                 .role(user.getRole())
                 .approvalStatus(user.getApprovalStatus())
                 .emailVerified(Boolean.TRUE.equals(user.getEmailVerified()))
+                .passwordResetRequired(Boolean.TRUE.equals(user.getPasswordResetRequired()))
                 .approvedAt(user.getApprovedAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }
-

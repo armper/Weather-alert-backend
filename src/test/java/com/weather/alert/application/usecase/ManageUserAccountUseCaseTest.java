@@ -1,9 +1,11 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.ChannelVerificationResponse;
+import com.weather.alert.application.dto.ChangePasswordRequest;
 import com.weather.alert.application.dto.RegisterUserRequest;
 import com.weather.alert.application.dto.ResendRegistrationVerificationRequest;
 import com.weather.alert.application.dto.VerifyRegistrationEmailRequest;
+import com.weather.alert.application.exception.InvalidCurrentPasswordException;
 import com.weather.alert.application.exception.InvalidAccountApprovalStateException;
 import com.weather.alert.domain.model.ChannelVerificationStatus;
 import com.weather.alert.domain.model.NotificationChannel;
@@ -153,5 +155,45 @@ class ManageUserAccountUseCaseTest {
         assertEquals("verification-2", response.getId());
         assertEquals("alice@example.com", response.getDestination());
         verify(manageChannelVerificationUseCase).startVerification(eq("alice"), any());
+    }
+
+    @Test
+    void shouldChangePasswordAndClearResetRequirement() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("OldPass123!");
+        request.setNewPassword("NewPass123!");
+        request.setConfirmNewPassword("NewPass123!");
+
+        User user = User.builder()
+                .id("alice")
+                .passwordHash("old-hash")
+                .passwordResetRequired(true)
+                .build();
+
+        when(userRepository.findById("alice")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("OldPass123!", "old-hash")).thenReturn(true);
+        when(passwordEncoder.encode("NewPass123!")).thenReturn("new-hash");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.changeMyPassword("alice", request);
+
+        assertEquals("alice", response.getId());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void shouldRejectChangePasswordWhenCurrentPasswordInvalid() {
+        ChangePasswordRequest request = new ChangePasswordRequest();
+        request.setCurrentPassword("WrongPass123!");
+        request.setNewPassword("NewPass123!");
+        request.setConfirmNewPassword("NewPass123!");
+
+        when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
+                .id("alice")
+                .passwordHash("old-hash")
+                .build()));
+        when(passwordEncoder.matches("WrongPass123!", "old-hash")).thenReturn(false);
+
+        assertThrows(InvalidCurrentPasswordException.class, () -> useCase.changeMyPassword("alice", request));
     }
 }

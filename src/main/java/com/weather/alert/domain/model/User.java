@@ -24,6 +24,7 @@ public class User {
     private String role;
     private UserApprovalStatus approvalStatus;
     private Boolean emailVerified;
+    private Boolean passwordResetRequired;
     private List<String> preferredNotificationChannels;
     private Boolean emailEnabled;
     private Boolean smsEnabled;

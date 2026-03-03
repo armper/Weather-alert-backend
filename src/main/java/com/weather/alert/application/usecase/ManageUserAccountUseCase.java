@@ -1,6 +1,7 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.ChannelVerificationResponse;
+import com.weather.alert.application.dto.ChangePasswordRequest;
 import com.weather.alert.application.dto.RegisterUserRequest;
 import com.weather.alert.application.dto.RegisterUserResponse;
 import com.weather.alert.application.dto.ResendRegistrationVerificationRequest;
@@ -9,6 +10,7 @@ import com.weather.alert.application.dto.VerifyRegistrationEmailRequest;
 import com.weather.alert.application.dto.UserAccountResponse;
 import com.weather.alert.application.exception.EmailAlreadyInUseException;
 import com.weather.alert.application.exception.InvalidAccountApprovalStateException;
+import com.weather.alert.application.exception.InvalidCurrentPasswordException;
 import com.weather.alert.application.exception.UserAlreadyExistsException;
 import com.weather.alert.application.exception.UserNotFoundException;
 import com.weather.alert.domain.model.NotificationChannel;
@@ -16,6 +18,8 @@ import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
 import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class ManageUserAccountUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(ManageUserAccountUseCase.class);
 
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -64,6 +70,7 @@ public class ManageUserAccountUseCase {
                 .role("ROLE_USER")
                 .approvalStatus(UserApprovalStatus.PENDING_APPROVAL)
                 .emailVerified(false)
+                .passwordResetRequired(false)
                 .emailEnabled(true)
                 .smsEnabled(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank())
                 .pushEnabled(false)
@@ -140,10 +147,34 @@ public class ManageUserAccountUseCase {
         return UserAccountResponse.fromDomain(saved);
     }
 
+    @Transactional
+    public UserAccountResponse changeMyPassword(String userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.getPasswordHash() == null
+                || user.getPasswordHash().isBlank()
+                || !passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new InvalidCurrentPasswordException();
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordResetRequired(false);
+        user.setUpdatedAt(Instant.now());
+        User saved = userRepository.save(user);
+        log.info("ACCOUNT_PASSWORD_CHANGED userId={}", userId);
+        return UserAccountResponse.fromDomain(saved);
+    }
+
     @Transactional(readOnly = true)
     public List<UserAccountResponse> listPendingAccounts() {
         return userRepository.findAll().stream()
                 .filter(user -> user.getApprovalStatus() == UserApprovalStatus.PENDING_APPROVAL)
+                .map(UserAccountResponse::fromDomain)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserAccountResponse> listAllAccounts() {
+        return userRepository.findAll().stream()
                 .map(UserAccountResponse::fromDomain)
                 .toList();
     }
@@ -162,6 +193,40 @@ public class ManageUserAccountUseCase {
         user.setApprovedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
         User saved = userRepository.save(user);
+        log.info("ACCOUNT_APPROVED userId={}", userId);
+        return UserAccountResponse.fromDomain(saved);
+    }
+
+    @Transactional
+    public UserAccountResponse suspendAccount(String userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        user.setApprovalStatus(UserApprovalStatus.SUSPENDED);
+        user.setUpdatedAt(Instant.now());
+        User saved = userRepository.save(user);
+        log.info("ACCOUNT_SUSPENDED userId={}", userId);
+        return UserAccountResponse.fromDomain(saved);
+    }
+
+    @Transactional
+    public UserAccountResponse reactivateAccount(String userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        user.setApprovalStatus(UserApprovalStatus.ACTIVE);
+        if (user.getApprovedAt() == null) {
+            user.setApprovedAt(Instant.now());
+        }
+        user.setUpdatedAt(Instant.now());
+        User saved = userRepository.save(user);
+        log.info("ACCOUNT_REACTIVATED userId={}", userId);
+        return UserAccountResponse.fromDomain(saved);
+    }
+
+    @Transactional
+    public UserAccountResponse forcePasswordReset(String userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        user.setPasswordResetRequired(true);
+        user.setUpdatedAt(Instant.now());
+        User saved = userRepository.save(user);
+        log.info("ACCOUNT_FORCE_PASSWORD_RESET userId={}", userId);
         return UserAccountResponse.fromDomain(saved);
     }
 

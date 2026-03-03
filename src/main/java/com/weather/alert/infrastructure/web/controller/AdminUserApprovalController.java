@@ -38,6 +38,20 @@ public class AdminUserApprovalController {
         return ResponseEntity.ok(manageUserAccountUseCase.listPendingAccounts());
     }
 
+    @GetMapping
+    @Operation(
+            summary = "List all user accounts",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "All accounts list"),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "Forbidden",
+                            content = @Content(mediaType = "application/problem+json"))
+            })
+    public ResponseEntity<List<UserAccountResponse>> listAllAccounts() {
+        return ResponseEntity.ok(manageUserAccountUseCase.listAllAccounts());
+    }
+
     @PostMapping("/{userId}/approve")
     @Operation(
             summary = "Approve a pending user account",
@@ -55,5 +69,22 @@ public class AdminUserApprovalController {
     public ResponseEntity<UserAccountResponse> approveAccount(@PathVariable String userId) {
         return ResponseEntity.ok(manageUserAccountUseCase.approveAccount(userId));
     }
-}
 
+    @PostMapping("/{userId}/suspend")
+    @Operation(summary = "Suspend user account")
+    public ResponseEntity<UserAccountResponse> suspendAccount(@PathVariable String userId) {
+        return ResponseEntity.ok(manageUserAccountUseCase.suspendAccount(userId));
+    }
+
+    @PostMapping("/{userId}/reactivate")
+    @Operation(summary = "Reactivate user account")
+    public ResponseEntity<UserAccountResponse> reactivateAccount(@PathVariable String userId) {
+        return ResponseEntity.ok(manageUserAccountUseCase.reactivateAccount(userId));
+    }
+
+    @PostMapping("/{userId}/force-password-reset")
+    @Operation(summary = "Force password reset at next sign-in")
+    public ResponseEntity<UserAccountResponse> forcePasswordReset(@PathVariable String userId) {
+        return ResponseEntity.ok(manageUserAccountUseCase.forcePasswordReset(userId));
+    }
+}

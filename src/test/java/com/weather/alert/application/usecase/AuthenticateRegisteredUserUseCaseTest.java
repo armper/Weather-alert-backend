@@ -1,6 +1,8 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.exception.EmailVerificationRequiredException;
+import com.weather.alert.application.exception.PasswordResetRequiredException;
+import com.weather.alert.application.exception.AccountSuspendedException;
 import com.weather.alert.application.exception.UserApprovalRequiredException;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
@@ -79,5 +81,31 @@ class AuthenticateRegisteredUserUseCaseTest {
 
         assertThrows(EmailVerificationRequiredException.class, () -> useCase.authenticate("alice", "StrongPass123!"));
     }
-}
 
+    @Test
+    void shouldRejectSuspendedUser() {
+        when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
+                .id("alice")
+                .passwordHash("hash")
+                .approvalStatus(UserApprovalStatus.SUSPENDED)
+                .emailVerified(true)
+                .build()));
+        when(passwordEncoder.matches("StrongPass123!", "hash")).thenReturn(true);
+
+        assertThrows(AccountSuspendedException.class, () -> useCase.authenticate("alice", "StrongPass123!"));
+    }
+
+    @Test
+    void shouldRequirePasswordResetWhenFlagged() {
+        when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
+                .id("alice")
+                .passwordHash("hash")
+                .approvalStatus(UserApprovalStatus.ACTIVE)
+                .emailVerified(true)
+                .passwordResetRequired(true)
+                .build()));
+        when(passwordEncoder.matches("StrongPass123!", "hash")).thenReturn(true);
+
+        assertThrows(PasswordResetRequiredException.class, () -> useCase.authenticate("alice", "StrongPass123!"));
+    }
+}

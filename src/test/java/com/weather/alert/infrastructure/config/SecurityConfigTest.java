@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
+import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.ManageNotificationPreferencesUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
+import com.weather.alert.application.service.AuthSecurityGuardService;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.DeliveryFallbackStrategy;
 import com.weather.alert.domain.model.NotificationChannel;
@@ -15,6 +17,7 @@ import com.weather.alert.infrastructure.error.RestAccessDeniedHandler;
 import com.weather.alert.infrastructure.error.RestAuthenticationEntryPoint;
 import com.weather.alert.infrastructure.error.SecurityErrorResponseWriter;
 import com.weather.alert.infrastructure.web.controller.AlertCriteriaController;
+import com.weather.alert.infrastructure.web.controller.AccountRecoveryController;
 import com.weather.alert.infrastructure.web.controller.AuthController;
 import com.weather.alert.infrastructure.web.controller.NotificationPreferenceController;
 import org.junit.jupiter.api.Test;
@@ -44,7 +47,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({AlertCriteriaController.class, AuthController.class, NotificationPreferenceController.class})
+@WebMvcTest({AlertCriteriaController.class, AuthController.class, NotificationPreferenceController.class, AccountRecoveryController.class})
 @Import({
         SecurityConfig.class,
         RestAuthenticationEntryPoint.class,
@@ -84,6 +87,12 @@ class SecurityConfigTest {
 
     @MockBean
     private AuthenticateRegisteredUserUseCase authenticateRegisteredUserUseCase;
+
+    @MockBean
+    private AuthSecurityGuardService authSecurityGuardService;
+
+    @MockBean
+    private ManageAccountRecoveryUseCase manageAccountRecoveryUseCase;
 
     @Test
     void shouldRequireAuthenticationForApiEndpoints() throws Exception {
@@ -224,5 +233,63 @@ class SecurityConfigTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("jwt-token-value"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
+    void shouldAllowRecoveryRequestWithoutAuthentication() throws Exception {
+        when(manageAccountRecoveryUseCase.requestUsernameReminder(any(), any()))
+                .thenReturn(com.weather.alert.application.dto.RecoveryRequestResponse.builder()
+                        .message("If an account exists, recovery instructions were sent.")
+                        .recoveryId("recovery-1")
+                        .build());
+
+        mockMvc.perform(post("/api/auth/recovery/username/request")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "email": "user@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recoveryId").value("recovery-1"));
+    }
+
+    @Test
+    void shouldAllowPasswordRecoveryRequestWithoutAuthentication() throws Exception {
+        when(manageAccountRecoveryUseCase.requestPasswordReset(any(), any()))
+                .thenReturn(com.weather.alert.application.dto.RecoveryRequestResponse.builder()
+                        .message("If an account exists, recovery instructions were sent.")
+                        .recoveryId("recovery-password-1")
+                        .build());
+
+        mockMvc.perform(post("/api/auth/recovery/password/request")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "usernameOrEmail": "user@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recoveryId").value("recovery-password-1"));
+    }
+
+    @Test
+    void shouldAllowPasswordRecoveryConfirmWithoutAuthentication() throws Exception {
+        when(manageAccountRecoveryUseCase.confirmPasswordReset(any(), any()))
+                .thenReturn(com.weather.alert.application.dto.MessageResponse.builder()
+                        .message("Password updated successfully.")
+                        .build());
+
+        mockMvc.perform(post("/api/auth/recovery/password/confirm")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "recoveryId": "4f5f913d-baa8-4d20-8f72-e894712b8b23",
+                                  "code": "A2B3C4D5",
+                                  "newPassword": "StrongPass123!"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Password updated successfully."));
     }
 }

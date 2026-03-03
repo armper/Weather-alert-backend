@@ -6,7 +6,6 @@ public class UserApprovalRequiredException extends ApiException {
 
     public UserApprovalRequiredException(String userId) {
         super(HttpStatus.FORBIDDEN, "USER_APPROVAL_REQUIRED",
-                "User account is pending admin approval: " + userId);
+                "User account is not active: " + userId);
     }
 }
-

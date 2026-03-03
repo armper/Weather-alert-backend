@@ -6,13 +6,22 @@ Modern React + TypeScript dashboard for the Weather Alert backend.
 
 - Login via `POST /api/auth/token`
 - Register + email verification flow
+- Forgot username + forgot password recovery flow
+- Auth routes split for cleaner UX:
+  - `/auth/login`
+  - `/auth/register`
+  - `/auth/verify-email`
+  - `/auth/forgot-password`
+  - `/auth/forgot-username`
 - Dashboard with:
   - current weather snapshot
   - create alert criteria form
   - active criteria list + delete
   - triggered alerts timeline + acknowledge
   - account profile update
+  - password change
   - admin pending-approval panel
+  - admin account actions (suspend/reactivate/force reset)
 
 ## Run Locally
 
@@ -32,11 +41,17 @@ The UI uses Vite proxy so API calls stay same-origin in dev:
 - `/actuator/*` -> backend
 - `/swagger-ui/*` + `/v3/*` -> backend
 
-Default backend target is `http://localhost:8092`.
+Default backend target is `http://localhost:8088` (Docker `weather-app`).
 Override with:
 
 ```bash
-VITE_API_TARGET=http://localhost:8080 npm run dev
+VITE_API_TARGET=http://localhost:8092 npm run dev
+```
+
+If you changed backend code and run with Docker, rebuild so new endpoints are included:
+
+```bash
+docker compose up -d --build weather-app
 ```
 
 ## Build

@@ -3,6 +3,7 @@ package com.weather.alert.infrastructure.web.controller;
 import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.AuthTokenResponse;
 import com.weather.alert.application.exception.InvalidCredentialsException;
+import com.weather.alert.application.service.AuthSecurityGuardService;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +20,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -30,8 +34,11 @@ import java.util.stream.Collectors;
 @Tag(name = "Authentication", description = "JWT token issuance")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     private final AuthenticationManager authenticationManager;
     private final AuthenticateRegisteredUserUseCase authenticateRegisteredUserUseCase;
+    private final AuthSecurityGuardService authSecurityGuardService;
     private final JwtEncoder jwtEncoder;
 
     @Value("${app.security.jwt.expiration-seconds:3600}")
@@ -41,8 +48,22 @@ public class AuthController {
     @Operation(
             summary = "Issue JWT token",
             description = "Authenticate with configured local credentials and return a bearer JWT for protected endpoints.")
-    public ResponseEntity<AuthTokenResponse> generateToken(@Valid @RequestBody AuthRequest request) {
-        Authentication authentication = authenticate(request);
+    public ResponseEntity<AuthTokenResponse> generateToken(
+            @Valid @RequestBody AuthRequest request,
+            HttpServletRequest servletRequest) {
+        String clientIp = clientIp(servletRequest);
+        authSecurityGuardService.assertLoginAllowed(request.getUsername(), clientIp);
+
+        Authentication authentication;
+        try {
+            authentication = authenticate(request);
+        } catch (InvalidCredentialsException ex) {
+            authSecurityGuardService.recordLoginFailure(request.getUsername(), clientIp);
+            log.warn("AUTH_LOGIN_FAILURE username={} ip={}", request.getUsername(), clientIp);
+            throw ex;
+        }
+        authSecurityGuardService.clearLoginFailures(request.getUsername(), clientIp);
+        log.info("AUTH_LOGIN_SUCCESS username={} ip={}", authentication.getName(), clientIp);
 
         Instant now = Instant.now();
         String scope = authentication.getAuthorities().stream()
@@ -77,5 +98,12 @@ public class AuthController {
                     .authenticate(request.getUsername(), request.getPassword())
                     .orElseThrow(InvalidCredentialsException::new);
         }
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        if (request == null || request.getRemoteAddr() == null || request.getRemoteAddr().isBlank()) {
+            return "unknown";
+        }
+        return request.getRemoteAddr();
     }
 }

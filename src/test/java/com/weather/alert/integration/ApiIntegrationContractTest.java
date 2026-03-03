@@ -419,6 +419,118 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.NO_CONTENT.value());
     }
 
+    @Test
+    void shouldRecoverUsernameAndResetPasswordWithOpenApiValidation() {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        String username = "recover" + unique;
+        String email = username + "@example.com";
+        String originalPassword = "StrongPass123!";
+        String newPassword = "EvenStrongerPass123!";
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> registerResponse = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", originalPassword,
+                        "email", email,
+                        "name", "Recover User"))
+                .when()
+                .post("/api/auth/register")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract();
+
+        String verificationId = registerResponse.path("emailVerification.id");
+        String verificationToken = registerResponse.path("emailVerification.verificationToken");
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "userId", username,
+                        "verificationId", verificationId,
+                        "token", verificationToken))
+                .when()
+                .post("/api/auth/register/verify-email")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("emailVerified", equalTo(true));
+
+        String adminToken = issueAdminToken();
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/admin/users/{userId}/approve", username)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("approvalStatus", equalTo("ACTIVE"));
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> usernameRecoveryRequest = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of("email", email))
+                .when()
+                .post("/api/auth/recovery/username/request")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("message", notNullValue())
+                .body("recoveryId", notNullValue())
+                .body("recoveryCode", notNullValue())
+                .extract();
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "recoveryId", usernameRecoveryRequest.path("recoveryId"),
+                        "code", usernameRecoveryRequest.path("recoveryCode")))
+                .when()
+                .post("/api/auth/recovery/username/confirm")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("username", equalTo(username));
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> passwordRecoveryRequest = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of("usernameOrEmail", username))
+                .when()
+                .post("/api/auth/recovery/password/request")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("message", notNullValue())
+                .body("recoveryId", notNullValue())
+                .body("recoveryCode", notNullValue())
+                .extract();
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "recoveryId", passwordRecoveryRequest.path("recoveryId"),
+                        "code", passwordRecoveryRequest.path("recoveryCode"),
+                        "newPassword", newPassword))
+                .when()
+                .post("/api/auth/recovery/password/confirm")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("message", equalTo("Password updated successfully."));
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", newPassword))
+                .when()
+                .post("/api/auth/token")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("accessToken", notNullValue());
+    }
+
     private String issueAdminToken() {
         return given()
                 .contentType(JSON)

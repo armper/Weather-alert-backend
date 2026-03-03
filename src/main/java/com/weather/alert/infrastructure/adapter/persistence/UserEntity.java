@@ -39,6 +39,9 @@ public class UserEntity {
 
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified;
+
+    @Column(name = "password_reset_required", nullable = false)
+    private Boolean passwordResetRequired;
     
     @Column(name = "email_enabled")
     private Boolean emailEnabled;

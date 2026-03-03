@@ -50,6 +50,10 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **RESTful API**: Comprehensive REST endpoints for all operations
 - ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
 - ✅ **Account Onboarding Flow**: Self-service registration, email verification, admin approval, and profile updates (including phone number)
+- ✅ **Account Recovery Flow**: Forgot username and forgot password with one-time recovery codes via email
+- ✅ **Account Security Controls**: Auth throttling, login lockouts, recovery request throttling, and recovery confirm lockouts
+- ✅ **Account Admin Controls**: Approve, suspend/reactivate, and force-password-reset by admin
+- ✅ **Self-Service Password Change**: Authenticated users can rotate their password from `/api/users/me/change-password`
 - ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
 - ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
 - ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
@@ -135,6 +139,39 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - admin pending approvals (`/api/admin/users/pending`, approve endpoint)
 - Added Vite dev proxy configuration for backend integration without CORS setup (`/api`, `/actuator`, `/swagger-ui`, `/v3`).
 - Added UI docs and run instructions in `ui/README.md` and root README.
+
+### 2026-03-01 (Forgot Username + Forgot Password)
+
+- Added Flyway migration `V9__add_account_recovery_tokens.sql` with dedicated token storage for account recovery:
+  - `account_recovery_tokens` (`purpose`, `token_hash`, expiry/used timestamps)
+- Added unauthenticated account-recovery endpoints:
+  - `POST /api/auth/recovery/username/request`
+  - `POST /api/auth/recovery/username/confirm`
+  - `POST /api/auth/recovery/password/request`
+  - `POST /api/auth/recovery/password/confirm`
+- Added one-time code flow with hashed tokens (SHA-256), TTL, and single-use enforcement.
+- Added recovery request cooldown + retry-after response metadata to avoid code spam.
+- Added one-click recovery links in recovery emails (frontend prefill via query params).
+- Added optional email delivery for recovery codes and optional dev-only raw code exposure:
+  - `APP_AUTH_RECOVERY_SEND_EMAIL`
+  - `APP_AUTH_RECOVERY_EXPOSE_RAW_CODE`
+- Added auth abuse protection:
+  - login failure lockouts (`APP_AUTH_SECURITY_LOGIN_*`)
+  - recovery request throttling (`APP_AUTH_SECURITY_RECOVERY_REQUEST_*`)
+  - recovery confirm lockouts (`APP_AUTH_SECURITY_RECOVERY_CONFIRM_*`)
+- Added account management endpoints:
+  - `POST /api/users/me/change-password`
+  - `GET /api/admin/users`
+  - `POST /api/admin/users/{userId}/suspend`
+  - `POST /api/admin/users/{userId}/reactivate`
+  - `POST /api/admin/users/{userId}/force-password-reset`
+- Added support for admin-forced password reset on next login.
+- Updated React auth UI with recovery forms (request + confirm for username and password).
+- Updated React dashboard UI with account password change and admin account-state actions.
+- Added automated tests:
+  - `ManageAccountRecoveryUseCaseTest`
+  - `SecurityConfigTest` coverage for unauthenticated recovery request endpoint
+  - integration contract coverage in `ApiIntegrationContractTest`
 
 ### 2026-02-26 (Verification Email Delivery for Local Dev)
 
@@ -389,6 +426,16 @@ Notification verification tuning values in `.env`:
 - `APP_NOTIFICATION_CRITERIA_CREATED_EMAIL_SUBJECT` (default `Your weather alert is active`)
 - `APP_NOTIFICATION_CRITERIA_DELETED_SEND_EMAIL` (default `false`; when `true`, sends a confirmation email after criteria deletion)
 - `APP_NOTIFICATION_CRITERIA_DELETED_EMAIL_SUBJECT` (default `Your weather alert was removed`)
+- `APP_AUTH_RECOVERY_TOKEN_TTL_MINUTES` (default `15`)
+- `APP_AUTH_RECOVERY_REQUEST_COOLDOWN_SECONDS` (default `60`)
+- `APP_AUTH_RECOVERY_EXPOSE_RAW_CODE` (default `true` for local/dev)
+- `APP_AUTH_RECOVERY_SEND_EMAIL` (default `false`; set `true` to deliver recovery emails)
+- `APP_AUTH_RECOVERY_FRONTEND_BASE_URL` (default `http://localhost:5174`, used for one-click recovery links)
+- `APP_AUTH_RECOVERY_USERNAME_EMAIL_SUBJECT` (default `Your Weather Alert username`)
+- `APP_AUTH_RECOVERY_PASSWORD_EMAIL_SUBJECT` (default `Reset your Weather Alert password`)
+- `APP_AUTH_SECURITY_LOGIN_MAX_FAILURES` / `APP_AUTH_SECURITY_LOGIN_WINDOW_MINUTES` / `APP_AUTH_SECURITY_LOGIN_LOCK_MINUTES`
+- `APP_AUTH_SECURITY_RECOVERY_REQUEST_MAX_PER_WINDOW` / `APP_AUTH_SECURITY_RECOVERY_REQUEST_WINDOW_MINUTES`
+- `APP_AUTH_SECURITY_RECOVERY_CONFIRM_MAX_FAILURES` / `APP_AUTH_SECURITY_RECOVERY_CONFIRM_WINDOW_MINUTES` / `APP_AUTH_SECURITY_RECOVERY_CONFIRM_LOCK_MINUTES`
 
 Notification delivery worker tuning values in `.env`:
 
@@ -419,6 +466,9 @@ Schema is now migration-driven with Flyway (`src/main/resources/db/migration`).
   - `V5__add_retention_cleanup_index.sql` (alert retention cleanup index)
   - `V6__add_notification_delivery_foundation.sql` (notification preferences, channel verification, and alert delivery tracking tables)
   - `V7__add_user_registration_and_approval.sql` (credentials, account approval state, and email verification flags)
+  - `V8__add_alert_criteria_name.sql` (human-readable alert names)
+  - `V9__add_account_recovery_tokens.sql` (forgot username/password one-time recovery codes)
+  - `V10__add_password_reset_required_to_users.sql` (admin-forced password reset support)
 
 Common commands:
 
@@ -546,6 +596,12 @@ All `/api/**` endpoints require JWT Bearer authentication except onboarding/auth
 - `POST /api/auth/register`
 - `POST /api/auth/register/verify-email`
 - `POST /api/auth/register/resend-verification`
+- `POST /api/auth/recovery/username/request`
+- `POST /api/auth/recovery/username/confirm`
+- `POST /api/auth/recovery/password/request`
+- `POST /api/auth/recovery/password/confirm`
+
+The four `/api/auth/recovery/**` endpoints are intentionally unauthenticated.
 
 - **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own profile (`/api/users/me`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
 - **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, review/approve pending users (`/api/admin/users/**`), and access `/api/alerts/pending` and alert-expire endpoint
@@ -608,6 +664,31 @@ PUT /api/users/me
 {
   "name": "Alice B",
   "phoneNumber": "+14075550199"
+}
+
+# 6) Forgot username (request + confirm)
+POST /api/auth/recovery/username/request
+{
+  "email": "alice@example.com"
+}
+
+POST /api/auth/recovery/username/confirm
+{
+  "recoveryId": "<recovery-id>",
+  "code": "<recovery-code>"
+}
+
+# 7) Forgot password (request + confirm)
+POST /api/auth/recovery/password/request
+{
+  "usernameOrEmail": "alice"
+}
+
+POST /api/auth/recovery/password/confirm
+{
+  "recoveryId": "<recovery-id>",
+  "code": "<recovery-code>",
+  "newPassword": "NewStrongPass123!"
 }
 ```
 

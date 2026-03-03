@@ -2,7 +2,7 @@ export type TemperatureDirection = 'ABOVE' | 'BELOW'
 export type TemperatureUnit = 'F' | 'C'
 export type RainThresholdType = 'PROBABILITY' | 'AMOUNT'
 export type AlertStatus = 'PENDING' | 'SENT' | 'ACKNOWLEDGED' | 'EXPIRED'
-export type UserApprovalStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'REJECTED'
+export type UserApprovalStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED'
 
 export interface ProblemFieldError {
   field: string
@@ -32,6 +32,7 @@ export interface UserAccount {
   role: string
   approvalStatus: UserApprovalStatus
   emailVerified: boolean
+  passwordResetRequired?: boolean
   approvedAt?: string
   createdAt?: string
   updatedAt?: string
@@ -50,6 +51,23 @@ export interface ChannelVerification {
 export interface RegisterUserResponse {
   account: UserAccount
   emailVerification?: ChannelVerification
+}
+
+export interface RecoveryRequestResponse {
+  message: string
+  recoveryId?: string
+  codeExpiresAt?: string
+  recoveryCode?: string
+  retryAfterSeconds?: number
+}
+
+export interface UsernameRecoveryResponse {
+  message: string
+  username: string
+}
+
+export interface MessageResponse {
+  message: string
 }
 
 export interface AlertCriteria {

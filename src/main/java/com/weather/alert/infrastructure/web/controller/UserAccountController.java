@@ -1,5 +1,6 @@
 package com.weather.alert.infrastructure.web.controller;
 
+import com.weather.alert.application.dto.ChangePasswordRequest;
 import com.weather.alert.application.dto.UpdateMyAccountRequest;
 import com.weather.alert.application.dto.UserAccountResponse;
 import com.weather.alert.application.exception.ForbiddenOperationException;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,6 +60,23 @@ public class UserAccountController {
         return ResponseEntity.ok(manageUserAccountUseCase.updateMyAccount(userId, request));
     }
 
+    @PostMapping("/change-password")
+    @Operation(
+            summary = "Change my password",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Password changed"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid current password or validation error",
+                            content = @Content(mediaType = "application/problem+json"))
+            })
+    public ResponseEntity<UserAccountResponse> changeMyPassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+        String userId = authenticatedUserId(authentication);
+        return ResponseEntity.ok(manageUserAccountUseCase.changeMyPassword(userId, request));
+    }
+
     private String authenticatedUserId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
             throw new ForbiddenOperationException("Unable to resolve authenticated user");
@@ -65,4 +84,3 @@ public class UserAccountController {
         return authentication.getName();
     }
 }
-

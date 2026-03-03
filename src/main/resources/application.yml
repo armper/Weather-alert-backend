@@ -154,3 +154,25 @@ app:
     criteria-deleted:
       send-email: ${APP_NOTIFICATION_CRITERIA_DELETED_SEND_EMAIL:false}
       email-subject: ${APP_NOTIFICATION_CRITERIA_DELETED_EMAIL_SUBJECT:Your weather alert was removed}
+  auth:
+    recovery:
+      token-ttl-minutes: ${APP_AUTH_RECOVERY_TOKEN_TTL_MINUTES:15}
+      request-cooldown-seconds: ${APP_AUTH_RECOVERY_REQUEST_COOLDOWN_SECONDS:60}
+      expose-raw-code: ${APP_AUTH_RECOVERY_EXPOSE_RAW_CODE:true}
+      send-email: ${APP_AUTH_RECOVERY_SEND_EMAIL:false}
+      frontend-base-url: ${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}
+      username-email-subject: ${APP_AUTH_RECOVERY_USERNAME_EMAIL_SUBJECT:Your Weather Alert username}
+      password-email-subject: ${APP_AUTH_RECOVERY_PASSWORD_EMAIL_SUBJECT:Reset your Weather Alert password}
+    security:
+      login:
+        max-failures: ${APP_AUTH_SECURITY_LOGIN_MAX_FAILURES:6}
+        window-minutes: ${APP_AUTH_SECURITY_LOGIN_WINDOW_MINUTES:15}
+        lock-minutes: ${APP_AUTH_SECURITY_LOGIN_LOCK_MINUTES:15}
+      recovery:
+        request:
+          max-per-window: ${APP_AUTH_SECURITY_RECOVERY_REQUEST_MAX_PER_WINDOW:8}
+          window-minutes: ${APP_AUTH_SECURITY_RECOVERY_REQUEST_WINDOW_MINUTES:15}
+        confirm:
+          max-failures: ${APP_AUTH_SECURITY_RECOVERY_CONFIRM_MAX_FAILURES:6}
+          window-minutes: ${APP_AUTH_SECURITY_RECOVERY_CONFIRM_WINDOW_MINUTES:15}
+          lock-minutes: ${APP_AUTH_SECURITY_RECOVERY_CONFIRM_LOCK_MINUTES:15}

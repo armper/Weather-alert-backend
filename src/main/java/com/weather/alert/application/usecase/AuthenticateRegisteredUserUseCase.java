@@ -1,6 +1,8 @@
 package com.weather.alert.application.usecase;
 
+import com.weather.alert.application.exception.AccountSuspendedException;
 import com.weather.alert.application.exception.EmailVerificationRequiredException;
+import com.weather.alert.application.exception.PasswordResetRequiredException;
 import com.weather.alert.application.exception.UserApprovalRequiredException;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
@@ -33,8 +35,14 @@ public class AuthenticateRegisteredUserUseCase {
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
             throw new EmailVerificationRequiredException(username);
         }
+        if (user.getApprovalStatus() == UserApprovalStatus.SUSPENDED) {
+            throw new AccountSuspendedException(username);
+        }
         if (user.getApprovalStatus() != UserApprovalStatus.ACTIVE) {
             throw new UserApprovalRequiredException(username);
+        }
+        if (Boolean.TRUE.equals(user.getPasswordResetRequired())) {
+            throw new PasswordResetRequiredException(username);
         }
 
         String role = user.getRole() == null || user.getRole().isBlank() ? "ROLE_USER" : user.getRole();
@@ -44,4 +52,3 @@ public class AuthenticateRegisteredUserUseCase {
                 List.of(new SimpleGrantedAuthority(role))));
     }
 }
-

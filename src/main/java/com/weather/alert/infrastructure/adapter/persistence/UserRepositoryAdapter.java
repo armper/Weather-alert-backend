@@ -55,6 +55,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .role(user.getRole() == null || user.getRole().isBlank() ? "ROLE_USER" : user.getRole())
                 .approvalStatus((user.getApprovalStatus() == null ? UserApprovalStatus.ACTIVE : user.getApprovalStatus()).name())
                 .emailVerified(Boolean.TRUE.equals(user.getEmailVerified()))
+                .passwordResetRequired(Boolean.TRUE.equals(user.getPasswordResetRequired()))
                 .emailEnabled(user.getEmailEnabled())
                 .smsEnabled(user.getSmsEnabled())
                 .pushEnabled(user.getPushEnabled())
@@ -76,6 +77,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                         ? UserApprovalStatus.ACTIVE
                         : UserApprovalStatus.valueOf(entity.getApprovalStatus()))
                 .emailVerified(Boolean.TRUE.equals(entity.getEmailVerified()))
+                .passwordResetRequired(Boolean.TRUE.equals(entity.getPasswordResetRequired()))
                 .emailEnabled(entity.getEmailEnabled())
                 .smsEnabled(entity.getSmsEnabled())
                 .pushEnabled(entity.getPushEnabled())
