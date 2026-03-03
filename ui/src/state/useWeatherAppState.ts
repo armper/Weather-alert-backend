@@ -167,6 +167,7 @@ export function useWeatherAppState() {
     const mode = params.get('recoveryMode')
     const recoveryId = params.get('recoveryId') ?? ''
     const recoveryCode = params.get('recoveryCode') ?? ''
+    const hasRecoveryQuery = recoveryId !== '' || recoveryCode !== ''
 
     if (mode === 'username') {
       setForgotUsernameState((state) => ({
@@ -174,12 +175,18 @@ export function useWeatherAppState() {
         recoveryId: recoveryId || state.recoveryId,
         code: recoveryCode || state.code,
       }))
+      if (hasRecoveryQuery) {
+        window.history.replaceState(null, '', '/auth/forgot-username')
+      }
     } else if (mode === 'password') {
       setForgotPasswordState((state) => ({
         ...state,
         recoveryId: recoveryId || state.recoveryId,
         code: recoveryCode || state.code,
       }))
+      if (hasRecoveryQuery) {
+        window.history.replaceState(null, '', '/auth/forgot-password')
+      }
     }
   }, [token])
 
@@ -322,11 +329,6 @@ export function useWeatherAppState() {
       })
       setUsernameRecoveryMeta(response)
       setUsernameRetryAfterSeconds(response.retryAfterSeconds ?? 0)
-      setForgotUsernameState((state) => ({
-        ...state,
-        recoveryId: response.recoveryId ?? state.recoveryId,
-        code: response.recoveryCode ?? state.code,
-      }))
       setNotice({ kind: 'success', text: response.message })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
@@ -370,11 +372,6 @@ export function useWeatherAppState() {
       })
       setPasswordRecoveryMeta(response)
       setPasswordRetryAfterSeconds(response.retryAfterSeconds ?? 0)
-      setForgotPasswordState((state) => ({
-        ...state,
-        recoveryId: response.recoveryId ?? state.recoveryId,
-        code: response.recoveryCode ?? state.code,
-      }))
       setNotice({ kind: 'success', text: response.message })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
@@ -404,6 +401,9 @@ export function useWeatherAppState() {
         code: '',
         newPassword: '',
       }))
+      window.setTimeout(() => {
+        window.location.assign('/auth/login')
+      }, 400)
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {

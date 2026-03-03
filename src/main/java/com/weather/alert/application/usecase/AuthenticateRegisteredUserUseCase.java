@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -24,8 +25,8 @@ public class AuthenticateRegisteredUserUseCase {
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Optional<Authentication> authenticate(String username, String rawPassword) {
-        User user = userRepository.findById(username).orElse(null);
+    public Optional<Authentication> authenticate(String usernameOrEmail, String rawPassword) {
+        User user = resolveUser(usernameOrEmail).orElse(null);
         if (user == null || user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
             return Optional.empty();
         }
@@ -33,16 +34,16 @@ public class AuthenticateRegisteredUserUseCase {
             return Optional.empty();
         }
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailVerificationRequiredException(username);
+            throw new EmailVerificationRequiredException(user.getId());
         }
         if (user.getApprovalStatus() == UserApprovalStatus.SUSPENDED) {
-            throw new AccountSuspendedException(username);
+            throw new AccountSuspendedException(user.getId());
         }
         if (user.getApprovalStatus() != UserApprovalStatus.ACTIVE) {
-            throw new UserApprovalRequiredException(username);
+            throw new UserApprovalRequiredException(user.getId());
         }
         if (Boolean.TRUE.equals(user.getPasswordResetRequired())) {
-            throw new PasswordResetRequiredException(username);
+            throw new PasswordResetRequiredException(user.getId());
         }
 
         String role = user.getRole() == null || user.getRole().isBlank() ? "ROLE_USER" : user.getRole();
@@ -50,5 +51,27 @@ public class AuthenticateRegisteredUserUseCase {
                 user.getId(),
                 "n/a",
                 List.of(new SimpleGrantedAuthority(role))));
+    }
+
+    private Optional<User> resolveUser(String usernameOrEmail) {
+        String normalizedInput = normalize(usernameOrEmail);
+        if (normalizedInput == null) {
+            return Optional.empty();
+        }
+
+        Optional<User> byId = userRepository.findById(normalizedInput);
+        if (byId.isPresent()) {
+            return byId;
+        }
+
+        return userRepository.findByEmail(normalizedInput.toLowerCase(Locale.ROOT));
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 }

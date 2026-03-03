@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { NoticeBanner } from '../components/common/NoticeBanner'
@@ -9,11 +10,13 @@ export function AuthForgotUsernamePage() {
     loadingAuth,
     forgotUsernameState,
     setForgotUsernameState,
-    usernameRecoveryMeta,
     usernameRetryAfterSeconds,
     handleForgotUsernameRequest,
     handleForgotUsernameConfirm,
   } = useAppState()
+  const [manualCodeEntry, setManualCodeEntry] = useState(false)
+  const hasRecoveryLink = forgotUsernameState.recoveryId.trim() !== '' && forgotUsernameState.code.trim() !== ''
+  const hideRecoveryInternals = hasRecoveryLink && !manualCodeEntry
 
   return (
     <div className="app-shell">
@@ -21,8 +24,8 @@ export function AuthForgotUsernamePage() {
       <main className="auth-single-layout">
         <section className="panel stack">
           <div className="auth-header">
-            <p className="eyebrow">Weather Alert Console</p>
-            <h1>Forgot username</h1>
+            <p className="eyebrow">Weather Alerts</p>
+            <h1>Recover username</h1>
           </div>
 
           <form onSubmit={handleForgotUsernameRequest} className="grid-form recovery-card">
@@ -41,52 +44,57 @@ export function AuthForgotUsernamePage() {
           </form>
 
           <form onSubmit={handleForgotUsernameConfirm} className="grid-form recovery-card">
-            <label>
-              Recovery ID
-              <input
-                type="text"
-                required
-                value={forgotUsernameState.recoveryId}
-                onChange={(event) =>
-                  setForgotUsernameState((state) => ({
-                    ...state,
-                    recoveryId: event.target.value,
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Code
-              <input
-                type="text"
-                required
-                value={forgotUsernameState.code}
-                onChange={(event) => setForgotUsernameState((state) => ({ ...state, code: event.target.value }))}
-              />
-            </label>
+            {hideRecoveryInternals ? (
+              <>
+                <p className="recovery-inline-note">
+                  You opened a secure recovery link from your email. Confirm to reveal your username.
+                </p>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => setManualCodeEntry(true)}
+                >
+                  Enter code manually instead
+                </button>
+              </>
+            ) : (
+              <>
+                <label>
+                  Recovery ID
+                  <input
+                    type="text"
+                    required
+                    value={forgotUsernameState.recoveryId}
+                    onChange={(event) =>
+                      setForgotUsernameState((state) => ({
+                        ...state,
+                        recoveryId: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Code
+                  <input
+                    type="text"
+                    required
+                    value={forgotUsernameState.code}
+                    onChange={(event) => setForgotUsernameState((state) => ({ ...state, code: event.target.value }))}
+                  />
+                </label>
+              </>
+            )}
             <button type="submit" className="ghost" disabled={loadingAuth}>
               Reveal username
             </button>
           </form>
-
-          {usernameRecoveryMeta?.recoveryId ? (
-            <p className="hint">
-              Recovery ID: <code>{usernameRecoveryMeta.recoveryId}</code>
-              {usernameRecoveryMeta.recoveryCode ? (
-                <>
-                  {' '}
-                  | dev code: <code>{usernameRecoveryMeta.recoveryCode}</code>
-                </>
-              ) : null}
-            </p>
-          ) : null}
 
           <div className="auth-link-row">
             <Link className="auth-link" to="/auth/login">
               Back to sign in
             </Link>
             <Link className="auth-link" to="/auth/forgot-password">
-              Forgot password?
+              Reset password
             </Link>
           </div>
         </section>

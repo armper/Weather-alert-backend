@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { NoticeBanner } from '../components/common/NoticeBanner'
@@ -5,6 +6,7 @@ import { useAppState } from '../state/useAppState'
 
 export function AuthLoginPage() {
   const { notice, loadingAuth, loginState, setLoginState, handleLogin } = useAppState()
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="app-shell">
@@ -12,14 +14,14 @@ export function AuthLoginPage() {
       <main className="auth-single-layout">
         <section className="panel stack">
           <div className="auth-header">
-            <p className="eyebrow">Weather Alert Console</p>
+            <p className="eyebrow">Weather Alerts</p>
             <h1>Sign in</h1>
-            <p className="muted">Monitor alerts without the extra account-management clutter.</p>
+            <p className="muted">Create and manage custom weather alerts with a calm, simple workflow.</p>
           </div>
 
           <form onSubmit={handleLogin} className="grid-form">
             <label>
-              Username
+              Username or email
               <input
                 type="text"
                 required
@@ -29,33 +31,33 @@ export function AuthLoginPage() {
             </label>
             <label>
               Password
-              <input
-                type="password"
-                required
-                value={loginState.password}
-                onChange={(event) => setLoginState((state) => ({ ...state, password: event.target.value }))}
-              />
+              <div className="input-with-action">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={loginState.password}
+                  onChange={(event) => setLoginState((state) => ({ ...state, password: event.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="input-inline-action"
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </label>
             <button type="submit" className="primary" disabled={loadingAuth}>
-              {loadingAuth ? 'Signing in...' : 'Enter Dashboard'}
+              {loadingAuth ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
           <div className="auth-link-row">
             <Link className="auth-link" to="/auth/forgot-password">
-              Forgot password?
+              Reset password
             </Link>
-            <Link className="auth-link" to="/auth/forgot-username">
-              Forgot username?
-            </Link>
-          </div>
-
-          <div className="auth-link-row">
             <Link className="auth-link" to="/auth/register">
               Create account
-            </Link>
-            <Link className="auth-link" to="/auth/verify-email">
-              Verify email
             </Link>
           </div>
         </section>

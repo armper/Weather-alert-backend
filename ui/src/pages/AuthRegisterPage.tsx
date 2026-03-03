@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { NoticeBanner } from '../components/common/NoticeBanner'
@@ -5,6 +6,7 @@ import { useAppState } from '../state/useAppState'
 
 export function AuthRegisterPage() {
   const { notice, loadingAuth, registerState, setRegisterState, handleRegister } = useAppState()
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="app-shell">
@@ -12,7 +14,7 @@ export function AuthRegisterPage() {
       <main className="auth-single-layout">
         <section className="panel stack">
           <div className="auth-header">
-            <p className="eyebrow">Weather Alert Console</p>
+            <p className="eyebrow">Weather Alerts</p>
             <h1>Create account</h1>
           </div>
 
@@ -29,13 +31,22 @@ export function AuthRegisterPage() {
             </label>
             <label>
               Password
-              <input
-                type="password"
-                minLength={8}
-                required
-                value={registerState.password}
-                onChange={(event) => setRegisterState((state) => ({ ...state, password: event.target.value }))}
-              />
+              <div className="input-with-action">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  minLength={8}
+                  required
+                  value={registerState.password}
+                  onChange={(event) => setRegisterState((state) => ({ ...state, password: event.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="input-inline-action"
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </label>
             <label>
               Email
@@ -73,7 +84,7 @@ export function AuthRegisterPage() {
               Back to sign in
             </Link>
             <Link className="auth-link" to="/auth/verify-email">
-              Already registered? Verify email
+              Verify email
             </Link>
           </div>
         </section>

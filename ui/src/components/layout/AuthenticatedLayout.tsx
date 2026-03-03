@@ -15,8 +15,8 @@ export function AuthenticatedLayout() {
       <BackgroundArtwork />
       <header className="topbar">
         <div>
-          <p className="eyebrow">Weather Alert Console</p>
-          <h1>Control Center</h1>
+          <p className="eyebrow">Weather Alerts</p>
+          <h1>Alert Center</h1>
         </div>
         <div className="topbar-actions">
           <div className="user-chip">

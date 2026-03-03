@@ -306,7 +306,7 @@ public class ManageAccountRecoveryUseCase {
             return;
         }
 
-        String link = buildRecoveryLandingLink("username");
+        String link = buildRecoveryLandingLink("username", issued.token().getId(), issued.rawCode());
         String expiryText = recoveryExpiryText();
         String linkInstruction = link == null
                 ? "Open the Weather Alert app and enter the code in Forgot Username."
@@ -342,7 +342,7 @@ public class ManageAccountRecoveryUseCase {
             return;
         }
 
-        String link = buildRecoveryLandingLink("password");
+        String link = buildRecoveryLandingLink("password", issued.token().getId(), issued.rawCode());
         String expiryText = recoveryExpiryText();
         String linkInstruction = link == null
                 ? "Open the Weather Alert app and enter the code in Forgot Password."
@@ -378,14 +378,17 @@ public class ManageAccountRecoveryUseCase {
         return ttl == 1 ? "about 1 minute" : "about %d minutes".formatted(ttl);
     }
 
-    private String buildRecoveryLandingLink(String mode) {
+    private String buildRecoveryLandingLink(String mode, String recoveryId, String recoveryCode) {
         String base = normalize(recoveryFrontendBaseUrl);
         if (base == null) {
             return null;
         }
 
         String normalizedBase = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
-        return normalizedBase + "/?recoveryMode=" + encode(mode);
+        return normalizedBase
+                + "/?recoveryMode=" + encode(mode)
+                + "&recoveryId=" + encode(recoveryId)
+                + "&recoveryCode=" + encode(recoveryCode);
     }
 
     private String encode(String value) {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { NoticeBanner } from '../components/common/NoticeBanner'
@@ -9,11 +10,14 @@ export function AuthForgotPasswordPage() {
     loadingAuth,
     forgotPasswordState,
     setForgotPasswordState,
-    passwordRecoveryMeta,
     passwordRetryAfterSeconds,
     handleForgotPasswordRequest,
     handleForgotPasswordConfirm,
   } = useAppState()
+  const [showPassword, setShowPassword] = useState(false)
+  const [manualCodeEntry, setManualCodeEntry] = useState(false)
+  const hasRecoveryLink = forgotPasswordState.recoveryId.trim() !== '' && forgotPasswordState.code.trim() !== ''
+  const hideRecoveryInternals = hasRecoveryLink && !manualCodeEntry
 
   return (
     <div className="app-shell">
@@ -21,8 +25,8 @@ export function AuthForgotPasswordPage() {
       <main className="auth-single-layout">
         <section className="panel stack">
           <div className="auth-header">
-            <p className="eyebrow">Weather Alert Console</p>
-            <h1>Forgot password</h1>
+            <p className="eyebrow">Weather Alerts</p>
+            <h1>Reset password</h1>
           </div>
 
           <form onSubmit={handleForgotPasswordRequest} className="grid-form recovery-card">
@@ -46,67 +50,81 @@ export function AuthForgotPasswordPage() {
           </form>
 
           <form onSubmit={handleForgotPasswordConfirm} className="grid-form recovery-card">
-            <label>
-              Recovery ID
-              <input
-                type="text"
-                required
-                value={forgotPasswordState.recoveryId}
-                onChange={(event) =>
-                  setForgotPasswordState((state) => ({
-                    ...state,
-                    recoveryId: event.target.value,
-                  }))
-                }
-              />
-            </label>
-            <label>
-              Code
-              <input
-                type="text"
-                required
-                value={forgotPasswordState.code}
-                onChange={(event) => setForgotPasswordState((state) => ({ ...state, code: event.target.value }))}
-              />
-            </label>
+            {hideRecoveryInternals ? (
+              <>
+                <p className="recovery-inline-note">
+                  You opened a secure reset link from your email. Choose a new password to finish.
+                </p>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => setManualCodeEntry(true)}
+                >
+                  Enter code manually instead
+                </button>
+              </>
+            ) : (
+              <>
+                <label>
+                  Recovery ID
+                  <input
+                    type="text"
+                    required
+                    value={forgotPasswordState.recoveryId}
+                    onChange={(event) =>
+                      setForgotPasswordState((state) => ({
+                        ...state,
+                        recoveryId: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Code
+                  <input
+                    type="text"
+                    required
+                    value={forgotPasswordState.code}
+                    onChange={(event) => setForgotPasswordState((state) => ({ ...state, code: event.target.value }))}
+                  />
+                </label>
+              </>
+            )}
             <label>
               New password
-              <input
-                type="password"
-                minLength={8}
-                required
-                value={forgotPasswordState.newPassword}
-                onChange={(event) =>
-                  setForgotPasswordState((state) => ({
-                    ...state,
-                    newPassword: event.target.value,
-                  }))
-                }
-              />
+              <div className="input-with-action">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  minLength={8}
+                  required
+                  value={forgotPasswordState.newPassword}
+                  onChange={(event) =>
+                    setForgotPasswordState((state) => ({
+                      ...state,
+                      newPassword: event.target.value,
+                    }))
+                  }
+                />
+                <button
+                  type="button"
+                  className="input-inline-action"
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </label>
             <button type="submit" className="ghost" disabled={loadingAuth}>
               Update password
             </button>
           </form>
 
-          {passwordRecoveryMeta?.recoveryId ? (
-            <p className="hint">
-              Password recovery ID: <code>{passwordRecoveryMeta.recoveryId}</code>
-              {passwordRecoveryMeta.recoveryCode ? (
-                <>
-                  {' '}
-                  | dev code: <code>{passwordRecoveryMeta.recoveryCode}</code>
-                </>
-              ) : null}
-            </p>
-          ) : null}
-
           <div className="auth-link-row">
             <Link className="auth-link" to="/auth/login">
               Back to sign in
             </Link>
             <Link className="auth-link" to="/auth/forgot-username">
-              Forgot username?
+              Recover username
             </Link>
           </div>
         </section>

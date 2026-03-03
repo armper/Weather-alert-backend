@@ -133,9 +133,9 @@ class ManageAccountRecoveryUseCaseTest {
         assertEquals("Your Weather Alert username", email.subject());
         assertTrue(email.body().contains(response.getRecoveryCode()));
         assertTrue(email.body().contains("This code expires in about 15 minutes."));
+        assertTrue(email.body().contains("recoveryMode=username"));
         assertFalse(email.body().contains("Recovery ID:"));
         assertFalse(email.body().contains("POST /api/"));
-        assertFalse(email.body().contains(response.getRecoveryId()));
     }
 
     @Test
@@ -244,9 +244,9 @@ class ManageAccountRecoveryUseCaseTest {
         assertEquals("Reset your Weather Alert password", email.subject());
         assertTrue(email.body().contains(response.getRecoveryCode()));
         assertTrue(email.body().contains("This code expires in about 15 minutes."));
+        assertTrue(email.body().contains("recoveryMode=password"));
         assertFalse(email.body().contains("Recovery ID:"));
         assertFalse(email.body().contains("POST /api/"));
-        assertFalse(email.body().contains(response.getRecoveryId()));
     }
 
     @Test

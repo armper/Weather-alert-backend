@@ -57,6 +57,25 @@ class AuthenticateRegisteredUserUseCaseTest {
     }
 
     @Test
+    void shouldAuthenticateActiveVerifiedUserByEmail() {
+        when(userRepository.findById("alice@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(User.builder()
+                .id("alice")
+                .email("alice@example.com")
+                .passwordHash("hash")
+                .role("ROLE_USER")
+                .approvalStatus(UserApprovalStatus.ACTIVE)
+                .emailVerified(true)
+                .build()));
+        when(passwordEncoder.matches("StrongPass123!", "hash")).thenReturn(true);
+
+        Optional<Authentication> authentication = useCase.authenticate("alice@example.com", "StrongPass123!");
+
+        assertTrue(authentication.isPresent());
+        assertEquals("alice", authentication.get().getName());
+    }
+
+    @Test
     void shouldRejectPendingUser() {
         when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
                 .id("alice")

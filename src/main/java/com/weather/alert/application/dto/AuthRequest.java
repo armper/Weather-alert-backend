@@ -8,7 +8,7 @@ import lombok.Data;
 @Schema(description = "Credentials used to obtain a JWT bearer token")
 public class AuthRequest {
     @NotBlank
-    @Schema(example = "dev-admin")
+    @Schema(description = "Username or account email", example = "dev-admin")
     private String username;
 
     @NotBlank

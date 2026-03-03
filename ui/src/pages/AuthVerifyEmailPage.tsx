@@ -20,7 +20,7 @@ export function AuthVerifyEmailPage() {
       <main className="auth-single-layout">
         <section className="panel stack">
           <div className="auth-header">
-            <p className="eyebrow">Weather Alert Console</p>
+            <p className="eyebrow">Weather Alerts</p>
             <h1>Verify email</h1>
           </div>
 
