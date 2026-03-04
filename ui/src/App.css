@@ -888,6 +888,33 @@ button:disabled {
   gap: 0.3rem;
 }
 
+.weather-map-link {
+  display: block;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  margin-top: 0.2rem;
+  text-decoration: none;
+}
+
+.weather-map-link:hover {
+  border-color: rgba(24, 79, 115, 0.4);
+  box-shadow: 0 10px 18px rgba(12, 31, 46, 0.1);
+}
+
+.weather-map-preview {
+  height: 140px;
+}
+
+.static-map-shell {
+  width: 100%;
+}
+
+.static-map {
+  width: 100%;
+  height: 100%;
+}
+
 .weather-location {
   margin: 0;
   font-size: 0.88rem;
@@ -1010,6 +1037,69 @@ button:disabled {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.location-picker-panel {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.location-picker-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.location-search-row {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.location-search-field {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.location-search-results {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.location-search-result {
+  width: 100%;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  background: #fff;
+  text-align: left;
+}
+
+.location-result-name {
+  display: block;
+  font-weight: 700;
+}
+
+.location-result-detail {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.location-map-shell {
+  width: 100%;
+  height: 260px;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.85rem;
+  overflow: hidden;
+}
+
+.location-map {
+  width: 100%;
+  height: 100%;
 }
 
 .threshold-row {
@@ -1241,6 +1331,10 @@ button:disabled {
   .threshold-row,
   .advanced-delivery-grid,
   .advanced-coordinate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .location-search-row {
     grid-template-columns: 1fr;
   }
 

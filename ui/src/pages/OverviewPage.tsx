@@ -1,12 +1,17 @@
 import { Link } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
+import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { formatFriendlyLocation, formatPercentOrNA, formatTemperature, formatWind } from '../lib/formatting'
+import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
   const { currentWeather, criteria, alerts } = useAppState()
   const activeRules = criteria.filter((item) => item.enabled !== false).length
   const defaultAlertLocation = criteria[0]?.location?.trim() ?? ''
   const resolvedConditionLocation = formatFriendlyLocation(currentWeather?.location ?? defaultAlertLocation)
+  const defaultLatitude = criteria[0]?.latitude ?? Number(DEFAULT_LAT)
+  const defaultLongitude = criteria[0]?.longitude ?? Number(DEFAULT_LON)
+  const defaultRadiusKm = criteria[0]?.radiusKm ?? 8
 
   return (
     <section className="page-stack">
@@ -16,6 +21,14 @@ export function OverviewPage() {
           {currentWeather ? (
             <div className="weather-stack">
               <p className="weather-location">{resolvedConditionLocation}</p>
+              <Link to="/app/rules#location-picker" className="weather-map-link" aria-label="Open location picker map">
+                <StaticLocationMap
+                  latitude={defaultLatitude}
+                  longitude={defaultLongitude}
+                  radiusKm={defaultRadiusKm}
+                  className="weather-map-preview"
+                />
+              </Link>
               <p className="weather-temp weather-temp-hero">{formatTemperature(currentWeather.temperature, 'F')}</p>
               <div className="weather-meta weather-secondary-line">
                 <span>

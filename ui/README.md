@@ -15,6 +15,8 @@ Modern React + TypeScript dashboard for the Weather Alert backend.
   - `/auth/forgot-username`
 - Dashboard with:
   - current weather snapshot
+  - map preview for alert location on overview
+  - map-assisted location picker (search + click map) during alert creation
   - create alert criteria form
   - active criteria list + delete
   - triggered alerts timeline + acknowledge

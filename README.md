@@ -81,6 +81,7 @@ A dedicated React dashboard is available in [`ui/`](./ui) for everyday operation
 
 - Login and registration with email verification flow
 - Alert criteria creation and deletion
+- Map-assisted location selection (search + click-to-pin) for alert criteria
 - Triggered alert timeline with acknowledge actions
 - Account profile updates
 - Admin pending-user approval panel
@@ -126,6 +127,16 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - ⏳ Pending in TODO: Chunk 9 (expanded observability dashboards) and Chunk 10 (end-to-end matrix + manual playbook)
 
 ## Changelog
+
+### 2026-03-04 (Map-Assisted Alert UX)
+
+- Added location map preview in Overview current-conditions panel.
+- Added interactive map-based location picker on Alert Rules:
+  - search city/place
+  - click map to pin location
+  - reverse geocode best-effort name fill
+- Kept coordinates hidden by default and auto-filled behind the scenes.
+- Added dedicated hash targets so overview actions deep-link directly into map/preset/custom-alert sections.
 
 ### 2026-02-27 (Frontend Dashboard UI)
 

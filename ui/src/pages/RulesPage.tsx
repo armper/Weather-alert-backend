@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { defaultThreshold } from '../lib/criteria'
 import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
+import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
@@ -162,6 +163,10 @@ export function RulesPage() {
   const isTemperatureRule = criteriaForm.ruleType === 'TEMP_BELOW' || criteriaForm.ruleType === 'TEMP_ABOVE'
   const shouldShowCoordinateToggle = locationMode === 'MANUAL'
   const shouldUseCustomCoordinates = shouldShowCoordinateToggle && useCustomCoordinates
+  const mapLatitude = Number(criteriaForm.latitude)
+  const mapLongitude = Number(criteriaForm.longitude)
+  const resolvedLatitude = Number.isNaN(mapLatitude) ? Number(DEFAULT_LAT) : mapLatitude
+  const resolvedLongitude = Number.isNaN(mapLongitude) ? Number(DEFAULT_LON) : mapLongitude
 
   const thresholdHelp = useMemo(() => {
     if (criteriaForm.ruleType === 'TEMP_BELOW') {
@@ -295,11 +300,6 @@ export function RulesPage() {
 
     if (nextMode === 'CITY') {
       setUseCustomCoordinates(false)
-      setCriteriaForm((state) => ({
-        ...state,
-        latitude: DEFAULT_LAT,
-        longitude: DEFAULT_LON,
-      }))
       setFormErrors((state) => ({
         ...state,
         latitude: undefined,
@@ -312,11 +312,6 @@ export function RulesPage() {
     setUseCustomCoordinates(value)
 
     if (!value) {
-      setCriteriaForm((state) => ({
-        ...state,
-        latitude: DEFAULT_LAT,
-        longitude: DEFAULT_LON,
-      }))
       setFormErrors((state) => ({
         ...state,
         latitude: undefined,
@@ -364,15 +359,22 @@ export function RulesPage() {
             onChange={(value) => setCriteriaForm((state) => ({ ...state, name: value }))}
           />
 
-          <AriaTextField
-            label="Location"
-            inputClassName="aria-input"
-            value={criteriaForm.location}
-            required
-            description="Enter a city or place (for example, Orlando)."
-            errorMessage={formErrors.location}
-            onChange={(value) => setCriteriaForm((state) => ({ ...state, location: value }))}
-          />
+          <div id="location-picker" tabIndex={-1} className="full-row location-picker-panel">
+            <LocationPickerMap
+              location={criteriaForm.location}
+              latitude={resolvedLatitude}
+              longitude={resolvedLongitude}
+              onSelect={({ location: selectedLocation, latitude, longitude }) =>
+                setCriteriaForm((state) => ({
+                  ...state,
+                  location: selectedLocation,
+                  latitude: String(latitude),
+                  longitude: String(longitude),
+                }))
+              }
+            />
+            {formErrors.location ? <p className="field-error">{formErrors.location}</p> : null}
+          </div>
 
           <AriaSelect
             label="Rule type"
