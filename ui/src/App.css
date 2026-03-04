@@ -309,6 +309,67 @@ button:disabled {
   min-width: 12rem;
 }
 
+.easy-alert-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.easy-alert-card {
+  border: 1px solid var(--surface-border);
+  border-radius: 0.9rem;
+  background: rgba(248, 252, 255, 0.82);
+  text-align: left;
+  padding: 0.72rem;
+  color: var(--text-primary);
+  box-shadow: 0 1px 0 rgba(12, 31, 46, 0.02);
+}
+
+.easy-alert-card:hover {
+  border-color: rgba(24, 79, 115, 0.42);
+  background: rgba(241, 249, 255, 0.92);
+  box-shadow: 0 10px 18px rgba(12, 31, 46, 0.1);
+}
+
+.easy-alert-card.is-active {
+  border-color: rgba(24, 79, 115, 0.45);
+  box-shadow: 0 8px 18px rgba(12, 31, 46, 0.08);
+}
+
+.easy-alert-title {
+  margin: 0 0 0.2rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+.easy-alert-icon {
+  font-size: 1rem;
+}
+
+.easy-alert-desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.custom-alert-section {
+  margin-top: 0.65rem;
+}
+
+.field-flash {
+  animation: fieldFlash 880ms ease;
+}
+
+@keyframes fieldFlash {
+  0% {
+    background: rgba(93, 184, 227, 0.22);
+    border-radius: 0.55rem;
+  }
+  100% {
+    background: transparent;
+  }
+}
+
 .recovery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -862,6 +923,10 @@ button:disabled {
   .create-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .easy-alert-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 860px) {
@@ -881,6 +946,10 @@ button:disabled {
   .two-col,
   .create-grid,
   .recovery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .easy-alert-grid {
     grid-template-columns: 1fr;
   }
 

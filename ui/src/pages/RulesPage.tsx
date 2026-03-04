@@ -1,7 +1,107 @@
+import { useState } from 'react'
 import { useAppState } from '../state/useAppState'
 import type { RuleType } from '../state/types'
 import { defaultThreshold } from '../lib/criteria'
 import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
+
+interface EasyPreset {
+  id: string
+  icon: string
+  title: string
+  description: string
+  ruleType: RuleType
+  threshold: string
+  temperatureUnit?: 'F' | 'C'
+  monitorCurrent: boolean
+  monitorForecast: boolean
+  oncePerEvent: boolean
+  forecastWindowHours: string
+  rearmWindowMinutes: string
+}
+
+const EASY_PRESETS: EasyPreset[] = [
+  {
+    id: 'too-cold',
+    icon: '🥶',
+    title: 'Too Cold',
+    description: 'Below 45°F',
+    ruleType: 'TEMP_BELOW',
+    threshold: '45',
+    temperatureUnit: 'F',
+    monitorCurrent: true,
+    monitorForecast: true,
+    oncePerEvent: true,
+    forecastWindowHours: '48',
+    rearmWindowMinutes: '240',
+  },
+  {
+    id: 'too-hot',
+    icon: '🔥',
+    title: 'Too Hot',
+    description: 'Above 90°F',
+    ruleType: 'TEMP_ABOVE',
+    threshold: '90',
+    temperatureUnit: 'F',
+    monitorCurrent: true,
+    monitorForecast: true,
+    oncePerEvent: true,
+    forecastWindowHours: '48',
+    rearmWindowMinutes: '240',
+  },
+  {
+    id: 'rain-coming',
+    icon: '🌧',
+    title: 'Rain Coming',
+    description: 'Rain ≥ 50%',
+    ruleType: 'RAIN',
+    threshold: '50',
+    monitorCurrent: false,
+    monitorForecast: true,
+    oncePerEvent: true,
+    forecastWindowHours: '48',
+    rearmWindowMinutes: '180',
+  },
+  {
+    id: 'windy',
+    icon: '💨',
+    title: 'Windy',
+    description: 'Wind ≥ 25 km/h',
+    ruleType: 'WIND',
+    threshold: '25',
+    monitorCurrent: true,
+    monitorForecast: true,
+    oncePerEvent: true,
+    forecastWindowHours: '48',
+    rearmWindowMinutes: '180',
+  },
+  {
+    id: 'storm-risk',
+    icon: '⛈',
+    title: 'Storm Risk',
+    description: 'Rain ≥ 70%',
+    ruleType: 'RAIN',
+    threshold: '70',
+    monitorCurrent: true,
+    monitorForecast: true,
+    oncePerEvent: true,
+    forecastWindowHours: '48',
+    rearmWindowMinutes: '120',
+  },
+  {
+    id: 'frost-risk',
+    icon: '❄',
+    title: 'Frost Risk',
+    description: 'Below 36°F (24h)',
+    ruleType: 'TEMP_BELOW',
+    threshold: '36',
+    temperatureUnit: 'F',
+    monitorCurrent: false,
+    monitorForecast: true,
+    oncePerEvent: true,
+    forecastWindowHours: '24',
+    rearmWindowMinutes: '360',
+  },
+]
 
 export function RulesPage() {
   const {
@@ -15,6 +115,8 @@ export function RulesPage() {
     handleDeleteCriteria,
     handleToggleCriteriaEnabled,
   } = useAppState()
+  const [activePresetId, setActivePresetId] = useState<string | null>(null)
+  const [flashPresetFields, setFlashPresetFields] = useState(false)
 
   const isTemperatureRule = criteriaForm.ruleType === 'TEMP_BELOW' || criteriaForm.ruleType === 'TEMP_ABOVE'
   const thresholdHelp =
@@ -26,15 +128,55 @@ export function RulesPage() {
           ? `Alert when wind speed goes above ${criteriaForm.threshold || 'X'} km/h.`
           : `Alert when rain chance reaches ${criteriaForm.threshold || 'X'}% or higher.`
 
+  function applyPreset(preset: EasyPreset) {
+    setCriteriaForm((state) => ({
+      ...state,
+      name: preset.title,
+      ruleType: preset.ruleType,
+      threshold: preset.threshold,
+      temperatureUnit: preset.temperatureUnit ?? state.temperatureUnit,
+      monitorCurrent: preset.monitorCurrent,
+      monitorForecast: preset.monitorForecast,
+      oncePerEvent: preset.oncePerEvent,
+      forecastWindowHours: preset.forecastWindowHours,
+      rearmWindowMinutes: preset.rearmWindowMinutes,
+    }))
+    setActivePresetId(preset.id)
+    setFlashPresetFields(true)
+    window.setTimeout(() => setFlashPresetFields(false), 900)
+  }
+
   return (
     <section className="page-stack">
       <article className="panel">
         <div className="panel-title-row">
-          <h2>Create Alert Rule</h2>
+          <h2>Easy Alerts</h2>
+          <span className="muted">Quick presets for common alerts</span>
+        </div>
+        <div className="easy-alert-grid">
+          {EASY_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className={`easy-alert-card ${activePresetId === preset.id ? 'is-active' : ''}`}
+              onClick={() => applyPreset(preset)}
+            >
+              <p className="easy-alert-title">
+                <span className="easy-alert-icon">{preset.icon}</span> {preset.title}
+              </p>
+              <p className="easy-alert-desc">{preset.description}</p>
+            </button>
+          ))}
+        </div>
+      </article>
+
+      <article className="panel custom-alert-section">
+        <div className="panel-title-row">
+          <h2>Create Custom Alert</h2>
           <span className="muted">Define focused thresholds for one location</span>
         </div>
         <form className="grid-form create-grid" onSubmit={handleCreateCriteria}>
-          <label>
+          <label className={flashPresetFields ? 'field-flash' : ''}>
             Alert name
             <input
               type="text"
@@ -54,7 +196,7 @@ export function RulesPage() {
             />
           </label>
 
-          <label>
+          <label className={flashPresetFields ? 'field-flash' : ''}>
             Rule type
             <select
               value={criteriaForm.ruleType}
@@ -74,7 +216,7 @@ export function RulesPage() {
             </select>
           </label>
 
-          <div className="threshold-row full-row">
+          <div className={`threshold-row full-row ${flashPresetFields ? 'field-flash' : ''}`}>
             <label>
               Threshold
               <input
@@ -130,7 +272,7 @@ export function RulesPage() {
             </div>
           </details>
 
-          <label>
+          <label className={flashPresetFields ? 'field-flash' : ''}>
             Check forecast within (hours)
             <input
               type="number"
@@ -145,7 +287,7 @@ export function RulesPage() {
               }
             />
           </label>
-          <label>
+          <label className={flashPresetFields ? 'field-flash' : ''}>
             Minimum time between alerts (minutes)
             <input
               type="number"
@@ -160,7 +302,7 @@ export function RulesPage() {
             />
           </label>
 
-          <div className="toggle-row full-row toggle-row-wide">
+          <div className={`toggle-row full-row toggle-row-wide ${flashPresetFields ? 'field-flash' : ''}`}>
             <label className="switch-field">
               <span>Current</span>
               <span className="switch">
@@ -212,7 +354,7 @@ export function RulesPage() {
           </div>
 
           <button type="submit" className="primary button-inline" disabled={!canSubmitCriteria || savingCriteria}>
-            {savingCriteria ? 'Saving rule...' : 'Create alert rule'}
+            {savingCriteria ? 'Saving alert...' : 'Create Alert'}
           </button>
         </form>
       </article>
