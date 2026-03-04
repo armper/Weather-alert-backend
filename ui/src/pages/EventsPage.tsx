@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useAppState } from '../state/useAppState'
 import { AlertRow } from '../components/features/dashboard/AlertRow'
+import { AriaButton } from '../components/ui/AriaButton'
 
 export function EventsPage() {
   const { alerts, busyAlertId, loadingData, handleAcknowledgeAlert, handleAcknowledgeAllAlerts } = useAppState()
@@ -43,9 +44,13 @@ export function EventsPage() {
           <div className="alert-toolbar">
             <span className="badge">{groupedAlerts.length} events</span>
             {sentCount > 0 ? (
-              <button className="primary button-inline" disabled={loadingData} onClick={() => void handleAcknowledgeAllAlerts()}>
+              <AriaButton
+                className="primary button-inline"
+                isDisabled={loadingData}
+                onPress={() => void handleAcknowledgeAllAlerts()}
+              >
                 Mark all as acknowledged
-              </button>
+              </AriaButton>
             ) : null}
           </div>
         </div>

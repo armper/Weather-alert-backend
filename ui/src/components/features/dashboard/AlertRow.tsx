@@ -1,5 +1,6 @@
 import type { AlertEvent } from '../../../types'
 import { formatDate, formatRelativeTime, formatStatusLabel } from '../../../lib/formatting'
+import { AriaButton } from '../../ui/AriaButton'
 
 interface AlertRowProps {
   alert: AlertEvent
@@ -37,9 +38,9 @@ export function AlertRow({ alert, busy, duplicateCount = 1, onAcknowledge }: Ale
           {icon}
         </span>
         {alert.status === 'SENT' ? (
-          <button className="primary" disabled={busy} onClick={() => onAcknowledge(alert.id)}>
+          <AriaButton className="primary" isDisabled={busy} onPress={() => onAcknowledge(alert.id)}>
             {busy ? 'Saving...' : 'Acknowledge'}
-          </button>
+          </AriaButton>
         ) : null}
       </div>
     </article>

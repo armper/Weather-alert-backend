@@ -1,5 +1,7 @@
 import type { AlertCriteria } from '../../../types'
 import { describeCriteria } from '../../../lib/criteria'
+import { AriaButton } from '../../ui/AriaButton'
+import { AriaSwitch } from '../../ui/AriaSwitch'
 
 interface CriteriaCardProps {
   criteria: AlertCriteria
@@ -10,6 +12,7 @@ interface CriteriaCardProps {
 
 export function CriteriaCard({ criteria, busy, onDelete, onToggleEnabled }: CriteriaCardProps) {
   const enabled = criteria.enabled !== false
+  const ruleName = criteria.name ?? 'custom alert'
   return (
     <article className="criteria-card">
       <header>
@@ -20,27 +23,21 @@ export function CriteriaCard({ criteria, busy, onDelete, onToggleEnabled }: Crit
       <footer>
         <span className="muted small">{criteria.location ?? 'No location'}</span>
         <div className="criteria-card-actions">
-          <label className="switch-field compact">
-            <span>{enabled ? 'On' : 'Off'}</span>
-            <span className="switch">
-              <input
-                type="checkbox"
-                checked={enabled}
-                disabled={busy}
-                onChange={(event) => onToggleEnabled(criteria.id, event.target.checked)}
-              />
-              <span className="switch-slider" />
-            </span>
-          </label>
-          <button
+          <AriaSwitch
+            compact
+            label={enabled ? 'On' : 'Off'}
+            isSelected={enabled}
+            isDisabled={busy}
+            onChange={(value) => onToggleEnabled(criteria.id, value)}
+          />
+          <AriaButton
             className="ghost icon-button"
-            title="Delete rule"
-            aria-label="Delete rule"
-            disabled={busy}
-            onClick={() => onDelete(criteria.id)}
+            aria-label={`Delete ${ruleName}`}
+            isDisabled={busy}
+            onPress={() => onDelete(criteria.id)}
           >
             {busy ? '…' : '🗑'}
-          </button>
+          </AriaButton>
         </div>
       </footer>
     </article>
