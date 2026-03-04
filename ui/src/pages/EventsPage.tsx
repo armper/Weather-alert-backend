@@ -57,16 +57,18 @@ export function EventsPage() {
         {groupedAlerts.length === 0 ? (
           <p className="muted">No triggered events yet.</p>
         ) : (
-          <div className="alert-list">
-            {groupedAlerts.map((entry) => (
-              <AlertRow
-                key={entry.key}
-                alert={entry.alert}
-                duplicateCount={entry.count}
-                busy={busyAlertId === entry.alert.id}
-                onAcknowledge={(alertId) => void handleAcknowledgeAlert(alertId)}
-              />
-            ))}
+          <div className="events-list-wrap">
+            <div className="alert-list">
+              {groupedAlerts.map((entry) => (
+                <AlertRow
+                  key={entry.key}
+                  alert={entry.alert}
+                  duplicateCount={entry.count}
+                  busy={busyAlertId === entry.alert.id}
+                  onAcknowledge={(alertId) => void handleAcknowledgeAlert(alertId)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </article>

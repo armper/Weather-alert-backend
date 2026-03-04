@@ -42,34 +42,36 @@ export function AuthenticatedLayout() {
         </div>
       </header>
 
-      <Tabs
-        selectedKey={selectedTab}
-        className="app-tabs"
-        onSelectionChange={(key) => navigate(`/app/${String(key)}`)}
-      >
-        <TabList aria-label="Main sections" className="app-nav panel">
-          <Tab id="overview" className="app-nav-link">
-            Overview
-          </Tab>
-          <Tab id="rules" className="app-nav-link">
-            Alert Rules
-          </Tab>
-          <Tab id="events" className="app-nav-link">
-            Triggered Alerts
-          </Tab>
-          <Tab id="account" className="app-nav-link">
-            Account
-          </Tab>
-          {isAdmin ? (
-            <Tab id="admin" className="app-nav-link">
-              Admin Users
+      <main className="app-main">
+        <Tabs
+          selectedKey={selectedTab}
+          className="app-tabs"
+          onSelectionChange={(key) => navigate(`/app/${String(key)}`)}
+        >
+          <TabList aria-label="Main sections" className="app-nav panel">
+            <Tab id="overview" className="app-nav-link">
+              Overview
             </Tab>
-          ) : null}
-        </TabList>
-        <TabPanel id={selectedTab} className="page-shell">
-          <Outlet />
-        </TabPanel>
-      </Tabs>
+            <Tab id="rules" className="app-nav-link">
+              Alert Rules
+            </Tab>
+            <Tab id="events" className="app-nav-link">
+              Triggered Alerts
+            </Tab>
+            <Tab id="account" className="app-nav-link">
+              Account
+            </Tab>
+            {isAdmin ? (
+              <Tab id="admin" className="app-nav-link">
+                Admin Users
+              </Tab>
+            ) : null}
+          </TabList>
+          <TabPanel id={selectedTab} className="page-shell">
+            <Outlet />
+          </TabPanel>
+        </Tabs>
+      </main>
 
       {notice ? <NoticeBanner notice={notice} /> : null}
     </div>
