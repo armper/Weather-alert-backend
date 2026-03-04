@@ -20,13 +20,18 @@ export function AuthenticatedLayout() {
         </div>
         <div className="topbar-actions">
           <div className="user-chip">
-            <span className="chip-role">{me?.role ?? 'ROLE_USER'}</span>
             <span className="chip-id">{me?.id}</span>
           </div>
-          <button className="ghost" onClick={() => void refresh()} disabled={loadingData}>
-            {loadingData ? 'Refreshing...' : 'Refresh'}
+          <button
+            className="ghost icon-button"
+            title="Refresh data"
+            aria-label="Refresh data"
+            onClick={() => void refresh()}
+            disabled={loadingData}
+          >
+            {loadingData ? '…' : '↻'}
           </button>
-          <button className="ghost danger" onClick={logout}>
+          <button className="ghost subtle" onClick={logout}>
             Sign out
           </button>
         </div>

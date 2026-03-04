@@ -78,10 +78,15 @@ export interface AlertCriteria {
   latitude?: number
   longitude?: number
   radiusKm?: number
+  eventType?: string
+  minSeverity?: string
+  maxTemperature?: number
+  minTemperature?: number
   temperatureThreshold?: number
   temperatureDirection?: TemperatureDirection
   temperatureUnit?: TemperatureUnit
   maxWindSpeed?: number
+  maxPrecipitation?: number
   rainThreshold?: number
   rainThresholdType?: RainThresholdType
   monitorCurrent?: boolean

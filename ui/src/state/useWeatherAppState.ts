@@ -227,7 +227,6 @@ export function useWeatherAppState() {
       })
       persistToken(response.accessToken)
       setLoginState(initialLogin)
-      setNotice({ kind: 'success', text: `Signed in as ${loginState.username}.` })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {
@@ -460,6 +459,61 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleToggleCriteriaEnabled(criteriaId: string, enabled: boolean) {
+    if (!token) {
+      return
+    }
+
+    const existing = criteria.find((item) => item.id === criteriaId)
+    if (!existing) {
+      setNotice({ kind: 'error', text: 'Rule not found.' })
+      return
+    }
+
+    setBusyCriteriaId(criteriaId)
+    setNotice(null)
+
+    try {
+      await apiRequest<AlertCriteria>(`/api/criteria/${criteriaId}`, {
+        method: 'PUT',
+        token,
+        body: {
+          userId: existing.userId,
+          name: existing.name,
+          location: existing.location,
+          latitude: existing.latitude,
+          longitude: existing.longitude,
+          radiusKm: existing.radiusKm,
+          eventType: existing.eventType,
+          minSeverity: existing.minSeverity,
+          maxTemperature: existing.maxTemperature,
+          minTemperature: existing.minTemperature,
+          maxWindSpeed: existing.maxWindSpeed,
+          maxPrecipitation: existing.maxPrecipitation,
+          temperatureThreshold: existing.temperatureThreshold,
+          temperatureDirection: existing.temperatureDirection,
+          rainThreshold: existing.rainThreshold,
+          rainThresholdType: existing.rainThresholdType,
+          monitorCurrent: existing.monitorCurrent,
+          monitorForecast: existing.monitorForecast,
+          forecastWindowHours: existing.forecastWindowHours,
+          temperatureUnit: existing.temperatureUnit,
+          oncePerEvent: existing.oncePerEvent,
+          rearmWindowMinutes: existing.rearmWindowMinutes,
+          enabled,
+        },
+      })
+      setNotice({ kind: 'success', text: `Rule ${enabled ? 'enabled' : 'paused'}.` })
+      if (me) {
+        await refreshData(token, me)
+      }
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+    } finally {
+      setBusyCriteriaId(null)
+    }
+  }
+
   async function handleAcknowledgeAlert(alertId: string) {
     if (!token) {
       return
@@ -484,10 +538,40 @@ export function useWeatherAppState() {
     }
   }
 
-  async function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
+  async function handleAcknowledgeAllAlerts() {
+    if (!token || !me) {
+      return
+    }
+
+    const sentAlerts = alerts.filter((alert) => alert.status === 'SENT')
+    if (sentAlerts.length === 0) {
+      return
+    }
+
+    setLoadingData(true)
+    setNotice(null)
+    try {
+      await Promise.all(
+        sentAlerts.map((alert) =>
+          apiRequest<AlertEvent>(`/api/alerts/${alert.id}/acknowledge`, {
+            method: 'POST',
+            token,
+          }),
+        ),
+      )
+      setNotice({ kind: 'success', text: `Acknowledged ${sentAlerts.length} alerts.` })
+      await refreshData(token, me)
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+    } finally {
+      setLoadingData(false)
+    }
+  }
+
+  async function handleSaveProfile(event: FormEvent<HTMLFormElement>): Promise<boolean> {
     event.preventDefault()
     if (!token) {
-      return
+      return false
     }
 
     setSavingProfile(true)
@@ -501,17 +585,19 @@ export function useWeatherAppState() {
       })
       setMe(updated)
       setNotice({ kind: 'success', text: 'Profile updated.' })
+      return true
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
     } finally {
       setSavingProfile(false)
     }
   }
 
-  async function handleChangePassword(event: FormEvent<HTMLFormElement>) {
+  async function handleChangePassword(event: FormEvent<HTMLFormElement>): Promise<boolean> {
     event.preventDefault()
     if (!token) {
-      return
+      return false
     }
 
     setSavingProfile(true)
@@ -525,8 +611,37 @@ export function useWeatherAppState() {
       })
       setPasswordForm(initialPasswordForm)
       setNotice({ kind: 'success', text: 'Password updated successfully.' })
+      return true
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  async function handleSaveNotificationPreference(preferences: {
+    enabledChannels: Array<'EMAIL' | 'SMS' | 'PUSH'>
+    preferredChannel: 'EMAIL' | 'SMS' | 'PUSH'
+    fallbackStrategy: 'FIRST_SUCCESS' | 'FAIL_FAST'
+  }): Promise<boolean> {
+    if (!token) {
+      return false
+    }
+    setSavingProfile(true)
+    setNotice(null)
+    try {
+      const saved = await apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', {
+        method: 'PUT',
+        token,
+        body: preferences,
+      })
+      setNotificationPreference(saved)
+      setNotice({ kind: 'success', text: 'Delivery preferences updated.' })
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
     } finally {
       setSavingProfile(false)
     }
@@ -652,9 +767,12 @@ export function useWeatherAppState() {
     handleForgotPasswordConfirm,
     handleCreateCriteria,
     handleDeleteCriteria,
+    handleToggleCriteriaEnabled,
     handleAcknowledgeAlert,
+    handleAcknowledgeAllAlerts,
     handleSaveProfile,
     handleChangePassword,
+    handleSaveNotificationPreference,
     handleApproveUser,
     handleAdminAction,
 

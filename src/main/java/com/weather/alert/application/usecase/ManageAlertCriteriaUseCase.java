@@ -71,7 +71,7 @@ public class ManageAlertCriteriaUseCase {
                 .temperatureUnit(defaultTemperatureUnit(request.getTemperatureUnit()))
                 .oncePerEvent(defaultOncePerEvent(request.getOncePerEvent()))
                 .rearmWindowMinutes(defaultRearmWindowMinutes(request.getRearmWindowMinutes()))
-                .enabled(true)
+                .enabled(defaultEnabled(request.getEnabled()))
                 .build();
         
         AlertCriteria saved = criteriaRepository.save(criteria);
@@ -115,6 +115,7 @@ public class ManageAlertCriteriaUseCase {
                     existing.setTemperatureUnit(defaultTemperatureUnit(request.getTemperatureUnit()));
                     existing.setOncePerEvent(defaultOncePerEvent(request.getOncePerEvent()));
                     existing.setRearmWindowMinutes(defaultRearmWindowMinutes(request.getRearmWindowMinutes()));
+                    existing.setEnabled(resolveUpdatedEnabled(existing.getEnabled(), request.getEnabled()));
                     return criteriaRepository.save(existing);
                 })
                 .orElseThrow(() -> new CriteriaNotFoundException(criteriaId));
@@ -142,6 +143,17 @@ public class ManageAlertCriteriaUseCase {
 
     private int defaultRearmWindowMinutes(Integer rearmWindowMinutes) {
         return rearmWindowMinutes == null ? 0 : rearmWindowMinutes;
+    }
+
+    private boolean defaultEnabled(Boolean enabled) {
+        return enabled == null || enabled;
+    }
+
+    private boolean resolveUpdatedEnabled(Boolean currentEnabled, Boolean requestedEnabled) {
+        if (requestedEnabled != null) {
+            return requestedEnabled;
+        }
+        return currentEnabled == null || currentEnabled;
     }
 
     private void sendCriteriaCreatedEmailIfEnabled(AlertCriteria criteria) {

@@ -318,4 +318,26 @@ class ManageAlertCriteriaUseCaseTest {
         assertEquals(AlertCriteria.RainThresholdType.PROBABILITY, result.getRainThresholdType());
         assertEquals(120, result.getRearmWindowMinutes());
     }
+
+    @Test
+    void shouldUpdateEnabledFlagWhenProvided() {
+        String criteriaId = "criteria-enabled";
+        AlertCriteria existing = AlertCriteria.builder()
+                .id(criteriaId)
+                .userId("user1")
+                .enabled(true)
+                .build();
+
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user1")
+                .enabled(false)
+                .build();
+
+        when(criteriaRepository.findById(criteriaId)).thenReturn(Optional.of(existing));
+        when(criteriaRepository.save(any(AlertCriteria.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AlertCriteria result = useCase.updateCriteria(criteriaId, request);
+
+        assertFalse(result.getEnabled());
+    }
 }

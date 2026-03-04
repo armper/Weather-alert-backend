@@ -119,6 +119,9 @@ public class CreateAlertCriteriaRequest {
     @Schema(description = "Rearm/cooldown window in minutes", example = "120")
     private Integer rearmWindowMinutes;
 
+    @Schema(description = "Whether this alert criteria is enabled", example = "true")
+    private Boolean enabled;
+
     @AssertTrue(message = "temperatureThreshold and temperatureDirection must be provided together")
     public boolean isTemperatureThresholdPairValid() {
         return (temperatureThreshold == null && temperatureDirection == null)

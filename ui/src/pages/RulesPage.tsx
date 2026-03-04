@@ -13,7 +13,18 @@ export function RulesPage() {
     busyCriteriaId,
     handleCreateCriteria,
     handleDeleteCriteria,
+    handleToggleCriteriaEnabled,
   } = useAppState()
+
+  const isTemperatureRule = criteriaForm.ruleType === 'TEMP_BELOW' || criteriaForm.ruleType === 'TEMP_ABOVE'
+  const thresholdHelp =
+    criteriaForm.ruleType === 'TEMP_BELOW'
+      ? `Alert when temperature drops below ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
+      : criteriaForm.ruleType === 'TEMP_ABOVE'
+        ? `Alert when temperature rises above ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
+        : criteriaForm.ruleType === 'WIND'
+          ? `Alert when wind speed goes above ${criteriaForm.threshold || 'X'} km/h.`
+          : `Alert when rain chance reaches ${criteriaForm.threshold || 'X'}% or higher.`
 
   return (
     <section className="page-stack">
@@ -63,54 +74,64 @@ export function RulesPage() {
             </select>
           </label>
 
-          <label>
-            Threshold
-            <input
-              type="number"
-              required
-              value={criteriaForm.threshold}
-              onChange={(event) => setCriteriaForm((state) => ({ ...state, threshold: event.target.value }))}
-            />
-          </label>
+          <div className="threshold-row full-row">
+            <label>
+              Threshold
+              <input
+                type="number"
+                required
+                value={criteriaForm.threshold}
+                onChange={(event) => setCriteriaForm((state) => ({ ...state, threshold: event.target.value }))}
+              />
+              <span className="muted small">{thresholdHelp}</span>
+            </label>
+            {isTemperatureRule ? (
+              <label>
+                Temperature unit
+                <select
+                  value={criteriaForm.temperatureUnit}
+                  onChange={(event) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      temperatureUnit: event.target.value as 'F' | 'C',
+                    }))
+                  }
+                >
+                  <option value="F">Fahrenheit</option>
+                  <option value="C">Celsius</option>
+                </select>
+              </label>
+            ) : null}
+          </div>
+
+          <details className="advanced-card full-row">
+            <summary>Advanced settings</summary>
+            <div className="advanced-grid">
+              <label>
+                Latitude
+                <input
+                  type="number"
+                  step="0.0001"
+                  required
+                  value={criteriaForm.latitude}
+                  onChange={(event) => setCriteriaForm((state) => ({ ...state, latitude: event.target.value }))}
+                />
+              </label>
+              <label>
+                Longitude
+                <input
+                  type="number"
+                  step="0.0001"
+                  required
+                  value={criteriaForm.longitude}
+                  onChange={(event) => setCriteriaForm((state) => ({ ...state, longitude: event.target.value }))}
+                />
+              </label>
+            </div>
+          </details>
 
           <label>
-            Latitude
-            <input
-              type="number"
-              step="0.0001"
-              required
-              value={criteriaForm.latitude}
-              onChange={(event) => setCriteriaForm((state) => ({ ...state, latitude: event.target.value }))}
-            />
-          </label>
-          <label>
-            Longitude
-            <input
-              type="number"
-              step="0.0001"
-              required
-              value={criteriaForm.longitude}
-              onChange={(event) => setCriteriaForm((state) => ({ ...state, longitude: event.target.value }))}
-            />
-          </label>
-
-          <label>
-            Temperature unit
-            <select
-              value={criteriaForm.temperatureUnit}
-              onChange={(event) =>
-                setCriteriaForm((state) => ({
-                  ...state,
-                  temperatureUnit: event.target.value as 'F' | 'C',
-                }))
-              }
-            >
-              <option value="F">Fahrenheit</option>
-              <option value="C">Celsius</option>
-            </select>
-          </label>
-          <label>
-            Forecast window (hours)
+            Check forecast within (hours)
             <input
               type="number"
               min={1}
@@ -125,7 +146,7 @@ export function RulesPage() {
             />
           </label>
           <label>
-            Rearm window (minutes)
+            Minimum time between alerts (minutes)
             <input
               type="number"
               min={0}
@@ -139,49 +160,58 @@ export function RulesPage() {
             />
           </label>
 
-          <div className="toggle-row full-row">
-            <label className="checkbox-pill">
-              <input
-                type="checkbox"
-                checked={criteriaForm.monitorCurrent}
-                onChange={(event) =>
-                  setCriteriaForm((state) => ({
-                    ...state,
-                    monitorCurrent: event.target.checked,
-                  }))
-                }
-              />
-              Current conditions
+          <div className="toggle-row full-row toggle-row-wide">
+            <label className="switch-field">
+              <span>Current</span>
+              <span className="switch">
+                <input
+                  type="checkbox"
+                  checked={criteriaForm.monitorCurrent}
+                  onChange={(event) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      monitorCurrent: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="switch-slider" />
+              </span>
             </label>
-            <label className="checkbox-pill">
-              <input
-                type="checkbox"
-                checked={criteriaForm.monitorForecast}
-                onChange={(event) =>
-                  setCriteriaForm((state) => ({
-                    ...state,
-                    monitorForecast: event.target.checked,
-                  }))
-                }
-              />
-              Forecast conditions
+            <label className="switch-field">
+              <span>Forecast</span>
+              <span className="switch">
+                <input
+                  type="checkbox"
+                  checked={criteriaForm.monitorForecast}
+                  onChange={(event) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      monitorForecast: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="switch-slider" />
+              </span>
             </label>
-            <label className="checkbox-pill">
-              <input
-                type="checkbox"
-                checked={criteriaForm.oncePerEvent}
-                onChange={(event) =>
-                  setCriteriaForm((state) => ({
-                    ...state,
-                    oncePerEvent: event.target.checked,
-                  }))
-                }
-              />
-              Notify once per event
+            <label className="switch-field">
+              <span>Notify once</span>
+              <span className="switch">
+                <input
+                  type="checkbox"
+                  checked={criteriaForm.oncePerEvent}
+                  onChange={(event) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      oncePerEvent: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="switch-slider" />
+              </span>
             </label>
           </div>
 
-          <button type="submit" className="primary full-row" disabled={!canSubmitCriteria || savingCriteria}>
+          <button type="submit" className="primary button-inline" disabled={!canSubmitCriteria || savingCriteria}>
             {savingCriteria ? 'Saving rule...' : 'Create alert rule'}
           </button>
         </form>
@@ -202,6 +232,7 @@ export function RulesPage() {
                 criteria={item}
                 busy={busyCriteriaId === item.id}
                 onDelete={(criteriaId) => void handleDeleteCriteria(criteriaId)}
+                onToggleEnabled={(criteriaId, enabled) => void handleToggleCriteriaEnabled(criteriaId, enabled)}
               />
             ))}
           </div>

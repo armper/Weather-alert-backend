@@ -1,8 +1,16 @@
 import { useAppState } from '../state/useAppState'
-import { formatPercent, formatTemperature, formatWind } from '../lib/formatting'
+import { Link } from 'react-router-dom'
+import {
+  formatFriendlyLocation,
+  formatPercentOrNA,
+  formatStatusLabel,
+  formatTemperature,
+  formatWind,
+} from '../lib/formatting'
 
 export function OverviewPage() {
   const { currentWeather, criteria, alerts, me } = useAppState()
+  const activeRules = criteria.filter((item) => item.enabled !== false).length
 
   return (
     <section className="page-grid">
@@ -10,11 +18,13 @@ export function OverviewPage() {
         <h2>Current Conditions</h2>
         {currentWeather ? (
           <div className="weather-stack">
-            <p className="weather-location">{currentWeather.location ?? 'Selected area'}</p>
-            <p className="weather-temp">{formatTemperature(currentWeather.temperature, 'F')}</p>
-            <div className="weather-meta">
+            <p className="weather-location">
+              {formatFriendlyLocation(currentWeather.location ?? criteria[0]?.location)}
+            </p>
+            <p className="weather-temp weather-temp-hero">{formatTemperature(currentWeather.temperature, 'F')}</p>
+            <div className="weather-meta weather-secondary-line">
               <span>Wind: {formatWind(currentWeather.windSpeed)}</span>
-              <span>Rain chance: {formatPercent(currentWeather.precipitationProbability)}</span>
+              <span>Rain chance: {formatPercentOrNA(currentWeather.precipitationProbability)}</span>
             </div>
             <p className="muted small">{currentWeather.headline ?? 'Current NOAA observation'}</p>
           </div>
@@ -24,21 +34,25 @@ export function OverviewPage() {
       </article>
 
       <article className="panel stats-grid">
-        <div>
+        <Link to="/app/rules" className="stat-card-link">
           <p className="muted small">Active rules</p>
-          <p className="weather-temp">{criteria.length}</p>
-        </div>
-        <div>
+          <p className="weather-temp">{activeRules}</p>
+        </Link>
+        <Link to="/app/events" className="stat-card-link">
           <p className="muted small">Triggered events</p>
           <p className="weather-temp">{alerts.length}</p>
-        </div>
-        <div>
+        </Link>
+        <div className="stat-card-link">
           <p className="muted small">Account status</p>
-          <p>{me?.approvalStatus ?? 'Unknown'}</p>
+          <p>
+            <span className="badge">{formatStatusLabel(me?.approvalStatus)}</span>
+          </p>
         </div>
-        <div>
+        <div className="stat-card-link">
           <p className="muted small">Email verified</p>
-          <p>{me?.emailVerified ? 'Yes' : 'No'}</p>
+          <p>
+            <span className="badge">{me?.emailVerified ? 'Verified' : 'Not verified'}</span>
+          </p>
         </div>
       </article>
     </section>

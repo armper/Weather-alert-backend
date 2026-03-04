@@ -53,17 +53,17 @@ export function buildCriteriaPayload(criteriaForm: CriteriaFormState, userId: st
 }
 
 export function describeCriteria(criteria: AlertCriteria): string {
-  if (criteria.temperatureThreshold && criteria.temperatureDirection) {
-    return `Temperature ${criteria.temperatureDirection.toLowerCase()} ${formatNumber(
-      criteria.temperatureThreshold,
-    )} ${criteria.temperatureUnit ?? 'F'}`
+  if (criteria.temperatureThreshold !== undefined && criteria.temperatureThreshold !== null && criteria.temperatureDirection) {
+    return `Temperature ${criteria.temperatureDirection.toLowerCase()} ${formatNumber(criteria.temperatureThreshold)}°${
+      criteria.temperatureUnit ?? 'F'
+    }`
   }
-  if (criteria.maxWindSpeed) {
+  if (criteria.maxWindSpeed !== undefined && criteria.maxWindSpeed !== null) {
     return `Wind speed above ${formatNumber(criteria.maxWindSpeed)} km/h`
   }
-  if (criteria.rainThreshold && criteria.rainThresholdType) {
+  if (criteria.rainThreshold !== undefined && criteria.rainThreshold !== null && criteria.rainThresholdType) {
     if (criteria.rainThresholdType === 'PROBABILITY') {
-      return `Rain probability at or above ${formatNumber(criteria.rainThreshold)}%`
+      return `Rain chance at or above ${formatNumber(criteria.rainThreshold)}%`
     }
     return `Rain amount at or above ${formatNumber(criteria.rainThreshold)} mm`
   }
