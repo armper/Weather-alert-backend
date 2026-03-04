@@ -1,7 +1,4 @@
-import { Circle, MapContainer, Marker, TileLayer } from 'react-leaflet'
-import { ensureLeafletIcons } from './leafletConfig'
-
-ensureLeafletIcons()
+import { Circle, CircleMarker, MapContainer, TileLayer } from 'react-leaflet'
 
 interface StaticLocationMapProps {
   latitude: number
@@ -36,7 +33,11 @@ export function StaticLocationMap({
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Circle center={center} radius={radiusKm * 1000} pathOptions={{ color: '#1d6a90', weight: 1, fillOpacity: 0.1 }} />
-        <Marker position={center} />
+        <CircleMarker
+          center={center}
+          radius={6}
+          pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#1d6a90', fillOpacity: 0.95 }}
+        />
       </MapContainer>
     </div>
   )

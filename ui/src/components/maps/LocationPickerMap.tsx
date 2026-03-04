@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { Circle, CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import type { GeocodePlace } from '../../services/geocoding'
 import { reverseGeocode, searchPlaces } from '../../services/geocoding'
 import { AriaButton } from '../ui/AriaButton'
-import { ensureLeafletIcons } from './leafletConfig'
-
-ensureLeafletIcons()
 
 interface LocationPickerMapProps {
   location: string
@@ -117,7 +114,7 @@ export function LocationPickerMap({ location, latitude, longitude, onSelect }: L
             }}
           />
         </label>
-        <AriaButton className="ghost button-inline" onPress={() => void runSearch()} isDisabled={searching}>
+        <AriaButton className="ghost location-search-button" onPress={() => void runSearch()} isDisabled={searching}>
           {searching ? 'Searching...' : 'Search'}
         </AriaButton>
       </div>
@@ -141,11 +138,15 @@ export function LocationPickerMap({ location, latitude, longitude, onSelect }: L
           <RecenterMap center={center} />
           <MapClickCapture onPick={(lat, lon) => void handleMapPick(lat, lon)} />
           <Circle center={center} radius={5000} pathOptions={{ color: '#1d6a90', weight: 1, fillOpacity: 0.1 }} />
-          <Marker position={center} />
+          <CircleMarker
+            center={center}
+            radius={7}
+            pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#1d6a90', fillOpacity: 0.95 }}
+          />
         </MapContainer>
       </div>
 
-      <p className="muted small">Selected location: {location}</p>
+      <p className="muted small location-selected-label">Selected location: {location}</p>
     </div>
   )
 }

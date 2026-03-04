@@ -3,28 +3,12 @@ import { Disclosure, DisclosurePanel } from 'react-aria-components'
 import { useLocation } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { defaultThreshold } from '../lib/criteria'
-import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
 import { DEFAULT_LAT, DEFAULT_LON, type RuleType } from '../state/types'
-
-interface EasyPreset {
-  id: string
-  icon: string
-  title: string
-  description: string
-  ruleType: RuleType
-  threshold: string
-  temperatureUnit?: 'F' | 'C'
-  monitorCurrent: boolean
-  monitorForecast: boolean
-  oncePerEvent: boolean
-  forecastWindowHours: string
-  rearmWindowMinutes: string
-}
 
 interface RuleFormErrors {
   name?: string
@@ -55,106 +39,10 @@ const LOCATION_MODE_OPTIONS = [
   { id: 'MANUAL', label: 'Manual coordinates' },
 ]
 
-const EASY_PRESETS: EasyPreset[] = [
-  {
-    id: 'too-cold',
-    icon: '🥶',
-    title: 'Too Cold',
-    description: 'Below 45°F',
-    ruleType: 'TEMP_BELOW',
-    threshold: '45',
-    temperatureUnit: 'F',
-    monitorCurrent: true,
-    monitorForecast: true,
-    oncePerEvent: true,
-    forecastWindowHours: '48',
-    rearmWindowMinutes: '240',
-  },
-  {
-    id: 'too-hot',
-    icon: '🔥',
-    title: 'Too Hot',
-    description: 'Above 90°F',
-    ruleType: 'TEMP_ABOVE',
-    threshold: '90',
-    temperatureUnit: 'F',
-    monitorCurrent: true,
-    monitorForecast: true,
-    oncePerEvent: true,
-    forecastWindowHours: '48',
-    rearmWindowMinutes: '240',
-  },
-  {
-    id: 'rain-coming',
-    icon: '🌧',
-    title: 'Rain Coming',
-    description: 'Rain ≥ 50%',
-    ruleType: 'RAIN',
-    threshold: '50',
-    monitorCurrent: false,
-    monitorForecast: true,
-    oncePerEvent: true,
-    forecastWindowHours: '48',
-    rearmWindowMinutes: '180',
-  },
-  {
-    id: 'windy',
-    icon: '💨',
-    title: 'Windy',
-    description: 'Wind ≥ 25 km/h',
-    ruleType: 'WIND',
-    threshold: '25',
-    monitorCurrent: true,
-    monitorForecast: true,
-    oncePerEvent: true,
-    forecastWindowHours: '48',
-    rearmWindowMinutes: '180',
-  },
-  {
-    id: 'storm-risk',
-    icon: '⛈',
-    title: 'Storm Risk',
-    description: 'Rain ≥ 70%',
-    ruleType: 'RAIN',
-    threshold: '70',
-    monitorCurrent: true,
-    monitorForecast: true,
-    oncePerEvent: true,
-    forecastWindowHours: '48',
-    rearmWindowMinutes: '120',
-  },
-  {
-    id: 'frost-risk',
-    icon: '❄',
-    title: 'Frost Risk',
-    description: 'Below 36°F (24h)',
-    ruleType: 'TEMP_BELOW',
-    threshold: '36',
-    temperatureUnit: 'F',
-    monitorCurrent: false,
-    monitorForecast: true,
-    oncePerEvent: true,
-    forecastWindowHours: '24',
-    rearmWindowMinutes: '360',
-  },
-]
-
 export function RulesPage() {
-  const {
-    criteria,
-    criteriaForm,
-    setCriteriaForm,
-    canSubmitCriteria,
-    savingCriteria,
-    busyCriteriaId,
-    handleCreateCriteria,
-    handleDeleteCriteria,
-    handleToggleCriteriaEnabled,
-  } = useAppState()
+  const { criteriaForm, setCriteriaForm, canSubmitCriteria, savingCriteria, handleCreateCriteria } = useAppState()
   const location = useLocation()
 
-  const [activePresetId, setActivePresetId] = useState<string | null>(null)
-  const [flashPresetFields, setFlashPresetFields] = useState(false)
   const [formErrors, setFormErrors] = useState<RuleFormErrors>({})
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
   const [locationMode, setLocationMode] = useState<LocationMode>('CITY')
@@ -199,24 +87,6 @@ export function RulesPage() {
       }
     })
   }, [location.hash])
-
-  function applyPreset(preset: EasyPreset) {
-    setCriteriaForm((state) => ({
-      ...state,
-      name: preset.title,
-      ruleType: preset.ruleType,
-      threshold: preset.threshold,
-      temperatureUnit: preset.temperatureUnit ?? state.temperatureUnit,
-      monitorCurrent: preset.monitorCurrent,
-      monitorForecast: preset.monitorForecast,
-      oncePerEvent: preset.oncePerEvent,
-      forecastWindowHours: preset.forecastWindowHours,
-      rearmWindowMinutes: preset.rearmWindowMinutes,
-    }))
-    setActivePresetId(preset.id)
-    setFlashPresetFields(true)
-    window.setTimeout(() => setFlashPresetFields(false), 900)
-  }
 
   function validateRuleForm(): RuleFormErrors {
     const errors: RuleFormErrors = {}
@@ -322,36 +192,14 @@ export function RulesPage() {
 
   return (
     <section className="page-stack">
-      <article id="easy-alerts" tabIndex={-1} className="panel">
+      <article id="create-custom-alert" tabIndex={-1} className="panel">
         <div className="panel-title-row">
-          <h2>Easy Alerts</h2>
-          <span className="muted">Quick presets for common alerts</span>
-        </div>
-        <div className="easy-alert-grid">
-          {EASY_PRESETS.map((preset) => (
-            <AriaButton
-              key={preset.id}
-              className={`easy-alert-card ${activePresetId === preset.id ? 'is-active' : ''}`}
-              onPress={() => applyPreset(preset)}
-            >
-              <p className="easy-alert-title">
-                <span className="easy-alert-icon">{preset.icon}</span> {preset.title}
-              </p>
-              <p className="easy-alert-desc">{preset.description}</p>
-            </AriaButton>
-          ))}
-        </div>
-      </article>
-
-      <article id="create-custom-alert" tabIndex={-1} className="panel custom-alert-section">
-        <div className="panel-title-row">
-          <h2>Create Custom Alert</h2>
+          <h2>Create Alert</h2>
         </div>
 
         <form className="grid-form create-grid" onSubmit={handleCreateAlertSubmit} noValidate>
           <AriaTextField
             label="Alert name"
-            className={flashPresetFields ? 'field-flash' : ''}
             inputClassName="aria-input"
             value={criteriaForm.name}
             required
@@ -378,7 +226,6 @@ export function RulesPage() {
 
           <AriaSelect
             label="Rule type"
-            className={flashPresetFields ? 'field-flash' : ''}
             buttonClassName="aria-select-trigger"
             popoverClassName="aria-select-popover"
             listBoxClassName="aria-select-listbox"
@@ -394,7 +241,7 @@ export function RulesPage() {
             }}
           />
 
-          <div className={`threshold-row full-row ${flashPresetFields ? 'field-flash' : ''}`}>
+          <div className="threshold-row full-row">
             <AriaTextField
               label="Threshold"
               inputClassName="aria-input"
@@ -424,7 +271,7 @@ export function RulesPage() {
             ) : null}
           </div>
 
-          <div className={`toggle-row full-row toggle-row-wide ${flashPresetFields ? 'field-flash' : ''}`}>
+          <div className="toggle-row full-row toggle-row-wide">
             <AriaSwitch
               label="Current"
               isSelected={criteriaForm.monitorCurrent}
@@ -480,7 +327,7 @@ export function RulesPage() {
             <DisclosurePanel className="advanced-disclosure-panel">
               <section className="advanced-section">
                 <h3>Delivery behavior</h3>
-                <div className={`advanced-delivery-grid ${flashPresetFields ? 'field-flash' : ''}`}>
+                <div className="advanced-delivery-grid">
                   <AriaTextField
                     label="Minimum time between alerts (minutes)"
                     inputClassName="aria-input"
@@ -564,28 +411,6 @@ export function RulesPage() {
             </DisclosurePanel>
           </Disclosure>
         </form>
-      </article>
-
-      <article className="panel">
-        <div className="panel-title-row">
-          <h2>Active Alert Rules</h2>
-          <span className="badge">{criteria.length} active</span>
-        </div>
-        {criteria.length === 0 ? (
-          <p className="muted">No alert rules yet. Create your first one above.</p>
-        ) : (
-          <div className="criteria-grid">
-            {criteria.map((item) => (
-              <CriteriaCard
-                key={item.id}
-                criteria={item}
-                busy={busyCriteriaId === item.id}
-                onDelete={(criteriaId) => void handleDeleteCriteria(criteriaId)}
-                onToggleEnabled={(criteriaId, enabled) => void handleToggleCriteriaEnabled(criteriaId, enabled)}
-              />
-            ))}
-          </div>
-        )}
       </article>
     </section>
   )

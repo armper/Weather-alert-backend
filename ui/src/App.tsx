@@ -10,6 +10,7 @@ import { AuthLoginPage } from './pages/AuthLoginPage'
 import { AuthRegisterPage } from './pages/AuthRegisterPage'
 import { AuthVerifyEmailPage } from './pages/AuthVerifyEmailPage'
 import { EventsPage } from './pages/EventsPage'
+import { ManageAlertsPage } from './pages/ManageAlertsPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { RulesPage } from './pages/RulesPage'
 import { AppStateProvider } from './state/AppStateContext'
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<OverviewPage />} />
         <Route path="rules" element={<RulesPage />} />
+        <Route path="alerts" element={<ManageAlertsPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="admin" element={<AdminPage />} />

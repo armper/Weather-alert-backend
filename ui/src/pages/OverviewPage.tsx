@@ -15,7 +15,7 @@ export function OverviewPage() {
 
   return (
     <section className="page-stack">
-      <div className="page-grid">
+      <div className="page-grid overview-grid">
         <article className="panel">
           <h2>Current Conditions</h2>
           {currentWeather ? (
@@ -46,8 +46,8 @@ export function OverviewPage() {
           {defaultAlertLocation ? (
             <p className="muted small overview-location-note">Alerts for: {formatFriendlyLocation(defaultAlertLocation)}</p>
           ) : (
-            <p className="muted small overview-location-note">
-              Alerts for: Selected area. <Link to="/app/rules#create-custom-alert">Set location</Link>
+              <p className="muted small overview-location-note">
+              Alerts for: Selected area. <Link to="/app/rules#location-picker">Set location</Link>
             </p>
           )}
         </article>
@@ -56,24 +56,29 @@ export function OverviewPage() {
           <div className="panel-title-row">
             <h2>Your alerts</h2>
             <Link to="/app/rules#create-custom-alert" className="primary overview-create-link">
-              + Create alert
+              <span aria-hidden className="overview-create-icon">
+                <svg viewBox="0 0 12 12" className="create-plus-svg" focusable="false">
+                  <path d="M6 2.25v7.5M2.25 6h7.5" />
+                </svg>
+              </span>
+              <span>Create alert</span>
             </Link>
           </div>
           {activeRules === 0 ? (
             <div className="overview-empty-state">
               <p className="muted">No alerts yet. Create your first alert in 10 seconds.</p>
               <div className="button-row overview-empty-actions">
-                <Link to="/app/rules#easy-alerts" className="primary overview-action-link">
-                  Use a preset
+                <Link to="/app/rules#create-custom-alert" className="primary overview-action-link">
+                  Create alert
                 </Link>
-                <Link to="/app/rules#create-custom-alert" className="ghost overview-action-link">
-                  Create custom alert
+                <Link to="/app/alerts" className="ghost overview-action-link">
+                  Manage alerts
                 </Link>
               </div>
             </div>
           ) : (
             <div className="stats-grid overview-stats-grid">
-              <Link to="/app/rules" className="stat-card-link overview-nav-card">
+              <Link to="/app/alerts" className="stat-card-link overview-nav-card">
                 <p className="muted small">Alerts</p>
                 <p className="weather-temp stat-number">{activeRules}</p>
                 <p className="muted small stat-caption">active alerts</p>
