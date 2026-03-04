@@ -1,12 +1,14 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Disclosure, DisclosurePanel } from 'react-aria-components'
+import { useLocation } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
-import type { RuleType } from '../state/types'
 import { defaultThreshold } from '../lib/criteria'
 import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
+import { DEFAULT_LAT, DEFAULT_LON, type RuleType } from '../state/types'
 
 interface EasyPreset {
   id: string
@@ -33,6 +35,8 @@ interface RuleFormErrors {
   longitude?: string
 }
 
+type LocationMode = 'CITY' | 'MANUAL'
+
 const RULE_TYPE_OPTIONS = [
   { id: 'TEMP_BELOW', label: 'Temperature below' },
   { id: 'TEMP_ABOVE', label: 'Temperature above' },
@@ -43,6 +47,11 @@ const RULE_TYPE_OPTIONS = [
 const TEMP_UNIT_OPTIONS = [
   { id: 'F', label: 'Fahrenheit' },
   { id: 'C', label: 'Celsius' },
+]
+
+const LOCATION_MODE_OPTIONS = [
+  { id: 'CITY', label: 'City or place' },
+  { id: 'MANUAL', label: 'Manual coordinates' },
 ]
 
 const EASY_PRESETS: EasyPreset[] = [
@@ -141,13 +150,18 @@ export function RulesPage() {
     handleDeleteCriteria,
     handleToggleCriteriaEnabled,
   } = useAppState()
+  const location = useLocation()
 
   const [activePresetId, setActivePresetId] = useState<string | null>(null)
   const [flashPresetFields, setFlashPresetFields] = useState(false)
   const [formErrors, setFormErrors] = useState<RuleFormErrors>({})
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [advancedExpanded, setAdvancedExpanded] = useState(false)
+  const [locationMode, setLocationMode] = useState<LocationMode>('CITY')
+  const [useCustomCoordinates, setUseCustomCoordinates] = useState(false)
 
   const isTemperatureRule = criteriaForm.ruleType === 'TEMP_BELOW' || criteriaForm.ruleType === 'TEMP_ABOVE'
+  const shouldShowCoordinateToggle = locationMode === 'MANUAL'
+  const shouldUseCustomCoordinates = shouldShowCoordinateToggle && useCustomCoordinates
 
   const thresholdHelp = useMemo(() => {
     if (criteriaForm.ruleType === 'TEMP_BELOW') {
@@ -161,6 +175,25 @@ export function RulesPage() {
     }
     return `Alert when rain chance reaches ${criteriaForm.threshold || 'X'}% or higher.`
   }, [criteriaForm.ruleType, criteriaForm.threshold, criteriaForm.temperatureUnit])
+
+  useEffect(() => {
+    const targetId = location.hash.replace('#', '').trim()
+    if (!targetId) {
+      return
+    }
+
+    const target = document.getElementById(targetId)
+    if (!target) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (target instanceof HTMLElement) {
+        target.focus()
+      }
+    })
+  }, [location.hash])
 
   function applyPreset(preset: EasyPreset) {
     setCriteriaForm((state) => ({
@@ -177,7 +210,6 @@ export function RulesPage() {
     }))
     setActivePresetId(preset.id)
     setFlashPresetFields(true)
-    setShowAdvanced(true)
     window.setTimeout(() => setFlashPresetFields(false), 900)
   }
 
@@ -222,14 +254,16 @@ export function RulesPage() {
       errors.rearmWindowMinutes = 'Use a positive whole number.'
     }
 
-    const latitude = Number(criteriaForm.latitude)
-    if (Number.isNaN(latitude) || latitude < -90 || latitude > 90) {
-      errors.latitude = 'Latitude must be between -90 and 90.'
-    }
+    if (shouldUseCustomCoordinates) {
+      const latitude = Number(criteriaForm.latitude)
+      if (Number.isNaN(latitude) || latitude < -90 || latitude > 90) {
+        errors.latitude = 'Latitude must be between -90 and 90.'
+      }
 
-    const longitude = Number(criteriaForm.longitude)
-    if (Number.isNaN(longitude) || longitude < -180 || longitude > 180) {
-      errors.longitude = 'Longitude must be between -180 and 180.'
+      const longitude = Number(criteriaForm.longitude)
+      if (Number.isNaN(longitude) || longitude < -180 || longitude > 180) {
+        errors.longitude = 'Longitude must be between -180 and 180.'
+      }
     }
 
     return errors
@@ -238,16 +272,62 @@ export function RulesPage() {
   function handleCreateAlertSubmit(event: FormEvent<HTMLFormElement>) {
     const errors = validateRuleForm()
     setFormErrors(errors)
+
+    const hasAdvancedErrors = Boolean(
+      errors.forecastWindowHours || errors.rearmWindowMinutes || errors.latitude || errors.longitude,
+    )
+
+    if (hasAdvancedErrors) {
+      setAdvancedExpanded(true)
+    }
+
     if (Object.keys(errors).length > 0) {
       event.preventDefault()
       return
     }
+
     void handleCreateCriteria(event)
+  }
+
+  function handleLocationModeChange(value: string) {
+    const nextMode = value as LocationMode
+    setLocationMode(nextMode)
+
+    if (nextMode === 'CITY') {
+      setUseCustomCoordinates(false)
+      setCriteriaForm((state) => ({
+        ...state,
+        latitude: DEFAULT_LAT,
+        longitude: DEFAULT_LON,
+      }))
+      setFormErrors((state) => ({
+        ...state,
+        latitude: undefined,
+        longitude: undefined,
+      }))
+    }
+  }
+
+  function handleCustomCoordinatesToggle(value: boolean) {
+    setUseCustomCoordinates(value)
+
+    if (!value) {
+      setCriteriaForm((state) => ({
+        ...state,
+        latitude: DEFAULT_LAT,
+        longitude: DEFAULT_LON,
+      }))
+      setFormErrors((state) => ({
+        ...state,
+        latitude: undefined,
+        longitude: undefined,
+      }))
+    }
   }
 
   return (
     <section className="page-stack">
-      <article className="panel">
+      <article id="easy-alerts" tabIndex={-1} className="panel">
         <div className="panel-title-row">
           <h2>Easy Alerts</h2>
           <span className="muted">Quick presets for common alerts</span>
@@ -268,10 +348,9 @@ export function RulesPage() {
         </div>
       </article>
 
-      <article className="panel custom-alert-section">
+      <article id="create-custom-alert" tabIndex={-1} className="panel custom-alert-section">
         <div className="panel-title-row">
           <h2>Create Custom Alert</h2>
-          <span className="muted">Define focused thresholds for one location</span>
         </div>
 
         <form className="grid-form create-grid" onSubmit={handleCreateAlertSubmit} noValidate>
@@ -290,6 +369,7 @@ export function RulesPage() {
             inputClassName="aria-input"
             value={criteriaForm.location}
             required
+            description="Enter a city or place (for example, Orlando)."
             errorMessage={formErrors.location}
             onChange={(value) => setCriteriaForm((state) => ({ ...state, location: value }))}
           />
@@ -342,64 +422,6 @@ export function RulesPage() {
             ) : null}
           </div>
 
-          <div className="advanced-card full-row">
-            <AriaButton className="ghost button-inline" onPress={() => setShowAdvanced((state) => !state)}>
-              {showAdvanced ? 'Hide advanced settings' : 'Show advanced settings'}
-            </AriaButton>
-            {showAdvanced ? (
-              <div className="advanced-grid">
-                <AriaTextField
-                  label="Latitude"
-                  inputClassName="aria-input"
-                  type="number"
-                  step="0.0001"
-                  value={criteriaForm.latitude}
-                  errorMessage={formErrors.latitude}
-                  onChange={(value) => setCriteriaForm((state) => ({ ...state, latitude: value }))}
-                />
-                <AriaTextField
-                  label="Longitude"
-                  inputClassName="aria-input"
-                  type="number"
-                  step="0.0001"
-                  value={criteriaForm.longitude}
-                  errorMessage={formErrors.longitude}
-                  onChange={(value) => setCriteriaForm((state) => ({ ...state, longitude: value }))}
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <AriaTextField
-            label="Check forecast within (hours)"
-            className={flashPresetFields ? 'field-flash' : ''}
-            inputClassName="aria-input"
-            type="number"
-            value={criteriaForm.forecastWindowHours}
-            errorMessage={formErrors.forecastWindowHours}
-            onChange={(value) =>
-              setCriteriaForm((state) => ({
-                ...state,
-                forecastWindowHours: value,
-              }))
-            }
-          />
-
-          <AriaTextField
-            label="Minimum time between alerts (minutes)"
-            className={flashPresetFields ? 'field-flash' : ''}
-            inputClassName="aria-input"
-            type="number"
-            value={criteriaForm.rearmWindowMinutes}
-            errorMessage={formErrors.rearmWindowMinutes}
-            onChange={(value) =>
-              setCriteriaForm((state) => ({
-                ...state,
-                rearmWindowMinutes: value,
-              }))
-            }
-          />
-
           <div className={`toggle-row full-row toggle-row-wide ${flashPresetFields ? 'field-flash' : ''}`}>
             <AriaSwitch
               label="Current"
@@ -433,9 +455,112 @@ export function RulesPage() {
             />
           </div>
 
-          <AriaButton type="submit" className="primary button-inline" isDisabled={!canSubmitCriteria || savingCriteria}>
+          <AriaButton
+            type="submit"
+            className="primary button-inline full-row"
+            isDisabled={!canSubmitCriteria || savingCriteria}
+          >
             {savingCriteria ? 'Saving alert...' : 'Create Alert'}
           </AriaButton>
+
+          <Disclosure
+            className="advanced-disclosure full-row"
+            isExpanded={advancedExpanded}
+            onExpandedChange={setAdvancedExpanded}
+          >
+            <AriaButton type="button" slot="trigger" className="advanced-trigger" aria-label="Advanced settings">
+              <span>Advanced</span>
+              <span className="advanced-chevron" aria-hidden>
+                ▾
+              </span>
+            </AriaButton>
+
+            <DisclosurePanel className="advanced-disclosure-panel">
+              <section className="advanced-section">
+                <h3>Delivery behavior</h3>
+                <div className={`advanced-delivery-grid ${flashPresetFields ? 'field-flash' : ''}`}>
+                  <AriaTextField
+                    label="Minimum time between alerts (minutes)"
+                    inputClassName="aria-input"
+                    type="number"
+                    value={criteriaForm.rearmWindowMinutes}
+                    errorMessage={formErrors.rearmWindowMinutes}
+                    onChange={(value) =>
+                      setCriteriaForm((state) => ({
+                        ...state,
+                        rearmWindowMinutes: value,
+                      }))
+                    }
+                  />
+
+                  <AriaTextField
+                    label="Look ahead (forecast hours)"
+                    inputClassName="aria-input"
+                    type="number"
+                    value={criteriaForm.forecastWindowHours}
+                    errorMessage={formErrors.forecastWindowHours}
+                    onChange={(value) =>
+                      setCriteriaForm((state) => ({
+                        ...state,
+                        forecastWindowHours: value,
+                      }))
+                    }
+                  />
+                </div>
+              </section>
+
+              <section className="advanced-section">
+                <h3>Location details</h3>
+                <AriaSelect
+                  label="Location mode"
+                  buttonClassName="aria-select-trigger"
+                  popoverClassName="aria-select-popover"
+                  listBoxClassName="aria-select-listbox"
+                  selectedKey={locationMode}
+                  options={LOCATION_MODE_OPTIONS}
+                  onSelectionChange={handleLocationModeChange}
+                />
+
+                {shouldShowCoordinateToggle ? (
+                  <>
+                    <AriaSwitch
+                      label="Use custom coordinates"
+                      isSelected={useCustomCoordinates}
+                      onChange={handleCustomCoordinatesToggle}
+                    />
+
+                    {shouldUseCustomCoordinates ? (
+                      <>
+                        <p className="muted small advanced-helper">
+                          Only needed if you want alerts for a specific coordinate.
+                        </p>
+                        <div className="advanced-coordinate-grid">
+                          <AriaTextField
+                            label="Latitude"
+                            inputClassName="aria-input"
+                            type="number"
+                            step="0.0001"
+                            value={criteriaForm.latitude}
+                            errorMessage={formErrors.latitude}
+                            onChange={(value) => setCriteriaForm((state) => ({ ...state, latitude: value }))}
+                          />
+                          <AriaTextField
+                            label="Longitude"
+                            inputClassName="aria-input"
+                            type="number"
+                            step="0.0001"
+                            value={criteriaForm.longitude}
+                            errorMessage={formErrors.longitude}
+                            onChange={(value) => setCriteriaForm((state) => ({ ...state, longitude: value }))}
+                          />
+                        </div>
+                      </>
+                    ) : null}
+                  </>
+                ) : null}
+              </section>
+            </DisclosurePanel>
+          </Disclosure>
         </form>
       </article>
 
@@ -463,4 +588,3 @@ export function RulesPage() {
     </section>
   )
 }
-
