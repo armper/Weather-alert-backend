@@ -35,6 +35,13 @@ public class AlertCriteriaResponse {
     private AlertCriteria.TemperatureDirection temperatureDirection;
     private Double rainThreshold;
     private AlertCriteria.RainThresholdType rainThresholdType;
+    private Double humidityThreshold;
+    private AlertCriteria.ComparisonDirection humidityDirection;
+    private Double dewPointThreshold;
+    private AlertCriteria.ComparisonDirection dewPointDirection;
+    private Double windGustThreshold;
+    private Double skyCoverThreshold;
+    private AlertCriteria.ComparisonDirection skyCoverDirection;
     private Boolean monitorCurrent;
     private Boolean monitorForecast;
     private Integer forecastWindowHours;
@@ -65,6 +72,13 @@ public class AlertCriteriaResponse {
                 .temperatureDirection(criteria.getTemperatureDirection())
                 .rainThreshold(criteria.getRainThreshold())
                 .rainThresholdType(criteria.getRainThresholdType())
+                .humidityThreshold(criteria.getHumidityThreshold())
+                .humidityDirection(criteria.getHumidityDirection())
+                .dewPointThreshold(criteria.getDewPointThreshold())
+                .dewPointDirection(criteria.getDewPointDirection())
+                .windGustThreshold(criteria.getWindGustThreshold())
+                .skyCoverThreshold(criteria.getSkyCoverThreshold())
+                .skyCoverDirection(criteria.getSkyCoverDirection())
                 .monitorCurrent(criteria.getMonitorCurrent())
                 .monitorForecast(criteria.getMonitorForecast())
                 .forecastWindowHours(criteria.getForecastWindowHours())

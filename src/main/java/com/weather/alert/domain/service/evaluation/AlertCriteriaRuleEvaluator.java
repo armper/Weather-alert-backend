@@ -28,7 +28,11 @@ public class AlertCriteriaRuleEvaluator {
         this.triggerRules = List.of(
                 new TemperatureThresholdRule(),
                 new LegacyTemperatureRangeRule(),
+                new HumidityThresholdRule(),
+                new DewPointThresholdRule(),
                 new WindSpeedRule(),
+                new WindGustThresholdRule(),
+                new SkyCoverThresholdRule(),
                 new LegacyPrecipitationRule(),
                 new RainThresholdRule()
         );
@@ -79,6 +83,10 @@ public class AlertCriteriaRuleEvaluator {
                 || criteria.getMaxTemperature() != null
                 || criteria.getMinTemperature() != null
                 || criteria.getMaxWindSpeed() != null
+                || criteria.getHumidityThreshold() != null
+                || criteria.getDewPointThreshold() != null
+                || criteria.getWindGustThreshold() != null
+                || criteria.getSkyCoverThreshold() != null
                 || criteria.getMaxPrecipitation() != null
                 || criteria.getRainThreshold() != null;
     }
@@ -250,6 +258,37 @@ public class AlertCriteriaRuleEvaluator {
         }
     }
 
+    private static final class HumidityThresholdRule implements CriteriaRule {
+        @Override
+        public boolean applies(AlertCriteria criteria) {
+            return criteria.getHumidityThreshold() != null && criteria.getHumidityDirection() != null;
+        }
+
+        @Override
+        public boolean matches(AlertCriteria criteria, WeatherData weatherData) {
+            return compare(
+                    weatherData.getHumidity(),
+                    criteria.getHumidityThreshold(),
+                    criteria.getHumidityDirection());
+        }
+    }
+
+    private static final class DewPointThresholdRule implements CriteriaRule {
+        @Override
+        public boolean applies(AlertCriteria criteria) {
+            return criteria.getDewPointThreshold() != null && criteria.getDewPointDirection() != null;
+        }
+
+        @Override
+        public boolean matches(AlertCriteria criteria, WeatherData weatherData) {
+            if (weatherData.getDewPoint() == null) {
+                return false;
+            }
+            double thresholdInCelsius = toCelsius(criteria.getDewPointThreshold(), criteria.getTemperatureUnit());
+            return compare(weatherData.getDewPoint(), thresholdInCelsius, criteria.getDewPointDirection());
+        }
+    }
+
     private static final class LegacyPrecipitationRule implements CriteriaRule {
         @Override
         public boolean applies(AlertCriteria criteria) {
@@ -280,6 +319,33 @@ public class AlertCriteriaRuleEvaluator {
                 case AMOUNT -> precipitationAmount(weatherData);
             };
             return measuredValue != null && measuredValue >= criteria.getRainThreshold();
+        }
+    }
+
+    private static final class WindGustThresholdRule implements CriteriaRule {
+        @Override
+        public boolean applies(AlertCriteria criteria) {
+            return criteria.getWindGustThreshold() != null;
+        }
+
+        @Override
+        public boolean matches(AlertCriteria criteria, WeatherData weatherData) {
+            return weatherData.getWindGust() != null && weatherData.getWindGust() > criteria.getWindGustThreshold();
+        }
+    }
+
+    private static final class SkyCoverThresholdRule implements CriteriaRule {
+        @Override
+        public boolean applies(AlertCriteria criteria) {
+            return criteria.getSkyCoverThreshold() != null && criteria.getSkyCoverDirection() != null;
+        }
+
+        @Override
+        public boolean matches(AlertCriteria criteria, WeatherData weatherData) {
+            return compare(
+                    weatherData.getSkyCover(),
+                    criteria.getSkyCoverThreshold(),
+                    criteria.getSkyCoverDirection());
         }
     }
 
@@ -314,5 +380,23 @@ public class AlertCriteriaRuleEvaluator {
             return false;
         }
         return text.toLowerCase(Locale.ROOT).contains(value.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean compare(Double measuredValue, Double threshold, AlertCriteria.ComparisonDirection direction) {
+        if (measuredValue == null || threshold == null || direction == null) {
+            return false;
+        }
+        return switch (direction) {
+            case ABOVE -> measuredValue > threshold;
+            case BELOW -> measuredValue < threshold;
+        };
+    }
+
+    private static double toCelsius(double threshold, AlertCriteria.TemperatureUnit unit) {
+        AlertCriteria.TemperatureUnit effectiveUnit = unit == null ? AlertCriteria.TemperatureUnit.F : unit;
+        if (effectiveUnit == AlertCriteria.TemperatureUnit.C) {
+            return threshold;
+        }
+        return (threshold - 32.0) * 5.0 / 9.0;
     }
 }

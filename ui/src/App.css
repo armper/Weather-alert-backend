@@ -825,6 +825,74 @@ button:disabled {
   min-width: 0;
 }
 
+.rules-page-stack {
+  position: relative;
+}
+
+.rules-fieldset-reset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.rules-page-stack.is-saving .panel {
+  filter: saturate(0.85) blur(1px);
+}
+
+.rules-busy-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(235, 244, 250, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.rules-busy-card {
+  min-width: min(24rem, 100%);
+  max-width: 30rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  padding: 1.2rem 1.35rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(29, 106, 144, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 45px rgba(11, 31, 44, 0.14);
+  text-align: center;
+}
+
+.rules-busy-spinner {
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 999px;
+  border: 3px solid rgba(29, 106, 144, 0.14);
+  border-top-color: var(--accent-700);
+  animation: rulesSpin 0.9s linear infinite;
+}
+
+.rules-busy-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.rules-busy-copy {
+  margin: 0;
+  max-width: 22rem;
+}
+
+@keyframes rulesSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .page-grid {
   display: grid;
   gap: 1rem;
@@ -1018,6 +1086,14 @@ button:disabled {
   margin: 0.1rem 0 0;
 }
 
+.rule-mode-note {
+  margin: -0.2rem 0 0.1rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(29, 106, 144, 0.12);
+  background: rgba(233, 244, 250, 0.72);
+}
+
 .criteria-card p {
   margin: 0;
   color: var(--text-secondary);
@@ -1066,6 +1142,26 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.alert-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 106, 144, 0.14);
+  background: rgba(242, 248, 252, 0.95);
+  color: var(--text-secondary);
+  font-size: 0.77rem;
+  white-space: nowrap;
 }
 
 .alert-row-actions {
@@ -1640,5 +1736,14 @@ button:disabled {
 
   .button-row {
     flex-direction: column;
+  }
+
+  .alert-row {
+    align-items: flex-start;
+  }
+
+  .alert-row-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }

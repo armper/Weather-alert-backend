@@ -61,6 +61,18 @@ public class AlertEntity {
     @Column(name = "condition_temperature_c")
     private Double conditionTemperatureC;
 
+    @Column(name = "condition_humidity")
+    private Double conditionHumidity;
+
+    @Column(name = "condition_dew_point_c")
+    private Double conditionDewPointC;
+
+    @Column(name = "condition_wind_gust")
+    private Double conditionWindGust;
+
+    @Column(name = "condition_sky_cover")
+    private Double conditionSkyCover;
+
     @Column(name = "condition_precipitation_probability")
     private Double conditionPrecipitationProbability;
 

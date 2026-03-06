@@ -3,7 +3,18 @@ export const DEFAULT_LAT = '28.5383'
 export const DEFAULT_LON = '-81.3792'
 
 export type NoticeKind = 'success' | 'error' | 'info'
-export type RuleType = 'TEMP_BELOW' | 'TEMP_ABOVE' | 'WIND' | 'RAIN'
+export type RuleType =
+  | 'TEMP_BELOW'
+  | 'TEMP_ABOVE'
+  | 'WIND'
+  | 'RAIN'
+  | 'HUMIDITY_ABOVE'
+  | 'HUMIDITY_BELOW'
+  | 'DEW_POINT_ABOVE'
+  | 'DEW_POINT_BELOW'
+  | 'WIND_GUST'
+  | 'SKY_COVER_ABOVE'
+  | 'SKY_COVER_BELOW'
 
 export interface NoticeState {
   kind: NoticeKind

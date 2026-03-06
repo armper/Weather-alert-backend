@@ -141,6 +141,9 @@ public class WeatherDataController {
                 .precipitationProbability(data.getPrecipitationProbability())
                 .precipitationAmount(data.getPrecipitationAmount())
                 .humidity(data.getHumidity())
+                .dewPoint(data.getDewPoint())
+                .windGust(data.getWindGust())
+                .skyCover(data.getSkyCover())
                 .timestamp(data.getTimestamp() != null ? data.getTimestamp().toString() : null)
                 .build();
     }

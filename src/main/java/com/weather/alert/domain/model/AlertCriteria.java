@@ -16,6 +16,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "Stored user alert criteria")
 public class AlertCriteria {
+    public enum ComparisonDirection {
+        BELOW,
+        ABOVE
+    }
+
     public enum TemperatureDirection {
         BELOW,
         ABOVE
@@ -81,6 +86,27 @@ public class AlertCriteria {
 
     @Schema(allowableValues = {"PROBABILITY", "AMOUNT"}, example = "PROBABILITY")
     private RainThresholdType rainThresholdType;
+
+    @Schema(description = "Relative humidity threshold percentage", example = "85")
+    private Double humidityThreshold;
+
+    @Schema(allowableValues = {"BELOW", "ABOVE"}, example = "ABOVE")
+    private ComparisonDirection humidityDirection;
+
+    @Schema(description = "Dew point threshold value", example = "70")
+    private Double dewPointThreshold;
+
+    @Schema(allowableValues = {"BELOW", "ABOVE"}, example = "ABOVE")
+    private ComparisonDirection dewPointDirection;
+
+    @Schema(description = "Wind gust threshold in km/h", example = "60")
+    private Double windGustThreshold;
+
+    @Schema(description = "Sky cover threshold percentage", example = "90")
+    private Double skyCoverThreshold;
+
+    @Schema(allowableValues = {"BELOW", "ABOVE"}, example = "ABOVE")
+    private ComparisonDirection skyCoverDirection;
 
     @Schema(description = "Evaluate current weather conditions", example = "true")
     private Boolean monitorCurrent;

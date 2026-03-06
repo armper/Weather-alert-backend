@@ -68,6 +68,30 @@ public class AlertCriteriaEntity {
     @Column(name = "rain_threshold_type")
     private AlertCriteria.RainThresholdType rainThresholdType;
 
+    @Column(name = "humidity_threshold")
+    private Double humidityThreshold;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "humidity_direction")
+    private AlertCriteria.ComparisonDirection humidityDirection;
+
+    @Column(name = "dew_point_threshold")
+    private Double dewPointThreshold;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "dew_point_direction")
+    private AlertCriteria.ComparisonDirection dewPointDirection;
+
+    @Column(name = "wind_gust_threshold")
+    private Double windGustThreshold;
+
+    @Column(name = "sky_cover_threshold")
+    private Double skyCoverThreshold;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sky_cover_direction")
+    private AlertCriteria.ComparisonDirection skyCoverDirection;
+
     @Column(name = "monitor_current")
     private Boolean monitorCurrent;
 

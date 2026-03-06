@@ -59,6 +59,18 @@ public class AlertResponse {
     @Schema(example = "13.4")
     private Double conditionTemperatureC;
 
+    @Schema(example = "82")
+    private Double conditionHumidity;
+
+    @Schema(example = "20.1")
+    private Double conditionDewPointC;
+
+    @Schema(example = "67")
+    private Double conditionWindGust;
+
+    @Schema(example = "95")
+    private Double conditionSkyCover;
+
     @Schema(example = "65")
     private Double conditionPrecipitationProbability;
 

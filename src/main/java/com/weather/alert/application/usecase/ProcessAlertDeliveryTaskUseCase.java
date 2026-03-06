@@ -271,6 +271,9 @@ public class ProcessAlertDeliveryTaskUseCase {
         if (criteria.getMaxWindSpeed() != null) {
             conditions.add("wind speed is above %s km/h".formatted(formatNumber(criteria.getMaxWindSpeed())));
         }
+        if (criteria.getWindGustThreshold() != null) {
+            conditions.add("wind gust is above %s km/h".formatted(formatNumber(criteria.getWindGustThreshold())));
+        }
         if (criteria.getRainThreshold() != null && criteria.getRainThresholdType() != null) {
             if (criteria.getRainThresholdType() == AlertCriteria.RainThresholdType.PROBABILITY) {
                 conditions.add("rain chance is at or above %s%%".formatted(formatNumber(criteria.getRainThreshold())));
@@ -280,6 +283,19 @@ public class ProcessAlertDeliveryTaskUseCase {
         }
         if (criteria.getMaxPrecipitation() != null) {
             conditions.add("rain amount is above %s mm/h".formatted(formatNumber(criteria.getMaxPrecipitation())));
+        }
+        if (criteria.getHumidityThreshold() != null && criteria.getHumidityDirection() != null) {
+            conditions.add("humidity is %s %s%%"
+                    .formatted(directionText(criteria.getHumidityDirection()), formatNumber(criteria.getHumidityThreshold())));
+        }
+        if (criteria.getDewPointThreshold() != null && criteria.getDewPointDirection() != null) {
+            String unit = criteria.getTemperatureUnit() == null ? "F" : criteria.getTemperatureUnit().name();
+            conditions.add("dew point is %s %s %s"
+                    .formatted(directionText(criteria.getDewPointDirection()), formatNumber(criteria.getDewPointThreshold()), unit));
+        }
+        if (criteria.getSkyCoverThreshold() != null && criteria.getSkyCoverDirection() != null) {
+            conditions.add("sky cover is %s %s%%"
+                    .formatted(directionText(criteria.getSkyCoverDirection()), formatNumber(criteria.getSkyCoverThreshold())));
         }
 
         if (conditions.isEmpty()) {
@@ -305,6 +321,24 @@ public class ProcessAlertDeliveryTaskUseCase {
             String unit = criteria != null && criteria.getTemperatureUnit() == AlertCriteria.TemperatureUnit.C ? "C" : "F";
             double value = unit.equals("C") ? alert.getConditionTemperatureC() : celsiusToFahrenheit(alert.getConditionTemperatureC());
             readings.add("temperature " + formatNumberRounded(value) + " " + unit);
+        }
+
+        if ((criteria == null || hasHumidityRule(criteria)) && alert.getConditionHumidity() != null) {
+            readings.add("humidity " + formatNumberRounded(alert.getConditionHumidity()) + "%");
+        }
+
+        if ((criteria == null || hasDewPointRule(criteria)) && alert.getConditionDewPointC() != null) {
+            String unit = criteria != null && criteria.getTemperatureUnit() == AlertCriteria.TemperatureUnit.C ? "C" : "F";
+            double value = unit.equals("C") ? alert.getConditionDewPointC() : celsiusToFahrenheit(alert.getConditionDewPointC());
+            readings.add("dew point " + formatNumberRounded(value) + " " + unit);
+        }
+
+        if ((criteria == null || hasWindGustRule(criteria)) && alert.getConditionWindGust() != null) {
+            readings.add("wind gust " + formatNumberRounded(alert.getConditionWindGust()) + " km/h");
+        }
+
+        if ((criteria == null || hasSkyCoverRule(criteria)) && alert.getConditionSkyCover() != null) {
+            readings.add("sky cover " + formatNumberRounded(alert.getConditionSkyCover()) + "%");
         }
 
         boolean includeRainProbability = criteria == null || usesRainProbabilityRule(criteria);
@@ -333,6 +367,22 @@ public class ProcessAlertDeliveryTaskUseCase {
         boolean thresholdMode = criteria.getTemperatureThreshold() != null && criteria.getTemperatureDirection() != null;
         boolean legacyMode = criteria.getMinTemperature() != null || criteria.getMaxTemperature() != null;
         return thresholdMode || legacyMode;
+    }
+
+    private boolean hasHumidityRule(AlertCriteria criteria) {
+        return criteria != null && criteria.getHumidityThreshold() != null && criteria.getHumidityDirection() != null;
+    }
+
+    private boolean hasDewPointRule(AlertCriteria criteria) {
+        return criteria != null && criteria.getDewPointThreshold() != null && criteria.getDewPointDirection() != null;
+    }
+
+    private boolean hasWindGustRule(AlertCriteria criteria) {
+        return criteria != null && criteria.getWindGustThreshold() != null;
+    }
+
+    private boolean hasSkyCoverRule(AlertCriteria criteria) {
+        return criteria != null && criteria.getSkyCoverThreshold() != null && criteria.getSkyCoverDirection() != null;
     }
 
     private boolean usesRainProbabilityRule(AlertCriteria criteria) {
@@ -398,6 +448,13 @@ public class ProcessAlertDeliveryTaskUseCase {
 
     private double celsiusToFahrenheit(double value) {
         return value * 9.0 / 5.0 + 32.0;
+    }
+
+    private String directionText(AlertCriteria.ComparisonDirection direction) {
+        if (direction == null) {
+            return "at";
+        }
+        return direction == AlertCriteria.ComparisonDirection.BELOW ? "below" : "above";
     }
 
     private String truncate(String value, int maxLength) {

@@ -5,5 +5,6 @@ import lombok.Data;
 @Data
 public class NoaaPointProperties {
     private String forecastHourly;
+    private String forecastGridData;
     private String observationStations;
 }

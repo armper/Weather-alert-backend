@@ -90,6 +90,7 @@ class NoaaWeatherAdapterTest {
     @Test
     void shouldFetchForecastConditionsWithinWindowAndNormalize() {
         String forecastHourlyUrl = server.url("/gridpoints/MLB/26,68/forecast/hourly").toString();
+        String forecastGridUrl = server.url("/gridpoints/MLB/26,68").toString();
         Instant now = Instant.now();
         Instant inOneHour = now.plus(1, ChronoUnit.HOURS);
         Instant inTwoHours = now.plus(2, ChronoUnit.HOURS);
@@ -100,10 +101,11 @@ class NoaaWeatherAdapterTest {
                 {
                   "properties": {
                     "forecastHourly": "%s",
+                    "forecastGridData": "%s",
                     "observationStations": "%s"
                   }
                 }
-                """.formatted(forecastHourlyUrl, server.url("/gridpoints/MLB/26,68/stations"))));
+                """.formatted(forecastHourlyUrl, forecastGridUrl, server.url("/gridpoints/MLB/26,68/stations"))));
 
         server.enqueue(jsonResponse("""
                 {
@@ -135,6 +137,43 @@ class NoaaWeatherAdapterTest {
                 }
                 """.formatted(inOneHour, inTwoHours, inSeventyHours, inSeventyOneHours)));
 
+        server.enqueue(jsonResponse("""
+                {
+                  "properties": {
+                    "relativeHumidity": {
+                      "uom": "wmoUnit:percent",
+                      "values": [
+                        {"validTime":"%s/PT1H","value":72}
+                      ]
+                    },
+                    "dewpoint": {
+                      "uom": "wmoUnit:degC",
+                      "values": [
+                        {"validTime":"%s/PT1H","value":18}
+                      ]
+                    },
+                    "windGust": {
+                      "uom": "wmoUnit:km_h-1",
+                      "values": [
+                        {"validTime":"%s/PT1H","value":42}
+                      ]
+                    },
+                    "skyCover": {
+                      "uom": "wmoUnit:percent",
+                      "values": [
+                        {"validTime":"%s/PT1H","value":88}
+                      ]
+                    },
+                    "quantitativePrecipitation": {
+                      "uom": "wmoUnit:mm",
+                      "values": [
+                        {"validTime":"%s/PT1H","value":1.5}
+                      ]
+                    }
+                  }
+                }
+                """.formatted(inOneHour, inOneHour, inOneHour, inOneHour, inOneHour)));
+
         NoaaWeatherAdapter adapter = newAdapter(server.url("/").toString(), 2, 0, 100);
         List<WeatherData> forecast = adapter.fetchForecastConditions(28.5383, -81.3792, 48);
 
@@ -146,6 +185,10 @@ class NoaaWeatherAdapterTest {
         assertEquals(40.0, period.getPrecipitationProbability(), 0.01);
         assertEquals(40.0, period.getPrecipitation(), 0.01);
         assertEquals(70.0, period.getHumidity(), 0.01);
+        assertEquals(18.0, period.getDewPoint(), 0.01);
+        assertEquals(42.0, period.getWindGust(), 0.01);
+        assertEquals(88.0, period.getSkyCover(), 0.01);
+        assertEquals(1.5, period.getPrecipitationAmount(), 0.01);
     }
 
     @Test

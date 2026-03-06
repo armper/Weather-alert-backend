@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -188,19 +189,33 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
         }
         NoaaPointProperties pointProperties = pointPropertiesResult.payload();
         if (pointProperties == null || pointProperties.getForecastHourly() == null) {
-            return WeatherFetchResult.success(List.of());
+            if (pointProperties == null || pointProperties.getForecastGridData() == null) {
+                return WeatherFetchResult.success(List.of());
+            }
         }
 
-        RequestResult<NoaaForecastHourlyResponse> forecastResult = requestWithFallback(
-                "hourly_forecast",
-                () -> noaaWebClient.get()
-                        .uri(pointProperties.getForecastHourly())
-                        .retrieve()
-                        .bodyToMono(NoaaForecastHourlyResponse.class));
-        if (!forecastResult.successful()) {
-            return WeatherFetchResult.failure(List.of(), forecastResult.failureReason());
+        RequestResult<NoaaForecastHourlyResponse> forecastResult =
+                fetchHourlyForecast(pointProperties.getForecastHourly());
+        RequestResult<NoaaGridpointForecastResponse> gridForecastResult =
+                fetchGridForecast(pointProperties.getForecastGridData());
+
+        boolean hourlySuccessful = forecastResult.successful();
+        boolean gridSuccessful = gridForecastResult.successful();
+        if (!hourlySuccessful && !gridSuccessful) {
+            String reason = joinFailureReasons(forecastResult.failureReason(), gridForecastResult.failureReason());
+            return WeatherFetchResult.failure(List.of(), reason);
         }
-        return WeatherFetchResult.success(mapForecastToWeatherData(forecastResult.payload(), latitude, longitude, normalizedHours));
+
+        List<WeatherData> forecastData = hourlySuccessful
+                ? mapForecastToWeatherData(forecastResult.payload(), latitude, longitude, normalizedHours)
+                : List.of();
+        if (!forecastData.isEmpty() && gridSuccessful) {
+            enrichForecastWithGridData(forecastData, gridForecastResult.payload());
+        }
+        if (forecastData.isEmpty() && gridSuccessful) {
+            forecastData = mapGridForecastToWeatherData(gridForecastResult.payload(), latitude, longitude, normalizedHours);
+        }
+        return WeatherFetchResult.success(forecastData);
     }
 
     private RequestResult<NoaaPointProperties> fetchPointProperties(double latitude, double longitude) {
@@ -233,6 +248,30 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                             .findFirst()
                             .orElse(null);
                 });
+    }
+
+    private RequestResult<NoaaForecastHourlyResponse> fetchHourlyForecast(String forecastHourlyUrl) {
+        if (forecastHourlyUrl == null || forecastHourlyUrl.isBlank()) {
+            return RequestResult.success(null);
+        }
+        return requestWithFallback(
+                "hourly_forecast",
+                () -> noaaWebClient.get()
+                        .uri(forecastHourlyUrl)
+                        .retrieve()
+                        .bodyToMono(NoaaForecastHourlyResponse.class));
+    }
+
+    private RequestResult<NoaaGridpointForecastResponse> fetchGridForecast(String forecastGridDataUrl) {
+        if (forecastGridDataUrl == null || forecastGridDataUrl.isBlank()) {
+            return RequestResult.success(null);
+        }
+        return requestWithFallback(
+                "forecast_grid_data",
+                () -> noaaWebClient.get()
+                        .uri(forecastGridDataUrl)
+                        .retrieve()
+                        .bodyToMono(NoaaGridpointForecastResponse.class));
     }
 
     private List<WeatherData> mapToAlertWeatherData(List<NoaaAlertFeature> features) {
@@ -350,6 +389,79 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
         return results;
     }
 
+    private void enrichForecastWithGridData(List<WeatherData> forecastData, NoaaGridpointForecastResponse gridResponse) {
+        if (forecastData == null || forecastData.isEmpty() || gridResponse == null || gridResponse.getProperties() == null) {
+            return;
+        }
+        NoaaGridpointProperties properties = gridResponse.getProperties();
+        for (WeatherData weatherData : forecastData) {
+            Instant onset = weatherData.getOnset();
+            if (onset == null) {
+                continue;
+            }
+            if (weatherData.getHumidity() == null) {
+                weatherData.setHumidity(extractGridValue(properties.getRelativeHumidity(), onset));
+            }
+            weatherData.setDewPoint(extractGridCelsius(properties.getDewpoint(), onset));
+            if (weatherData.getWindSpeed() == null) {
+                weatherData.setWindSpeed(extractGridWindKmh(properties.getWindSpeed(), onset));
+            }
+            weatherData.setWindGust(extractGridWindKmh(properties.getWindGust(), onset));
+            weatherData.setSkyCover(extractGridValue(properties.getSkyCover(), onset));
+            if (weatherData.getPrecipitationProbability() == null) {
+                weatherData.setPrecipitationProbability(extractGridValue(properties.getProbabilityOfPrecipitation(), onset));
+            }
+            weatherData.setPrecipitationAmount(extractGridMillimeters(properties.getQuantitativePrecipitation(), onset));
+            if (weatherData.getPrecipitation() == null) {
+                weatherData.setPrecipitation(weatherData.getPrecipitationProbability());
+            }
+        }
+    }
+
+    private List<WeatherData> mapGridForecastToWeatherData(
+            NoaaGridpointForecastResponse response,
+            double latitude,
+            double longitude,
+            int forecastWindowHours) {
+        if (response == null || response.getProperties() == null) {
+            return List.of();
+        }
+        NoaaGridpointProperties properties = response.getProperties();
+        TreeMap<Instant, Instant> slots = buildGridSlots(properties, forecastWindowHours);
+        if (slots.isEmpty()) {
+            return List.of();
+        }
+
+        List<WeatherData> results = new ArrayList<>();
+        for (var slot : slots.entrySet()) {
+            Instant onset = slot.getKey();
+            WeatherData weatherData = WeatherData.builder()
+                    .id("forecast-grid-" + latitude + "-" + longitude + "-" + onset.toEpochMilli())
+                    .location(String.format(Locale.US, "lat=%.4f,lon=%.4f", latitude, longitude))
+                    .latitude(latitude)
+                    .longitude(longitude)
+                    .eventType("FORECAST_CONDITIONS")
+                    .headline("NOAA forecast grid conditions")
+                    .description("Forecast grid data derived from NOAA forecastGridData")
+                    .status("FORECAST")
+                    .onset(onset)
+                    .expires(slot.getValue())
+                    .temperature(null)
+                    .humidity(extractGridValue(properties.getRelativeHumidity(), onset))
+                    .dewPoint(extractGridCelsius(properties.getDewpoint(), onset))
+                    .windSpeed(extractGridWindKmh(properties.getWindSpeed(), onset))
+                    .windGust(extractGridWindKmh(properties.getWindGust(), onset))
+                    .skyCover(extractGridValue(properties.getSkyCover(), onset))
+                    .precipitationProbability(extractGridValue(properties.getProbabilityOfPrecipitation(), onset))
+                    .precipitationAmount(extractGridMillimeters(properties.getQuantitativePrecipitation(), onset))
+                    .timestamp(Instant.now())
+                    .build();
+            weatherData.setPrecipitation(weatherData.getPrecipitationProbability());
+            results.add(weatherData);
+        }
+        return results;
+    }
+
     private Double extractCelsius(NoaaQuantitativeValue value) {
         if (value == null) {
             return null;
@@ -373,6 +485,108 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
 
     private Double extractValue(NoaaQuantitativeValue value) {
         return value == null ? null : value.getValue();
+    }
+
+    private Double extractGridValue(NoaaGridValueSeries series, Instant onset) {
+        GridValueInterval interval = findGridInterval(series, onset);
+        return interval == null ? null : interval.value();
+    }
+
+    private Double extractGridCelsius(NoaaGridValueSeries series, Instant onset) {
+        GridValueInterval interval = findGridInterval(series, onset);
+        if (interval == null) {
+            return null;
+        }
+        return NoaaUnitConversionUtils.toCelsius(interval.value(), series.getUom());
+    }
+
+    private Double extractGridWindKmh(NoaaGridValueSeries series, Instant onset) {
+        GridValueInterval interval = findGridInterval(series, onset);
+        if (interval == null) {
+            return null;
+        }
+        return NoaaUnitConversionUtils.toKilometersPerHour(interval.value(), series.getUom());
+    }
+
+    private Double extractGridMillimeters(NoaaGridValueSeries series, Instant onset) {
+        GridValueInterval interval = findGridInterval(series, onset);
+        if (interval == null) {
+            return null;
+        }
+        return NoaaUnitConversionUtils.toMillimeters(interval.value(), series.getUom());
+    }
+
+    private GridValueInterval findGridInterval(NoaaGridValueSeries series, Instant onset) {
+        if (series == null || series.getValues() == null || onset == null) {
+            return null;
+        }
+        for (NoaaGridValueEntry value : series.getValues()) {
+            GridValueInterval interval = parseGridInterval(value);
+            if (interval == null) {
+                continue;
+            }
+            if (!onset.isBefore(interval.start()) && onset.isBefore(interval.end())) {
+                return interval;
+            }
+        }
+        return null;
+    }
+
+    private TreeMap<Instant, Instant> buildGridSlots(NoaaGridpointProperties properties, int forecastWindowHours) {
+        TreeMap<Instant, Instant> slots = new TreeMap<>();
+        Instant cutoff = Instant.now().plus(Duration.ofHours(forecastWindowHours));
+        collectGridSlots(slots, properties == null ? null : properties.getRelativeHumidity(), cutoff);
+        collectGridSlots(slots, properties == null ? null : properties.getDewpoint(), cutoff);
+        collectGridSlots(slots, properties == null ? null : properties.getWindSpeed(), cutoff);
+        collectGridSlots(slots, properties == null ? null : properties.getWindGust(), cutoff);
+        collectGridSlots(slots, properties == null ? null : properties.getSkyCover(), cutoff);
+        collectGridSlots(slots, properties == null ? null : properties.getProbabilityOfPrecipitation(), cutoff);
+        collectGridSlots(slots, properties == null ? null : properties.getQuantitativePrecipitation(), cutoff);
+        return slots;
+    }
+
+    private void collectGridSlots(TreeMap<Instant, Instant> slots, NoaaGridValueSeries series, Instant cutoff) {
+        if (series == null || series.getValues() == null) {
+            return;
+        }
+        for (NoaaGridValueEntry value : series.getValues()) {
+            GridValueInterval interval = parseGridInterval(value);
+            if (interval == null || interval.start().isAfter(cutoff)) {
+                continue;
+            }
+            slots.merge(interval.start(), interval.end(), (current, candidate) -> candidate.isAfter(current) ? candidate : current);
+        }
+    }
+
+    private GridValueInterval parseGridInterval(NoaaGridValueEntry value) {
+        if (value == null || value.getValidTime() == null || value.getValidTime().isBlank() || value.getValue() == null) {
+            return null;
+        }
+        String[] parts = value.getValidTime().split("/", 2);
+        if (parts.length != 2) {
+            return null;
+        }
+        Instant start = parseInstantSafely(parts[0]);
+        if (start == null) {
+            return null;
+        }
+        try {
+            Duration duration = Duration.parse(parts[1]);
+            return new GridValueInterval(start, start.plus(duration), value.getValue());
+        } catch (Exception ex) {
+            log.warn("Unable to parse NOAA validTime duration: {}", value.getValidTime());
+            return null;
+        }
+    }
+
+    private String joinFailureReasons(String first, String second) {
+        if (first == null || first.isBlank()) {
+            return second;
+        }
+        if (second == null || second.isBlank()) {
+            return first;
+        }
+        return first + "; " + second;
     }
 
     private Instant parseInstantSafely(String value) {
@@ -485,5 +699,8 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             }
             return RequestResult.success(mapper.apply(payload));
         }
+    }
+
+    private record GridValueInterval(Instant start, Instant end, Double value) {
     }
 }

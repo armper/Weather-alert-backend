@@ -145,4 +145,40 @@ class CreateAlertCriteriaRequestValidationTest {
         Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
         assertFalse(violations.isEmpty());
     }
+
+    @Test
+    void shouldFailWhenHumidityThresholdProvidedWithoutDirection() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .humidityThreshold(85.0)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenDewPointThresholdProvidedWithoutDirection() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .dewPointThreshold(70.0)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenSkyCoverThresholdProvidedWithoutDirection() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .skyCoverThreshold(90.0)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
 }

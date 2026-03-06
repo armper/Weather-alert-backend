@@ -94,6 +94,26 @@ class ApiIntegrationContractTest {
 
         when(weatherDataPort.fetchCurrentConditions(anyDouble(), anyDouble()))
                 .thenReturn(Optional.of(sampleWeatherData("weather-current-1")));
+
+        when(weatherDataPort.fetchForecastConditions(anyDouble(), anyDouble(), anyInt()))
+                .thenReturn(List.of(WeatherData.builder()
+                        .id("weather-forecast-1")
+                        .location("Orlando")
+                        .eventType("FORECAST_CONDITIONS")
+                        .headline("Cloudy and humid")
+                        .description("Forecast grid data enriched period")
+                        .temperature(16.0)
+                        .humidity(86.0)
+                        .dewPoint(19.0)
+                        .windSpeed(24.0)
+                        .windGust(51.0)
+                        .skyCover(94.0)
+                        .precipitationProbability(65.0)
+                        .precipitationAmount(2.5)
+                        .onset(Instant.parse("2026-03-06T15:00:00Z"))
+                        .expires(Instant.parse("2026-03-06T16:00:00Z"))
+                        .timestamp(Instant.parse("2026-03-06T14:00:00Z"))
+                        .build()));
     }
 
     @Test
@@ -187,6 +207,27 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("id", equalTo("weather-current-1"))
                 .body("location", equalTo("Orlando"));
+    }
+
+    @Test
+    void shouldReturnForecastConditionsWithAdvancedFieldsAndOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("latitude", 28.5383)
+                .queryParam("longitude", -81.3792)
+                .queryParam("hours", 48)
+                .filter(openApiValidationFilter)
+                .when()
+                .get("/api/weather/conditions/forecast")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("[0].id", equalTo("weather-forecast-1"))
+                .body("[0].dewPoint", equalTo(19.0f))
+                .body("[0].windGust", equalTo(51.0f))
+                .body("[0].skyCover", equalTo(94.0f))
+                .body("[0].humidity", equalTo(86.0f));
     }
 
     @Test

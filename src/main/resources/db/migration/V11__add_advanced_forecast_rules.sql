@@ -1,0 +1,14 @@
+ALTER TABLE alert_criteria
+    ADD COLUMN IF NOT EXISTS humidity_threshold DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS humidity_direction VARCHAR(16),
+    ADD COLUMN IF NOT EXISTS dew_point_threshold DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS dew_point_direction VARCHAR(16),
+    ADD COLUMN IF NOT EXISTS wind_gust_threshold DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS sky_cover_threshold DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS sky_cover_direction VARCHAR(16);
+
+ALTER TABLE alerts
+    ADD COLUMN IF NOT EXISTS condition_humidity DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS condition_dew_point_c DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS condition_wind_gust DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS condition_sky_cover DOUBLE PRECISION;

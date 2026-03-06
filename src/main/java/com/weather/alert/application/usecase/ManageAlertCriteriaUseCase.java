@@ -65,6 +65,13 @@ public class ManageAlertCriteriaUseCase {
                 .temperatureDirection(request.getTemperatureDirection())
                 .rainThreshold(request.getRainThreshold())
                 .rainThresholdType(request.getRainThresholdType())
+                .humidityThreshold(request.getHumidityThreshold())
+                .humidityDirection(request.getHumidityDirection())
+                .dewPointThreshold(request.getDewPointThreshold())
+                .dewPointDirection(request.getDewPointDirection())
+                .windGustThreshold(request.getWindGustThreshold())
+                .skyCoverThreshold(request.getSkyCoverThreshold())
+                .skyCoverDirection(request.getSkyCoverDirection())
                 .monitorCurrent(defaultMonitorCurrent(request.getMonitorCurrent()))
                 .monitorForecast(defaultMonitorForecast(request.getMonitorForecast()))
                 .forecastWindowHours(defaultForecastWindowHours(request.getForecastWindowHours()))
@@ -109,6 +116,13 @@ public class ManageAlertCriteriaUseCase {
                     existing.setTemperatureDirection(request.getTemperatureDirection());
                     existing.setRainThreshold(request.getRainThreshold());
                     existing.setRainThresholdType(request.getRainThresholdType());
+                    existing.setHumidityThreshold(request.getHumidityThreshold());
+                    existing.setHumidityDirection(request.getHumidityDirection());
+                    existing.setDewPointThreshold(request.getDewPointThreshold());
+                    existing.setDewPointDirection(request.getDewPointDirection());
+                    existing.setWindGustThreshold(request.getWindGustThreshold());
+                    existing.setSkyCoverThreshold(request.getSkyCoverThreshold());
+                    existing.setSkyCoverDirection(request.getSkyCoverDirection());
                     existing.setMonitorCurrent(defaultMonitorCurrent(request.getMonitorCurrent()));
                     existing.setMonitorForecast(defaultMonitorForecast(request.getMonitorForecast()));
                     existing.setForecastWindowHours(defaultForecastWindowHours(request.getForecastWindowHours()));
@@ -370,6 +384,9 @@ public class ManageAlertCriteriaUseCase {
         if (criteria.getMaxWindSpeed() != null) {
             conditions.add("wind speed is above %s km/h".formatted(formatNumber(criteria.getMaxWindSpeed())));
         }
+        if (criteria.getWindGustThreshold() != null) {
+            conditions.add("wind gust is above %s km/h".formatted(formatNumber(criteria.getWindGustThreshold())));
+        }
         if (criteria.getRainThreshold() != null && criteria.getRainThresholdType() != null) {
             if (criteria.getRainThresholdType() == AlertCriteria.RainThresholdType.PROBABILITY) {
                 conditions.add("rain chance is at or above %s%%".formatted(formatNumber(criteria.getRainThreshold())));
@@ -379,6 +396,19 @@ public class ManageAlertCriteriaUseCase {
         }
         if (criteria.getMaxPrecipitation() != null) {
             conditions.add("rain amount is above %s mm/h".formatted(formatNumber(criteria.getMaxPrecipitation())));
+        }
+        if (criteria.getHumidityThreshold() != null && criteria.getHumidityDirection() != null) {
+            conditions.add("humidity is %s %s%%"
+                    .formatted(directionText(criteria.getHumidityDirection()), formatNumber(criteria.getHumidityThreshold())));
+        }
+        if (criteria.getDewPointThreshold() != null && criteria.getDewPointDirection() != null) {
+            String unit = criteria.getTemperatureUnit() == null ? "F" : criteria.getTemperatureUnit().name();
+            conditions.add("dew point is %s %s %s"
+                    .formatted(directionText(criteria.getDewPointDirection()), formatNumber(criteria.getDewPointThreshold()), unit));
+        }
+        if (criteria.getSkyCoverThreshold() != null && criteria.getSkyCoverDirection() != null) {
+            conditions.add("sky cover is %s %s%%"
+                    .formatted(directionText(criteria.getSkyCoverDirection()), formatNumber(criteria.getSkyCoverThreshold())));
         }
 
         if (conditions.isEmpty()) {
@@ -404,5 +434,12 @@ public class ManageAlertCriteriaUseCase {
             return formatNumber(criteria.getLatitude()) + ", " + formatNumber(criteria.getLongitude());
         }
         return "your selected area";
+    }
+
+    private String directionText(AlertCriteria.ComparisonDirection direction) {
+        if (direction == null) {
+            return "at";
+        }
+        return direction == AlertCriteria.ComparisonDirection.BELOW ? "below" : "above";
     }
 }

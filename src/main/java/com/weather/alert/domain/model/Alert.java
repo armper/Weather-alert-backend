@@ -30,6 +30,10 @@ public class Alert {
     private Instant conditionOnset;
     private Instant conditionExpires;
     private Double conditionTemperatureC;
+    private Double conditionHumidity;
+    private Double conditionDewPointC;
+    private Double conditionWindGust;
+    private Double conditionSkyCover;
     private Double conditionPrecipitationProbability;
     private Double conditionPrecipitationAmount;
     private Instant alertTime;

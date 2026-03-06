@@ -1,4 +1,5 @@
 export type TemperatureDirection = 'ABOVE' | 'BELOW'
+export type ComparisonDirection = 'ABOVE' | 'BELOW'
 export type TemperatureUnit = 'F' | 'C'
 export type RainThresholdType = 'PROBABILITY' | 'AMOUNT'
 export type AlertStatus = 'PENDING' | 'SENT' | 'ACKNOWLEDGED' | 'EXPIRED'
@@ -89,6 +90,13 @@ export interface AlertCriteria {
   maxPrecipitation?: number
   rainThreshold?: number
   rainThresholdType?: RainThresholdType
+  humidityThreshold?: number
+  humidityDirection?: ComparisonDirection
+  dewPointThreshold?: number
+  dewPointDirection?: ComparisonDirection
+  windGustThreshold?: number
+  skyCoverThreshold?: number
+  skyCoverDirection?: ComparisonDirection
   monitorCurrent?: boolean
   monitorForecast?: boolean
   forecastWindowHours?: number
@@ -114,6 +122,10 @@ export interface AlertEvent {
   conditionTemperatureC?: number
   conditionPrecipitationProbability?: number
   conditionPrecipitationAmount?: number
+  conditionHumidity?: number
+  conditionDewPointC?: number
+  conditionWindGust?: number
+  conditionSkyCover?: number
   alertTime?: string
   status?: AlertStatus
   sentAt?: string
@@ -132,6 +144,9 @@ export interface WeatherCondition {
   precipitationProbability?: number
   precipitationAmount?: number
   humidity?: number
+  dewPoint?: number
+  windGust?: number
+  skyCover?: number
   timestamp?: string
 }
 

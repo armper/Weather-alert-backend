@@ -37,6 +37,13 @@ export function formatWind(kmh?: number): string {
   return `${formatNumber(kmh)} km/h`
 }
 
+export function formatMillimeters(mm?: number): string {
+  if (mm === undefined || mm === null || Number.isNaN(mm)) {
+    return '--'
+  }
+  return `${formatNumber(mm)} mm`
+}
+
 export function formatPercent(value?: number): string {
   if (value === undefined || value === null || Number.isNaN(value)) {
     return '--'
@@ -49,6 +56,10 @@ export function formatPercentOrNA(value?: number): string {
     return 'N/A'
   }
   return `${formatNumber(value)}%`
+}
+
+export function formatMetricLabel(label: string, value: string): string {
+  return `${label}: ${value}`
 }
 
 export function formatRelativeTime(value?: string): string {

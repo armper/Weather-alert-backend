@@ -97,6 +97,32 @@ public class CreateAlertCriteriaRequest {
     @Schema(description = "Rain threshold mode", example = "PROBABILITY")
     private AlertCriteria.RainThresholdType rainThresholdType;
 
+    @DecimalMin(value = "0.0", message = "humidityThreshold must be >= 0")
+    @DecimalMax(value = "100.0", message = "humidityThreshold must be <= 100")
+    @Schema(description = "Relative humidity threshold percentage", example = "85")
+    private Double humidityThreshold;
+
+    @Schema(description = "Direction for humidity threshold", example = "ABOVE")
+    private AlertCriteria.ComparisonDirection humidityDirection;
+
+    @Schema(description = "Dew point threshold value; uses temperatureUnit", example = "70")
+    private Double dewPointThreshold;
+
+    @Schema(description = "Direction for dew point threshold", example = "ABOVE")
+    private AlertCriteria.ComparisonDirection dewPointDirection;
+
+    @DecimalMin(value = "0.0", message = "windGustThreshold must be >= 0")
+    @Schema(description = "Trigger when wind gust is above this threshold (km/h)", example = "60")
+    private Double windGustThreshold;
+
+    @DecimalMin(value = "0.0", message = "skyCoverThreshold must be >= 0")
+    @DecimalMax(value = "100.0", message = "skyCoverThreshold must be <= 100")
+    @Schema(description = "Sky cover threshold percentage", example = "90")
+    private Double skyCoverThreshold;
+
+    @Schema(description = "Direction for sky cover threshold", example = "ABOVE")
+    private AlertCriteria.ComparisonDirection skyCoverDirection;
+
     @Schema(description = "Evaluate current weather conditions", example = "true")
     private Boolean monitorCurrent;
 
@@ -134,6 +160,24 @@ public class CreateAlertCriteriaRequest {
                 || (rainThreshold != null && rainThresholdType != null);
     }
 
+    @AssertTrue(message = "humidityThreshold and humidityDirection must be provided together")
+    public boolean isHumidityThresholdPairValid() {
+        return (humidityThreshold == null && humidityDirection == null)
+                || (humidityThreshold != null && humidityDirection != null);
+    }
+
+    @AssertTrue(message = "dewPointThreshold and dewPointDirection must be provided together")
+    public boolean isDewPointThresholdPairValid() {
+        return (dewPointThreshold == null && dewPointDirection == null)
+                || (dewPointThreshold != null && dewPointDirection != null);
+    }
+
+    @AssertTrue(message = "skyCoverThreshold and skyCoverDirection must be provided together")
+    public boolean isSkyCoverThresholdPairValid() {
+        return (skyCoverThreshold == null && skyCoverDirection == null)
+                || (skyCoverThreshold != null && skyCoverDirection != null);
+    }
+
     @AssertTrue(message = "At least one monitoring mode must be enabled")
     public boolean isMonitoringModeValid() {
         if (monitorCurrent == null && monitorForecast == null) {
@@ -155,7 +199,12 @@ public class CreateAlertCriteriaRequest {
 
     @AssertTrue(message = "latitude and longitude are required when using temperatureThreshold or rainThreshold")
     public boolean isCoordinatesPresentForConditionThresholds() {
-        boolean conditionThresholdConfigured = temperatureThreshold != null || rainThreshold != null;
+        boolean conditionThresholdConfigured = temperatureThreshold != null
+                || rainThreshold != null
+                || humidityThreshold != null
+                || dewPointThreshold != null
+                || windGustThreshold != null
+                || skyCoverThreshold != null;
         return !conditionThresholdConfigured || (latitude != null && longitude != null);
     }
 

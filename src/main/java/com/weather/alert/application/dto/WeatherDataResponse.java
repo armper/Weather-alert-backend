@@ -1,5 +1,6 @@
 package com.weather.alert.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "Weather alert data fetched from NOAA")
 public class WeatherDataResponse {
     @Schema(example = "NWS-IDP-PROD-1234567")
@@ -53,6 +55,15 @@ public class WeatherDataResponse {
 
     @Schema(description = "Relative humidity percentage", example = "24.0")
     private Double humidity;
+
+    @Schema(description = "Dew point in Celsius", example = "18.5")
+    private Double dewPoint;
+
+    @Schema(description = "Wind gust in km/h", example = "42.0")
+    private Double windGust;
+
+    @Schema(description = "Sky cover percentage", example = "90.0")
+    private Double skyCover;
 
     @Schema(example = "2026-02-24T19:10:00Z")
     private String timestamp;

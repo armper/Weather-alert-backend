@@ -191,4 +191,64 @@ class AlertCriteriaRuleEvaluatorTest {
 
         assertFalse(evaluator.matches(criteria, weatherData));
     }
+
+    @Test
+    void shouldMatchHumidityAboveThreshold() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .humidityThreshold(80.0)
+                .humidityDirection(AlertCriteria.ComparisonDirection.ABOVE)
+                .build();
+
+        WeatherData forecast = WeatherData.builder()
+                .humidity(91.0)
+                .build();
+
+        assertTrue(evaluator.matches(criteria, forecast));
+    }
+
+    @Test
+    void shouldMatchDewPointThresholdUsingConfiguredTemperatureUnit() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .dewPointThreshold(68.0)
+                .dewPointDirection(AlertCriteria.ComparisonDirection.ABOVE)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .build();
+
+        WeatherData forecast = WeatherData.builder()
+                .dewPoint(21.0)
+                .build();
+
+        assertTrue(evaluator.matches(criteria, forecast));
+    }
+
+    @Test
+    void shouldMatchWindGustThreshold() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .windGustThreshold(50.0)
+                .build();
+
+        WeatherData forecast = WeatherData.builder()
+                .windGust(62.0)
+                .build();
+
+        assertTrue(evaluator.matches(criteria, forecast));
+    }
+
+    @Test
+    void shouldMatchSkyCoverBelowThreshold() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .skyCoverThreshold(30.0)
+                .skyCoverDirection(AlertCriteria.ComparisonDirection.BELOW)
+                .build();
+
+        WeatherData forecast = WeatherData.builder()
+                .skyCover(18.0)
+                .build();
+
+        assertTrue(evaluator.matches(criteria, forecast));
+    }
 }

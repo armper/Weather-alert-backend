@@ -1,5 +1,14 @@
 import type { AlertEvent } from '../../../types'
-import { formatDate, formatRelativeTime, formatStatusLabel } from '../../../lib/formatting'
+import {
+  formatDate,
+  formatMetricLabel,
+  formatMillimeters,
+  formatPercent,
+  formatRelativeTime,
+  formatStatusLabel,
+  formatTemperature,
+  formatWind,
+} from '../../../lib/formatting'
 import { AriaButton } from '../../ui/AriaButton'
 
 interface AlertRowProps {
@@ -20,6 +29,23 @@ export function AlertRow({ alert, busy, duplicateCount = 1, onAcknowledge }: Ale
   const status = (alert.status ?? 'PENDING').toLowerCase()
   const statusLabel = formatStatusLabel(alert.status ?? 'PENDING')
   const icon = STATUS_ICON[status] ?? '•'
+  const metrics = [
+    alert.conditionTemperatureC != null
+      ? formatMetricLabel('Temp', formatTemperature(alert.conditionTemperatureC, 'F'))
+      : null,
+    alert.conditionHumidity != null ? formatMetricLabel('Humidity', formatPercent(alert.conditionHumidity)) : null,
+    alert.conditionDewPointC != null
+      ? formatMetricLabel('Dew point', formatTemperature(alert.conditionDewPointC, 'F'))
+      : null,
+    alert.conditionWindGust != null ? formatMetricLabel('Gust', formatWind(alert.conditionWindGust)) : null,
+    alert.conditionSkyCover != null ? formatMetricLabel('Sky', formatPercent(alert.conditionSkyCover)) : null,
+    alert.conditionPrecipitationProbability != null
+      ? formatMetricLabel('Rain', formatPercent(alert.conditionPrecipitationProbability))
+      : null,
+    alert.conditionPrecipitationAmount != null
+      ? formatMetricLabel('Accum.', formatMillimeters(alert.conditionPrecipitationAmount))
+      : null,
+  ].filter((value): value is string => Boolean(value))
 
   return (
     <article className="alert-row">
@@ -32,6 +58,15 @@ export function AlertRow({ alert, busy, duplicateCount = 1, onAcknowledge }: Ale
         <p className="muted small" title={formatDate(alert.alertTime)}>
           {formatRelativeTime(alert.alertTime)}
         </p>
+        {metrics.length > 0 ? (
+          <div className="alert-metrics">
+            {metrics.map((metric) => (
+              <span key={metric} className="metric-pill">
+                {metric}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="alert-row-actions">
         <span className={`delivery-indicator status-${status}`} title={statusLabel}>
