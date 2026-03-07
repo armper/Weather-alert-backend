@@ -1,18 +1,21 @@
 package com.weather.alert.infrastructure.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ApiRateLimitingFilterTest {
 
     @Test
     void shouldReturnTooManyRequestsWhenLimitExceeded() throws Exception {
-        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, false);
+        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, false, new ObjectMapper());
 
         MockHttpServletRequest firstRequest = new MockHttpServletRequest("GET", "/api/weather/active");
         firstRequest.setRemoteAddr("10.0.0.1");
@@ -26,11 +29,14 @@ class ApiRateLimitingFilterTest {
 
         assertNotEquals(429, firstResponse.getStatus());
         assertEquals(429, secondResponse.getStatus());
+        assertEquals(MediaType.APPLICATION_PROBLEM_JSON_VALUE, secondResponse.getContentType());
+        assertEquals("60", secondResponse.getHeader("Retry-After"));
+        assertTrue(secondResponse.getContentAsString().contains("\"errorCode\":\"RATE_LIMIT_EXCEEDED\""));
     }
 
     @Test
     void shouldBypassRateLimitForNonApiPath() throws Exception {
-        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, false);
+        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, false, new ObjectMapper());
 
         MockHttpServletRequest firstRequest = new MockHttpServletRequest("GET", "/actuator/health");
         firstRequest.setRemoteAddr("10.0.0.1");
@@ -48,7 +54,7 @@ class ApiRateLimitingFilterTest {
 
     @Test
     void shouldUseForwardedForWhenPresent() throws Exception {
-        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, true);
+        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, true, new ObjectMapper());
 
         MockHttpServletRequest firstRequest = new MockHttpServletRequest("GET", "/api/weather/active");
         firstRequest.setRemoteAddr("10.0.0.1");
