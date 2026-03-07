@@ -36,6 +36,13 @@ public class AlertCriteria {
         C
     }
 
+    public enum FloodCategory {
+        ACTION,
+        MINOR,
+        MODERATE,
+        MAJOR
+    }
+
     @Schema(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6")
     private String id;
 
@@ -107,6 +114,18 @@ public class AlertCriteria {
 
     @Schema(allowableValues = {"BELOW", "ABOVE"}, example = "ABOVE")
     private ComparisonDirection skyCoverDirection;
+
+    @Schema(description = "Optional NWPS gauge identifier (LID or USGS ID)", example = "ABNG1")
+    private String riverGaugeId;
+
+    @Schema(description = "River stage threshold used for observed/forecast river alerts", example = "18")
+    private Double riverStageThreshold;
+
+    @Schema(allowableValues = {"BELOW", "ABOVE"}, example = "ABOVE")
+    private ComparisonDirection riverStageDirection;
+
+    @Schema(allowableValues = {"ACTION", "MINOR", "MODERATE", "MAJOR"}, example = "MINOR")
+    private FloodCategory riverFloodCategoryThreshold;
 
     @Schema(description = "Evaluate current weather conditions", example = "true")
     private Boolean monitorCurrent;

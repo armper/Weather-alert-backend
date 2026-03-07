@@ -33,6 +33,8 @@ public class AlertCriteriaRuleEvaluator {
                 new WindSpeedRule(),
                 new WindGustThresholdRule(),
                 new SkyCoverThresholdRule(),
+                new RiverStageThresholdRule(),
+                new RiverFloodCategoryRule(),
                 new LegacyPrecipitationRule(),
                 new RainThresholdRule()
         );
@@ -89,6 +91,14 @@ public class AlertCriteriaRuleEvaluator {
                 || criteria.getSkyCoverThreshold() != null
                 || criteria.getMaxPrecipitation() != null
                 || criteria.getRainThreshold() != null;
+    }
+
+    public boolean hasHydrologyConditionRules(AlertCriteria criteria) {
+        if (criteria == null) {
+            return false;
+        }
+        return criteria.getRiverStageThreshold() != null
+                || criteria.getRiverFloodCategoryThreshold() != null;
     }
 
     private interface CriteriaRule {
@@ -349,6 +359,32 @@ public class AlertCriteriaRuleEvaluator {
         }
     }
 
+    private static final class RiverStageThresholdRule implements CriteriaRule {
+        @Override
+        public boolean applies(AlertCriteria criteria) {
+            return criteria.getRiverStageThreshold() != null && criteria.getRiverStageDirection() != null;
+        }
+
+        @Override
+        public boolean matches(AlertCriteria criteria, WeatherData weatherData) {
+            Double measuredValue = riverStage(weatherData);
+            return compare(measuredValue, criteria.getRiverStageThreshold(), criteria.getRiverStageDirection());
+        }
+    }
+
+    private static final class RiverFloodCategoryRule implements CriteriaRule {
+        @Override
+        public boolean applies(AlertCriteria criteria) {
+            return criteria.getRiverFloodCategoryThreshold() != null;
+        }
+
+        @Override
+        public boolean matches(AlertCriteria criteria, WeatherData weatherData) {
+            return floodCategoryLevel(resolveRiverFloodCategory(weatherData))
+                    >= floodCategoryLevel(criteria.getRiverFloodCategoryThreshold());
+        }
+    }
+
     private static boolean hasCoordinateRadius(AlertCriteria criteria) {
         return criteria.getLatitude() != null && criteria.getLongitude() != null && criteria.getRadiusKm() != null;
     }
@@ -365,6 +401,53 @@ public class AlertCriteriaRuleEvaluator {
             return weatherData.getPrecipitationProbability();
         }
         return weatherData.getPrecipitation();
+    }
+
+    private static Double riverStage(WeatherData weatherData) {
+        if (weatherData == null) {
+            return null;
+        }
+        String eventType = weatherData.getEventType();
+        if ("RIVER_FORECAST_CONDITIONS".equalsIgnoreCase(eventType)) {
+            return weatherData.getRiverForecastStage();
+        }
+        return weatherData.getRiverObservedStage();
+    }
+
+    private static String resolveRiverFloodCategory(WeatherData weatherData) {
+        if (weatherData == null) {
+            return null;
+        }
+        String eventType = weatherData.getEventType();
+        if ("RIVER_FORECAST_CONDITIONS".equalsIgnoreCase(eventType)) {
+            return weatherData.getRiverForecastCategory();
+        }
+        return weatherData.getRiverObservedCategory();
+    }
+
+    private static int floodCategoryLevel(String category) {
+        if (!hasText(category)) {
+            return 0;
+        }
+        return switch (category.toLowerCase(Locale.ROOT)) {
+            case "major" -> 4;
+            case "moderate" -> 3;
+            case "minor" -> 2;
+            case "action" -> 1;
+            default -> 0;
+        };
+    }
+
+    private static int floodCategoryLevel(AlertCriteria.FloodCategory category) {
+        if (category == null) {
+            return 0;
+        }
+        return switch (category) {
+            case ACTION -> 1;
+            case MINOR -> 2;
+            case MODERATE -> 3;
+            case MAJOR -> 4;
+        };
     }
 
     private static boolean hasText(String value) {

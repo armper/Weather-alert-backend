@@ -2,7 +2,7 @@
 
 Feature ideas grounded in NOAA's published API capabilities and adjacent NOAA data services.
 
-1. **Richer threshold alerts from `forecastGridData`**
+1. ~~**Richer threshold alerts from `forecastGridData`**~~
    Use NOAA's raw grid forecast, not just hourly summary, to add rules like humidity, dew point, wind gust, sky cover, heat-risk proxies, snowfall/ice proxies, and better rain accumulation logic.
    Source:
    - https://www.weather.gov/documentation/services-web-api
@@ -57,7 +57,7 @@ Feature ideas grounded in NOAA's published API capabilities and adjacent NOAA da
 
 ## Best Next 3 From NOAA
 
-1. **`forecastGridData`-based advanced rules**
+1. ~~**`forecastGridData`-based advanced rules**~~
 2. **7-day alert history plus CAP-enriched alert timelines**
 3. **NWPS flood and river integration**
 

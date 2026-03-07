@@ -77,6 +77,30 @@ public class AlertResponse {
     @Schema(example = "1.8")
     private Double conditionPrecipitationAmount;
 
+    @Schema(example = "ABNG1")
+    private String conditionRiverGaugeId;
+
+    @Schema(example = "16.8")
+    private Double conditionRiverObservedStage;
+
+    @Schema(example = "18.2")
+    private Double conditionRiverForecastStage;
+
+    @Schema(example = "17.0")
+    private Double conditionRiverFloodStage;
+
+    @Schema(example = "14.0")
+    private Double conditionRiverActionStage;
+
+    @Schema(example = "minor")
+    private String conditionRiverObservedCategory;
+
+    @Schema(example = "moderate")
+    private String conditionRiverForecastCategory;
+
+    @Schema(example = "ft")
+    private String conditionRiverStageUnit;
+
     @Schema(example = "2026-02-24T18:05:00Z")
     private Instant alertTime;
 

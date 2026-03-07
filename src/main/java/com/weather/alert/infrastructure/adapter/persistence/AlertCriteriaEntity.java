@@ -92,6 +92,20 @@ public class AlertCriteriaEntity {
     @Column(name = "sky_cover_direction")
     private AlertCriteria.ComparisonDirection skyCoverDirection;
 
+    @Column(name = "river_gauge_id")
+    private String riverGaugeId;
+
+    @Column(name = "river_stage_threshold")
+    private Double riverStageThreshold;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "river_stage_direction")
+    private AlertCriteria.ComparisonDirection riverStageDirection;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "river_flood_category_threshold")
+    private AlertCriteria.FloodCategory riverFloodCategoryThreshold;
+
     @Column(name = "monitor_current")
     private Boolean monitorCurrent;
 

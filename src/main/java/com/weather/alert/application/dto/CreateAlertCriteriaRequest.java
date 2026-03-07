@@ -123,6 +123,19 @@ public class CreateAlertCriteriaRequest {
     @Schema(description = "Direction for sky cover threshold", example = "ABOVE")
     private AlertCriteria.ComparisonDirection skyCoverDirection;
 
+    @Schema(description = "Optional NWPS gauge identifier (LID or USGS ID)", example = "ABNG1")
+    private String riverGaugeId;
+
+    @DecimalMin(value = "0.0", message = "riverStageThreshold must be >= 0")
+    @Schema(description = "River stage threshold in the gauge's NWPS stage units", example = "18")
+    private Double riverStageThreshold;
+
+    @Schema(description = "Direction for river stage threshold", example = "ABOVE")
+    private AlertCriteria.ComparisonDirection riverStageDirection;
+
+    @Schema(description = "Minimum official NWPS flood category", example = "MINOR")
+    private AlertCriteria.FloodCategory riverFloodCategoryThreshold;
+
     @Schema(description = "Evaluate current weather conditions", example = "true")
     private Boolean monitorCurrent;
 
@@ -178,6 +191,12 @@ public class CreateAlertCriteriaRequest {
                 || (skyCoverThreshold != null && skyCoverDirection != null);
     }
 
+    @AssertTrue(message = "riverStageThreshold and riverStageDirection must be provided together")
+    public boolean isRiverStageThresholdPairValid() {
+        return (riverStageThreshold == null && riverStageDirection == null)
+                || (riverStageThreshold != null && riverStageDirection != null);
+    }
+
     @AssertTrue(message = "At least one monitoring mode must be enabled")
     public boolean isMonitoringModeValid() {
         if (monitorCurrent == null && monitorForecast == null) {
@@ -197,15 +216,20 @@ public class CreateAlertCriteriaRequest {
         return radiusKm == null || (latitude != null && longitude != null);
     }
 
-    @AssertTrue(message = "latitude and longitude are required when using temperatureThreshold or rainThreshold")
+    @AssertTrue(message = "latitude/longitude or riverGaugeId are required when using condition thresholds")
     public boolean isCoordinatesPresentForConditionThresholds() {
-        boolean conditionThresholdConfigured = temperatureThreshold != null
+        boolean weatherThresholdConfigured = temperatureThreshold != null
                 || rainThreshold != null
                 || humidityThreshold != null
                 || dewPointThreshold != null
                 || windGustThreshold != null
                 || skyCoverThreshold != null;
-        return !conditionThresholdConfigured || (latitude != null && longitude != null);
+        boolean hydrologyThresholdConfigured = riverStageThreshold != null
+                || riverFloodCategoryThreshold != null;
+        boolean hasCoordinates = latitude != null && longitude != null;
+        boolean hasGaugeId = riverGaugeId != null && !riverGaugeId.isBlank();
+        return (!weatherThresholdConfigured || hasCoordinates)
+                && (!hydrologyThresholdConfigured || hasCoordinates || hasGaugeId);
     }
 
     @AssertTrue(message = "forecastWindowHours can only be set when monitorForecast is enabled")

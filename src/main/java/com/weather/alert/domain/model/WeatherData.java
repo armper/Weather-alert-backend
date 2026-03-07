@@ -39,5 +39,14 @@ public class WeatherData {
     private Double dewPoint;
     private Double windGust;
     private Double skyCover;
+    private String riverGaugeId;
+    private Double riverObservedStage;
+    private Double riverForecastStage;
+    private Double riverFloodStage;
+    private Double riverActionStage;
+    private String riverObservedCategory;
+    private String riverForecastCategory;
+    private String riverStageUnit;
+    private Double riverDistanceKm;
     private Instant timestamp;
 }

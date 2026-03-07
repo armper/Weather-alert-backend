@@ -1,6 +1,7 @@
 package com.weather.alert.integration;
 
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
+import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.NotificationPort;
@@ -32,6 +33,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
@@ -113,6 +115,38 @@ class ApiIntegrationContractTest {
                         .onset(Instant.parse("2026-03-06T15:00:00Z"))
                         .expires(Instant.parse("2026-03-06T16:00:00Z"))
                         .timestamp(Instant.parse("2026-03-06T14:00:00Z"))
+                        .build()));
+
+        when(weatherDataPort.fetchHydrologyCurrentConditions(any(HydrologyQuery.class)))
+                .thenReturn(Optional.of(WeatherData.builder()
+                        .id("river-current-1")
+                        .location("Flint River (GA) at Albany, GA")
+                        .eventType("RIVER_CURRENT_CONDITIONS")
+                        .riverGaugeId("ABNG1")
+                        .riverObservedStage(26.8)
+                        .riverForecastStage(31.4)
+                        .riverFloodStage(26.0)
+                        .riverActionStage(16.0)
+                        .riverObservedCategory("minor")
+                        .riverForecastCategory("moderate")
+                        .riverStageUnit("ft")
+                        .timestamp(Instant.parse("2026-03-06T21:15:00Z"))
+                        .build()));
+
+        when(weatherDataPort.fetchHydrologyForecastConditions(any(HydrologyQuery.class)))
+                .thenReturn(Optional.of(WeatherData.builder()
+                        .id("river-forecast-1")
+                        .location("Flint River (GA) at Albany, GA")
+                        .eventType("RIVER_FORECAST_CONDITIONS")
+                        .riverGaugeId("ABNG1")
+                        .riverObservedStage(26.8)
+                        .riverForecastStage(31.4)
+                        .riverFloodStage(26.0)
+                        .riverActionStage(16.0)
+                        .riverObservedCategory("minor")
+                        .riverForecastCategory("moderate")
+                        .riverStageUnit("ft")
+                        .timestamp(Instant.parse("2026-03-07T00:00:00Z"))
                         .build()));
     }
 
@@ -228,6 +262,25 @@ class ApiIntegrationContractTest {
                 .body("[0].windGust", equalTo(51.0f))
                 .body("[0].skyCover", equalTo(94.0f))
                 .body("[0].humidity", equalTo(86.0f));
+    }
+
+    @Test
+    void shouldReturnHydrologyCurrentConditionsWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("gaugeId", "ABNG1")
+                .filter(openApiValidationFilter)
+                .when()
+                .get("/api/weather/hydrology/current")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", equalTo("river-current-1"))
+                .body("riverGaugeId", equalTo("ABNG1"))
+                .body("riverObservedStage", equalTo(26.8f))
+                .body("riverFloodStage", equalTo(26.0f))
+                .body("riverObservedCategory", equalTo("minor"));
     }
 
     @Test

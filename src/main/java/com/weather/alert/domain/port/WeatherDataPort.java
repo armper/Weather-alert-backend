@@ -1,6 +1,7 @@
 package com.weather.alert.domain.port;
 
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.model.HydrologyQuery;
 
 import java.util.List;
 import java.util.Optional;
@@ -57,5 +58,33 @@ public interface WeatherDataPort {
             double longitude,
             int forecastWindowHours) {
         return WeatherFetchResult.success(fetchForecastConditions(latitude, longitude, forecastWindowHours));
+    }
+
+    /**
+     * Fetch latest NWPS observed river conditions for a gauge or nearby coordinate.
+     */
+    default Optional<WeatherData> fetchHydrologyCurrentConditions(HydrologyQuery query) {
+        return Optional.empty();
+    }
+
+    /**
+     * Fetch latest NWPS forecast river conditions for a gauge or nearby coordinate.
+     */
+    default Optional<WeatherData> fetchHydrologyForecastConditions(HydrologyQuery query) {
+        return Optional.empty();
+    }
+
+    /**
+     * Fetch latest NWPS observed river conditions and include provider availability status.
+     */
+    default WeatherFetchResult<Optional<WeatherData>> fetchHydrologyCurrentConditionsWithStatus(HydrologyQuery query) {
+        return WeatherFetchResult.success(fetchHydrologyCurrentConditions(query));
+    }
+
+    /**
+     * Fetch latest NWPS forecast river conditions and include provider availability status.
+     */
+    default WeatherFetchResult<Optional<WeatherData>> fetchHydrologyForecastConditionsWithStatus(HydrologyQuery query) {
+        return WeatherFetchResult.success(fetchHydrologyForecastConditions(query));
     }
 }

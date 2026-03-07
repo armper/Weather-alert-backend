@@ -388,4 +388,47 @@ class AlertProcessingServiceTest {
         verify(alertRepository, never()).save(any(Alert.class));
         verify(notificationPort, never()).publishAlert(any(Alert.class));
     }
+
+    @Test
+    void shouldGenerateAlertFromRiverCurrentConditions() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .id("criteria-river-1")
+                .userId("dev-admin")
+                .enabled(true)
+                .riverGaugeId("ABNG1")
+                .riverStageThreshold(17.0)
+                .riverStageDirection(AlertCriteria.ComparisonDirection.ABOVE)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData riverCurrent = WeatherData.builder()
+                .id("river-current-1")
+                .eventType("RIVER_CURRENT_CONDITIONS")
+                .riverGaugeId("ABNG1")
+                .riverObservedStage(18.4)
+                .riverFloodStage(17.0)
+                .riverObservedCategory("minor")
+                .riverStageUnit("ft")
+                .build();
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchHydrologyCurrentConditionsWithStatus(any()))
+                .thenReturn(WeatherFetchResult.success(Optional.of(riverCurrent)));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.processWeatherAlerts();
+
+        verify(weatherDataPort, times(1)).fetchHydrologyCurrentConditionsWithStatus(any());
+        verify(alertRepository, times(1)).save(any(Alert.class));
+        verify(notificationPort, times(1)).publishAlert(any(Alert.class));
+
+        ArgumentCaptor<Alert> alertCaptor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(alertCaptor.capture());
+        assertEquals("ABNG1", alertCaptor.getValue().getConditionRiverGaugeId());
+        assertEquals(18.4, alertCaptor.getValue().getConditionRiverObservedStage());
+    }
 }

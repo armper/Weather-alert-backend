@@ -222,8 +222,18 @@ class NoaaWeatherAdapterTest {
         server.enqueue(new MockResponse().setResponseCode(500).setBody("{\"error\":\"boom\"}"));
 
         WebClient webClient = WebClient.builder().baseUrl(server.url("/").toString()).build();
+        NwpsHydrologyClient nwpsHydrologyClient = new NwpsHydrologyClient(
+                webClient,
+                new SimpleMeterRegistry(),
+                2,
+                0,
+                100,
+                0,
+                1,
+                30);
         NoaaWeatherAdapter adapter = new NoaaWeatherAdapter(
                 webClient,
+                nwpsHydrologyClient,
                 new SimpleMeterRegistry(),
                 2,
                 0,
@@ -242,8 +252,18 @@ class NoaaWeatherAdapterTest {
 
     private NoaaWeatherAdapter newAdapter(String baseUrl, long timeoutSeconds, long retries, long retryBackoffMillis) {
         WebClient webClient = WebClient.builder().baseUrl(baseUrl).build();
+        NwpsHydrologyClient nwpsHydrologyClient = new NwpsHydrologyClient(
+                webClient,
+                new SimpleMeterRegistry(),
+                timeoutSeconds,
+                retries,
+                retryBackoffMillis,
+                0,
+                1000,
+                30);
         return new NoaaWeatherAdapter(
                 webClient,
+                nwpsHydrologyClient,
                 new SimpleMeterRegistry(),
                 timeoutSeconds,
                 retries,

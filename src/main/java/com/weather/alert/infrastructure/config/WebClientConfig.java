@@ -22,4 +22,17 @@ public class WebClientConfig {
                 .exchangeStrategies(exchangeStrategies)
                 .build();
     }
+
+    @Bean
+    public WebClient nwpsWebClient(@Value("${app.nwps.max-in-memory-size:4MB}") DataSize maxInMemorySize) {
+        ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize((int) maxInMemorySize.toBytes()))
+                .build();
+
+        return WebClient.builder()
+                .baseUrl("https://api.water.noaa.gov/nwps/v1")
+                .defaultHeader("User-Agent", "Weather-Alert-Backend/1.0")
+                .exchangeStrategies(exchangeStrategies)
+                .build();
+    }
 }

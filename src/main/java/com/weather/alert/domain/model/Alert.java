@@ -36,6 +36,14 @@ public class Alert {
     private Double conditionSkyCover;
     private Double conditionPrecipitationProbability;
     private Double conditionPrecipitationAmount;
+    private String conditionRiverGaugeId;
+    private Double conditionRiverObservedStage;
+    private Double conditionRiverForecastStage;
+    private Double conditionRiverFloodStage;
+    private Double conditionRiverActionStage;
+    private String conditionRiverObservedCategory;
+    private String conditionRiverForecastCategory;
+    private String conditionRiverStageUnit;
     private Instant alertTime;
     private AlertStatus status;
     private Instant sentAt;

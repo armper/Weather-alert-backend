@@ -42,6 +42,10 @@ public class AlertCriteriaResponse {
     private Double windGustThreshold;
     private Double skyCoverThreshold;
     private AlertCriteria.ComparisonDirection skyCoverDirection;
+    private String riverGaugeId;
+    private Double riverStageThreshold;
+    private AlertCriteria.ComparisonDirection riverStageDirection;
+    private AlertCriteria.FloodCategory riverFloodCategoryThreshold;
     private Boolean monitorCurrent;
     private Boolean monitorForecast;
     private Integer forecastWindowHours;
@@ -79,6 +83,10 @@ public class AlertCriteriaResponse {
                 .windGustThreshold(criteria.getWindGustThreshold())
                 .skyCoverThreshold(criteria.getSkyCoverThreshold())
                 .skyCoverDirection(criteria.getSkyCoverDirection())
+                .riverGaugeId(criteria.getRiverGaugeId())
+                .riverStageThreshold(criteria.getRiverStageThreshold())
+                .riverStageDirection(criteria.getRiverStageDirection())
+                .riverFloodCategoryThreshold(criteria.getRiverFloodCategoryThreshold())
                 .monitorCurrent(criteria.getMonitorCurrent())
                 .monitorForecast(criteria.getMonitorForecast())
                 .forecastWindowHours(criteria.getForecastWindowHours())

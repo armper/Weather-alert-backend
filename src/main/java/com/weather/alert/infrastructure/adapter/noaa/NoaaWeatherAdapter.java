@@ -1,6 +1,7 @@
 package com.weather.alert.infrastructure.adapter.noaa;
 
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherFetchResult;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -34,6 +35,7 @@ import java.util.function.Supplier;
 public class NoaaWeatherAdapter implements WeatherDataPort {
 
     private final WebClient noaaWebClient;
+    private final NwpsHydrologyClient nwpsHydrologyClient;
     private final MeterRegistry meterRegistry;
     private final long requestTimeoutSeconds;
     private final long retryMaxAttempts;
@@ -49,6 +51,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
 
     public NoaaWeatherAdapter(
             WebClient noaaWebClient,
+            NwpsHydrologyClient nwpsHydrologyClient,
             MeterRegistry meterRegistry,
             @Value("${app.noaa.request-timeout-seconds:8}") long requestTimeoutSeconds,
             @Value("${app.noaa.retry-max-attempts:2}") long retryMaxAttempts,
@@ -57,6 +60,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             @Value("${app.noaa.outage-failure-threshold:4}") int outageFailureThreshold,
             @Value("${app.noaa.outage-open-seconds:30}") long outageOpenSeconds) {
         this.noaaWebClient = noaaWebClient;
+        this.nwpsHydrologyClient = nwpsHydrologyClient;
         this.meterRegistry = meterRegistry;
         this.requestTimeoutSeconds = Math.max(1, requestTimeoutSeconds);
         this.retryMaxAttempts = Math.max(0, retryMaxAttempts);
@@ -216,6 +220,26 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             forecastData = mapGridForecastToWeatherData(gridForecastResult.payload(), latitude, longitude, normalizedHours);
         }
         return WeatherFetchResult.success(forecastData);
+    }
+
+    @Override
+    public Optional<WeatherData> fetchHydrologyCurrentConditions(HydrologyQuery query) {
+        return nwpsHydrologyClient.fetchCurrentConditions(query);
+    }
+
+    @Override
+    public Optional<WeatherData> fetchHydrologyForecastConditions(HydrologyQuery query) {
+        return nwpsHydrologyClient.fetchForecastConditions(query);
+    }
+
+    @Override
+    public WeatherFetchResult<Optional<WeatherData>> fetchHydrologyCurrentConditionsWithStatus(HydrologyQuery query) {
+        return nwpsHydrologyClient.fetchCurrentConditionsWithStatus(query);
+    }
+
+    @Override
+    public WeatherFetchResult<Optional<WeatherData>> fetchHydrologyForecastConditionsWithStatus(HydrologyQuery query) {
+        return nwpsHydrologyClient.fetchForecastConditionsWithStatus(query);
     }
 
     private RequestResult<NoaaPointProperties> fetchPointProperties(double latitude, double longitude) {

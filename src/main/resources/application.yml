@@ -104,6 +104,14 @@ app:
     min-request-interval-millis: ${APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS:150}
     outage-failure-threshold: ${APP_NOAA_OUTAGE_FAILURE_THRESHOLD:4}
     outage-open-seconds: ${APP_NOAA_OUTAGE_OPEN_SECONDS:30}
+  nwps:
+    max-in-memory-size: ${APP_NWPS_MAX_IN_MEMORY_SIZE:4MB}
+    request-timeout-seconds: ${APP_NWPS_REQUEST_TIMEOUT_SECONDS:${APP_NOAA_REQUEST_TIMEOUT_SECONDS:8}}
+    retry-max-attempts: ${APP_NWPS_RETRY_MAX_ATTEMPTS:${APP_NOAA_RETRY_MAX_ATTEMPTS:2}}
+    retry-backoff-millis: ${APP_NWPS_RETRY_BACKOFF_MILLIS:${APP_NOAA_RETRY_BACKOFF_MILLIS:250}}
+    min-request-interval-millis: ${APP_NWPS_MIN_REQUEST_INTERVAL_MILLIS:200}
+    outage-failure-threshold: ${APP_NWPS_OUTAGE_FAILURE_THRESHOLD:4}
+    outage-open-seconds: ${APP_NWPS_OUTAGE_OPEN_SECONDS:30}
   rate-limit:
     max-requests: 120
     window-seconds: 60

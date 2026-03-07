@@ -3,6 +3,7 @@ package com.weather.alert.domain.service;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertCriteriaState;
+import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
@@ -76,6 +77,8 @@ public class AlertProcessingService {
 
             HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache = new HashMap<>();
             HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache = new HashMap<>();
+            HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyCurrentCache = new HashMap<>();
+            HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyForecastCache = new HashMap<>();
 
             List<List<AlertCriteria>> batches = partition(allCriteria, CRITERIA_BATCH_SIZE);
             for (int i = 0; i < batches.size(); i++) {
@@ -91,7 +94,9 @@ public class AlertProcessingService {
                             activeAlertsResult.successful(),
                             activeAlertsResult.failureReason(),
                             currentConditionsCache,
-                            forecastConditionsCache);
+                            forecastConditionsCache,
+                            hydrologyCurrentCache,
+                            hydrologyForecastCache);
 
                     switch (evaluation.status()) {
                         case MET -> {
@@ -149,6 +154,8 @@ public class AlertProcessingService {
 
         HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache = new HashMap<>();
         HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache = new HashMap<>();
+        HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyCurrentCache = new HashMap<>();
+        HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyForecastCache = new HashMap<>();
 
         CriteriaEvaluation evaluation = evaluateCriteria(
                 criteria,
@@ -156,7 +163,9 @@ public class AlertProcessingService {
                 activeAlertsResult.successful(),
                 activeAlertsResult.failureReason(),
                 currentConditionsCache,
-                forecastConditionsCache);
+                forecastConditionsCache,
+                hydrologyCurrentCache,
+                hydrologyForecastCache);
         List<Alert> generatedAlerts = applyStateAndMaybeNotify(criteria, evaluation, true);
 
         log.info("Immediate evaluation generated {} alerts for criteria {}", generatedAlerts.size(), criteria.getId());
@@ -187,7 +196,9 @@ public class AlertProcessingService {
             boolean activeAlertsSuccessful,
             String activeAlertsFailureReason,
             HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache,
-            HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache) {
+            HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache,
+            HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyCurrentCache,
+            HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyForecastCache) {
         if (criteria == null || !Boolean.TRUE.equals(criteria.getEnabled())) {
             return CriteriaEvaluation.notMet("criteria disabled");
         }
@@ -199,17 +210,18 @@ public class AlertProcessingService {
             return CriteriaEvaluation.met(activeAlertMatch.get(), "active alert match");
         }
 
-        boolean hasConditionRules = criteriaRuleEvaluator.hasWeatherConditionRules(criteria);
-        if (!hasConditionRules) {
+        boolean hasWeatherConditionRules = criteriaRuleEvaluator.hasWeatherConditionRules(criteria);
+        boolean hasHydrologyConditionRules = criteriaRuleEvaluator.hasHydrologyConditionRules(criteria);
+        if (!hasWeatherConditionRules && !hasHydrologyConditionRules) {
             if (!activeAlertsSuccessful) {
                 return CriteriaEvaluation.unavailable("active alerts unavailable: " + safeValue(activeAlertsFailureReason));
             }
             return CriteriaEvaluation.notMet("no active alert match");
         }
 
-        if (criteria.getLatitude() == null || criteria.getLongitude() == null) {
+        if (hasWeatherConditionRules && (criteria.getLatitude() == null || criteria.getLongitude() == null)) {
             log.debug("Skipping condition evaluation for criteria {}: missing latitude/longitude", criteria.getId());
-            return CriteriaEvaluation.notMet("condition rules configured without coordinates");
+            return CriteriaEvaluation.notMet("weather condition rules configured without coordinates");
         }
 
         List<String> unavailableReasons = new ArrayList<>();
@@ -217,7 +229,7 @@ public class AlertProcessingService {
             unavailableReasons.add("active alerts unavailable");
         }
 
-        if (shouldMonitorCurrent(criteria)) {
+        if (hasWeatherConditionRules && shouldMonitorCurrent(criteria)) {
             CoordinateKey key = new CoordinateKey(criteria.getLatitude(), criteria.getLongitude());
             WeatherFetchResult<Optional<WeatherData>> currentResult = currentConditionsCache.computeIfAbsent(
                     key,
@@ -233,7 +245,7 @@ public class AlertProcessingService {
             }
         }
 
-        if (shouldMonitorForecast(criteria)) {
+        if (hasWeatherConditionRules && shouldMonitorForecast(criteria)) {
             int forecastWindowHours = normalizeForecastWindowHours(criteria.getForecastWindowHours());
             ForecastKey key = new ForecastKey(criteria.getLatitude(), criteria.getLongitude(), forecastWindowHours);
             WeatherFetchResult<List<WeatherData>> forecastResult = forecastConditionsCache.computeIfAbsent(
@@ -253,6 +265,53 @@ public class AlertProcessingService {
                         .findFirst();
                 if (forecastMatch.isPresent()) {
                     return CriteriaEvaluation.met(forecastMatch.get(), "forecast match");
+                }
+            }
+        }
+
+        if (hasHydrologyConditionRules) {
+            HydrologyQuery hydrologyQuery = buildHydrologyQuery(criteria);
+            if (hydrologyQuery == null) {
+                return CriteriaEvaluation.notMet("hydrology rules configured without coordinates or gauge");
+            }
+
+            HydrologyKey hydrologyKey = new HydrologyKey(
+                    hydrologyQuery.getGaugeId(),
+                    hydrologyQuery.getLatitude(),
+                    hydrologyQuery.getLongitude(),
+                    hydrologyQuery.getSearchRadiusKm());
+
+            if (shouldMonitorCurrent(criteria)) {
+                WeatherFetchResult<Optional<WeatherData>> hydrologyCurrentResult = hydrologyCurrentCache.computeIfAbsent(
+                        hydrologyKey,
+                        key -> weatherDataPort.fetchHydrologyCurrentConditionsWithStatus(hydrologyQuery));
+                if (!hydrologyCurrentResult.successful()) {
+                    unavailableReasons.add("hydrology current unavailable: " + safeValue(hydrologyCurrentResult.failureReason()));
+                } else {
+                    Optional<WeatherData> currentRiver = hydrologyCurrentResult.data() == null
+                            ? Optional.empty()
+                            : hydrologyCurrentResult.data();
+                    currentRiver.ifPresent(searchPort::indexWeatherData);
+                    if (currentRiver.isPresent() && criteriaRuleEvaluator.matches(criteria, currentRiver.get())) {
+                        return CriteriaEvaluation.met(currentRiver.get(), "hydrology current match");
+                    }
+                }
+            }
+
+            if (shouldMonitorForecast(criteria)) {
+                WeatherFetchResult<Optional<WeatherData>> hydrologyForecastResult = hydrologyForecastCache.computeIfAbsent(
+                        hydrologyKey,
+                        key -> weatherDataPort.fetchHydrologyForecastConditionsWithStatus(hydrologyQuery));
+                if (!hydrologyForecastResult.successful()) {
+                    unavailableReasons.add("hydrology forecast unavailable: " + safeValue(hydrologyForecastResult.failureReason()));
+                } else {
+                    Optional<WeatherData> forecastRiver = hydrologyForecastResult.data() == null
+                            ? Optional.empty()
+                            : hydrologyForecastResult.data();
+                    forecastRiver.ifPresent(searchPort::indexWeatherData);
+                    if (forecastRiver.isPresent() && criteriaRuleEvaluator.matches(criteria, forecastRiver.get())) {
+                        return CriteriaEvaluation.met(forecastRiver.get(), "hydrology forecast match");
+                    }
                 }
             }
         }
@@ -408,6 +467,23 @@ public class AlertProcessingService {
         return Math.max(1, Math.min(value, 168));
     }
 
+    private HydrologyQuery buildHydrologyQuery(AlertCriteria criteria) {
+        if (criteria == null) {
+            return null;
+        }
+        boolean hasGauge = criteria.getRiverGaugeId() != null && !criteria.getRiverGaugeId().isBlank();
+        boolean hasCoordinates = criteria.getLatitude() != null && criteria.getLongitude() != null;
+        if (!hasGauge && !hasCoordinates) {
+            return null;
+        }
+        return HydrologyQuery.builder()
+                .gaugeId(criteria.getRiverGaugeId())
+                .latitude(criteria.getLatitude())
+                .longitude(criteria.getLongitude())
+                .searchRadiusKm(criteria.getRadiusKm())
+                .build();
+    }
+
     private Alert createAlert(AlertCriteria criteria, WeatherData weatherData) {
         Instant now = Instant.now();
         String eventKey = buildEventKey(criteria, weatherData, now);
@@ -433,6 +509,14 @@ public class AlertProcessingService {
                 .conditionSkyCover(weatherData.getSkyCover())
                 .conditionPrecipitationProbability(weatherData.getPrecipitationProbability())
                 .conditionPrecipitationAmount(weatherData.getPrecipitationAmount())
+                .conditionRiverGaugeId(weatherData.getRiverGaugeId())
+                .conditionRiverObservedStage(weatherData.getRiverObservedStage())
+                .conditionRiverForecastStage(weatherData.getRiverForecastStage())
+                .conditionRiverFloodStage(weatherData.getRiverFloodStage())
+                .conditionRiverActionStage(weatherData.getRiverActionStage())
+                .conditionRiverObservedCategory(weatherData.getRiverObservedCategory())
+                .conditionRiverForecastCategory(weatherData.getRiverForecastCategory())
+                .conditionRiverStageUnit(weatherData.getRiverStageUnit())
                 .alertTime(now)
                 .status(Alert.AlertStatus.PENDING)
                 .build();
@@ -533,5 +617,8 @@ public class AlertProcessingService {
     }
 
     private record ForecastKey(double latitude, double longitude, int windowHours) {
+    }
+
+    private record HydrologyKey(String gaugeId, Double latitude, Double longitude, Double searchRadiusKm) {
     }
 }

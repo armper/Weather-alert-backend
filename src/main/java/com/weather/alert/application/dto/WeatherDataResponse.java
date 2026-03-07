@@ -65,6 +65,33 @@ public class WeatherDataResponse {
     @Schema(description = "Sky cover percentage", example = "90.0")
     private Double skyCover;
 
+    @Schema(description = "NWPS gauge identifier", example = "ABNG1")
+    private String riverGaugeId;
+
+    @Schema(description = "Latest observed river stage", example = "17.2")
+    private Double riverObservedStage;
+
+    @Schema(description = "Latest forecast river stage", example = "18.6")
+    private Double riverForecastStage;
+
+    @Schema(description = "Official flood stage threshold", example = "17.0")
+    private Double riverFloodStage;
+
+    @Schema(description = "Official action stage threshold", example = "14.0")
+    private Double riverActionStage;
+
+    @Schema(description = "NWPS observed flood category", example = "minor")
+    private String riverObservedCategory;
+
+    @Schema(description = "NWPS forecast flood category", example = "moderate")
+    private String riverForecastCategory;
+
+    @Schema(description = "NWPS stage unit", example = "ft")
+    private String riverStageUnit;
+
+    @Schema(description = "Distance from requested point to resolved gauge in kilometers", example = "12.4")
+    private Double riverDistanceKm;
+
     @Schema(example = "2026-02-24T19:10:00Z")
     private String timestamp;
 }

@@ -72,6 +72,10 @@ public class ManageAlertCriteriaUseCase {
                 .windGustThreshold(request.getWindGustThreshold())
                 .skyCoverThreshold(request.getSkyCoverThreshold())
                 .skyCoverDirection(request.getSkyCoverDirection())
+                .riverGaugeId(normalizeGaugeId(request.getRiverGaugeId()))
+                .riverStageThreshold(request.getRiverStageThreshold())
+                .riverStageDirection(request.getRiverStageDirection())
+                .riverFloodCategoryThreshold(request.getRiverFloodCategoryThreshold())
                 .monitorCurrent(defaultMonitorCurrent(request.getMonitorCurrent()))
                 .monitorForecast(defaultMonitorForecast(request.getMonitorForecast()))
                 .forecastWindowHours(defaultForecastWindowHours(request.getForecastWindowHours()))
@@ -123,6 +127,10 @@ public class ManageAlertCriteriaUseCase {
                     existing.setWindGustThreshold(request.getWindGustThreshold());
                     existing.setSkyCoverThreshold(request.getSkyCoverThreshold());
                     existing.setSkyCoverDirection(request.getSkyCoverDirection());
+                    existing.setRiverGaugeId(normalizeGaugeId(request.getRiverGaugeId()));
+                    existing.setRiverStageThreshold(request.getRiverStageThreshold());
+                    existing.setRiverStageDirection(request.getRiverStageDirection());
+                    existing.setRiverFloodCategoryThreshold(request.getRiverFloodCategoryThreshold());
                     existing.setMonitorCurrent(defaultMonitorCurrent(request.getMonitorCurrent()));
                     existing.setMonitorForecast(defaultMonitorForecast(request.getMonitorForecast()));
                     existing.setForecastWindowHours(defaultForecastWindowHours(request.getForecastWindowHours()));
@@ -149,6 +157,13 @@ public class ManageAlertCriteriaUseCase {
 
     private AlertCriteria.TemperatureUnit defaultTemperatureUnit(AlertCriteria.TemperatureUnit temperatureUnit) {
         return temperatureUnit == null ? AlertCriteria.TemperatureUnit.F : temperatureUnit;
+    }
+
+    private String normalizeGaugeId(String gaugeId) {
+        if (gaugeId == null || gaugeId.isBlank()) {
+            return null;
+        }
+        return gaugeId.trim().toUpperCase(Locale.ROOT);
     }
 
     private boolean defaultOncePerEvent(Boolean oncePerEvent) {

@@ -2,6 +2,7 @@ package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.PagedResponse;
 import com.weather.alert.application.dto.WeatherDataResponse;
+import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.WeatherDataPort;
@@ -103,6 +104,40 @@ public class WeatherDataController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/hydrology/current")
+    @Operation(summary = "Get latest NWPS observed river conditions for a gauge or nearby coordinate")
+    public ResponseEntity<WeatherDataResponse> getHydrologyCurrentConditions(
+            @Parameter(example = "28.5383") @RequestParam(required = false) Double latitude,
+            @Parameter(example = "-81.3792") @RequestParam(required = false) Double longitude,
+            @Parameter(example = "80") @RequestParam(required = false) @Min(1) @Max(500) Integer radiusKm,
+            @Parameter(example = "ABNG1") @RequestParam(required = false) String gaugeId) {
+        Optional<WeatherData> current = weatherDataPort.fetchHydrologyCurrentConditions(HydrologyQuery.builder()
+                .latitude(latitude)
+                .longitude(longitude)
+                .searchRadiusKm(radiusKm == null ? null : radiusKm.doubleValue())
+                .gaugeId(gaugeId)
+                .build());
+        return current.map(weatherData -> ResponseEntity.ok(toResponse(weatherData)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/hydrology/forecast")
+    @Operation(summary = "Get latest NWPS forecast river conditions for a gauge or nearby coordinate")
+    public ResponseEntity<WeatherDataResponse> getHydrologyForecastConditions(
+            @Parameter(example = "28.5383") @RequestParam(required = false) Double latitude,
+            @Parameter(example = "-81.3792") @RequestParam(required = false) Double longitude,
+            @Parameter(example = "80") @RequestParam(required = false) @Min(1) @Max(500) Integer radiusKm,
+            @Parameter(example = "ABNG1") @RequestParam(required = false) String gaugeId) {
+        Optional<WeatherData> forecast = weatherDataPort.fetchHydrologyForecastConditions(HydrologyQuery.builder()
+                .latitude(latitude)
+                .longitude(longitude)
+                .searchRadiusKm(radiusKm == null ? null : radiusKm.doubleValue())
+                .gaugeId(gaugeId)
+                .build());
+        return forecast.map(weatherData -> ResponseEntity.ok(toResponse(weatherData)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
     
     @GetMapping("/search/location/{location}")
     @Operation(summary = "Search indexed weather alerts by location text")
@@ -144,6 +179,15 @@ public class WeatherDataController {
                 .dewPoint(data.getDewPoint())
                 .windGust(data.getWindGust())
                 .skyCover(data.getSkyCover())
+                .riverGaugeId(data.getRiverGaugeId())
+                .riverObservedStage(data.getRiverObservedStage())
+                .riverForecastStage(data.getRiverForecastStage())
+                .riverFloodStage(data.getRiverFloodStage())
+                .riverActionStage(data.getRiverActionStage())
+                .riverObservedCategory(data.getRiverObservedCategory())
+                .riverForecastCategory(data.getRiverForecastCategory())
+                .riverStageUnit(data.getRiverStageUnit())
+                .riverDistanceKm(data.getRiverDistanceKm())
                 .timestamp(data.getTimestamp() != null ? data.getTimestamp().toString() : null)
                 .build();
     }

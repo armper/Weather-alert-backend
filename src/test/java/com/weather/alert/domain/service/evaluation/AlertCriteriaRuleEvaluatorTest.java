@@ -251,4 +251,35 @@ class AlertCriteriaRuleEvaluatorTest {
 
         assertTrue(evaluator.matches(criteria, forecast));
     }
+
+    @Test
+    void shouldMatchRiverObservedStageThreshold() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .riverStageThreshold(17.0)
+                .riverStageDirection(AlertCriteria.ComparisonDirection.ABOVE)
+                .build();
+
+        WeatherData river = WeatherData.builder()
+                .eventType("RIVER_CURRENT_CONDITIONS")
+                .riverObservedStage(18.4)
+                .build();
+
+        assertTrue(evaluator.matches(criteria, river));
+    }
+
+    @Test
+    void shouldMatchRiverFloodCategoryThresholdAgainstForecastCategory() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .enabled(true)
+                .riverFloodCategoryThreshold(AlertCriteria.FloodCategory.MINOR)
+                .build();
+
+        WeatherData river = WeatherData.builder()
+                .eventType("RIVER_FORECAST_CONDITIONS")
+                .riverForecastCategory("moderate")
+                .build();
+
+        assertTrue(evaluator.matches(criteria, river));
+    }
 }

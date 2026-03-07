@@ -78,6 +78,30 @@ public class AlertEntity {
 
     @Column(name = "condition_precipitation_amount")
     private Double conditionPrecipitationAmount;
+
+    @Column(name = "condition_river_gauge_id")
+    private String conditionRiverGaugeId;
+
+    @Column(name = "condition_river_observed_stage")
+    private Double conditionRiverObservedStage;
+
+    @Column(name = "condition_river_forecast_stage")
+    private Double conditionRiverForecastStage;
+
+    @Column(name = "condition_river_flood_stage")
+    private Double conditionRiverFloodStage;
+
+    @Column(name = "condition_river_action_stage")
+    private Double conditionRiverActionStage;
+
+    @Column(name = "condition_river_observed_category")
+    private String conditionRiverObservedCategory;
+
+    @Column(name = "condition_river_forecast_category")
+    private String conditionRiverForecastCategory;
+
+    @Column(name = "condition_river_stage_unit")
+    private String conditionRiverStageUnit;
     
     @Column(name = "alert_time")
     private Instant alertTime;

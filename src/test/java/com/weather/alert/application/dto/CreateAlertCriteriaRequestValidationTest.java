@@ -181,4 +181,39 @@ class CreateAlertCriteriaRequestValidationTest {
         Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
         assertFalse(violations.isEmpty());
     }
+
+    @Test
+    void shouldFailWhenRiverStageThresholdProvidedWithoutDirection() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .riverGaugeId("ABNG1")
+                .riverStageThreshold(18.0)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
+
+    @Test
+    void shouldPassWhenRiverThresholdUsesGaugeIdWithoutCoordinates() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .riverGaugeId("ABNG1")
+                .riverStageThreshold(18.0)
+                .riverStageDirection(AlertCriteria.ComparisonDirection.ABOVE)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertTrue(violations.isEmpty());
+    }
+
+    @Test
+    void shouldFailWhenRiverFloodCategoryThresholdHasNoGaugeOrCoordinates() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .riverFloodCategoryThreshold(AlertCriteria.FloodCategory.MINOR)
+                .build();
+
+        Set<ConstraintViolation<CreateAlertCriteriaRequest>> violations = validator.validate(request);
+        assertFalse(violations.isEmpty());
+    }
 }
