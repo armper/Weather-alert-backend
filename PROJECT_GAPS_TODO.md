@@ -73,12 +73,12 @@ Prioritized from highest value to lowest based on production risk, user-facing b
   - Implement the corresponding Spring CORS configuration if cross-origin access is required.
   - Add a deployment example for the UI.
 
-- [ ] P2: Disable Open Session in View and tighten API behavior around infrastructure concerns
+- [x] P2: Disable Open Session in View and tighten API behavior around infrastructure concerns
   Why this matters: tests show Spring is still running with `open-in-view` enabled, which can hide lazy-loading and query-boundary problems. The rate-limit filter also returns plain text instead of the structured error format used elsewhere.
   Evidence:
   - `mvn test` logs show `spring.jpa.open-in-view is enabled by default`.
   - `src/main/java/com/weather/alert/infrastructure/config/ApiRateLimitingFilter.java` returns plain text `Rate limit exceeded` instead of problem JSON.
-  TODO:
-  - Set `spring.jpa.open-in-view=false` and verify controllers don’t rely on session-bound lazy loading.
-  - Return RFC-aligned JSON error bodies for rate limiting and other infrastructure rejections.
-  - Add regression tests around error response format consistency.
+  Status:
+  - `spring.jpa.open-in-view=false` is now set in runtime and test configuration.
+  - `ApiRateLimitingFilter` now returns RFC7807-style `application/problem+json` responses and emits `Retry-After`.
+  - Regression coverage exists in `ApiRateLimitingFilterTest`; integration contract tests pass with the updated JPA/session configuration.
