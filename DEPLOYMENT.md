@@ -252,7 +252,7 @@ Cloud Run is the recommended Google Cloud target for this repository because the
 - The app contains in-process schedulers (`WeatherAlertScheduler`, `AlertDeliveryRetryScheduler`, `DataRetentionScheduler`) and Kafka consumers, so default horizontal autoscaling is unsafe today.
 - Deploy with `min-instances=1`, `max-instances=1`, and `--no-cpu-throttling` so scheduled work and Kafka polling are not paused between HTTP requests.
 - Cloud SQL works cleanly through the Cloud SQL Java connector now included in `pom.xml`.
-- Kafka and Elasticsearch still need managed external providers.
+- Kafka still needs a managed external provider.
 
 Files added for this path:
 
@@ -274,8 +274,6 @@ gcloud config set project YOUR_PROJECT_ID
 - **Cloud Run**: application runtime
 - **Cloud SQL for PostgreSQL**: primary database
 - **Managed Kafka**: Confluent Cloud, Aiven, Redpanda, or similar
-- **Managed Elasticsearch**: Elastic Cloud or similar
-
 For Cloud SQL, grant the Cloud Run runtime service account the `Cloud SQL Client` IAM role.
 
 #### 3. Fill environment variables
@@ -286,7 +284,6 @@ Required values include:
 
 - Cloud SQL connection name and database credentials
 - Kafka bootstrap servers and SASL credentials
-- Elasticsearch URL and credentials
 - `APP_SECURITY_*` usernames/passwords
 - `APP_SECURITY_JWT_SECRET` with at least 32 UTF-8 bytes
 - SMTP settings if email delivery is enabled

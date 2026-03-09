@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Port for weather data search (Elasticsearch)
+ * Port for the indexed weather-data read model.
  */
 public interface WeatherDataSearchPort {
     

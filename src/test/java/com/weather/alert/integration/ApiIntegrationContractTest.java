@@ -4,12 +4,14 @@ import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
 import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
+import com.weather.alert.domain.port.AlertDeliveryTaskPublisherPort;
 import com.weather.alert.domain.port.NotificationPort;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.domain.service.AlertProcessingService;
-import com.weather.alert.infrastructure.adapter.elasticsearch.ElasticsearchWeatherRepository;
 import com.weather.alert.infrastructure.adapter.kafka.AlertKafkaConsumer;
+import com.weather.alert.infrastructure.adapter.kafka.AlertDeliveryTaskKafkaConsumer;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,8 +50,6 @@ import static org.mockito.Mockito.when;
         "app.security.jwt.secret=test-jwt-signing-secret-with-minimum-length-123",
         "spring.task.scheduling.enabled=false",
         "spring.kafka.listener.auto-startup=false",
-        "spring.data.elasticsearch.repositories.enabled=false",
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration",
         "management.tracing.enabled=false"
 })
 class ApiIntegrationContractTest {
@@ -70,10 +70,16 @@ class ApiIntegrationContractTest {
     private NotificationPort notificationPort;
 
     @MockBean
-    private ElasticsearchWeatherRepository elasticsearchWeatherRepository;
+    private AlertKafkaConsumer alertKafkaConsumer;
 
     @MockBean
-    private AlertKafkaConsumer alertKafkaConsumer;
+    private AlertDeliveryTaskKafkaConsumer alertDeliveryTaskKafkaConsumer;
+
+    @MockBean
+    private AlertDeliveryTaskPublisherPort alertDeliveryTaskPublisherPort;
+
+    @MockBean
+    private AlertDeliveryDlqPublisherPort alertDeliveryDlqPublisherPort;
 
     private OpenApiValidationFilter openApiValidationFilter;
 

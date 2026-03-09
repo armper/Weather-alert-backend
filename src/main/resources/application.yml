@@ -35,9 +35,6 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       
-  elasticsearch:
-    uris: http://localhost:9200
-
   mail:
     host: ${SPRING_MAIL_HOST:localhost}
     port: ${SPRING_MAIL_PORT:1025}

@@ -35,7 +35,7 @@ public class WeatherDataController {
     private final WeatherDataSearchPort weatherDataSearchPort;
     
     @GetMapping("/active")
-    @Operation(summary = "Get paginated active weather alerts from Elasticsearch read model")
+    @Operation(summary = "Get paginated active weather alerts from the indexed read model")
     public ResponseEntity<PagedResponse<WeatherDataResponse>> getActiveAlerts(
             @Parameter(description = "Zero-based page index", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
             @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {

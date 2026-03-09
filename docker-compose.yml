@@ -97,28 +97,6 @@ services:
       --add-config retention.ms=604800000,cleanup.policy=delete"
     restart: "no"
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
-    container_name: weather-elasticsearch
-    restart: unless-stopped
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: "false"
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
-    ports:
-      - "9200:9200"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow\\&timeout=5s > /dev/null"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-
   mailhog:
     image: mailhog/mailhog:v1.0.1
     container_name: weather-mailhog
@@ -140,15 +118,12 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
-      elasticsearch:
-        condition: service_healthy
     env_file:
       - .env
       - .env.smtp
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_alerts
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
       LOGGING_FILE_NAME: /app/logs/weather-alert-backend.log
     ports:
       - "8088:8080"
@@ -212,5 +187,4 @@ services:
 
 volumes:
   postgres_data:
-  elasticsearch_data:
   grafana_data:

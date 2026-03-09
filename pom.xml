@@ -89,12 +89,6 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
         
-        <!-- Elasticsearch -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-        </dependency>
-        
         <!-- WebClient for API calls -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
