@@ -2,6 +2,7 @@ import type { AlertEvent } from '../../../types'
 import {
   formatDate,
   formatMetricLabel,
+  formatNumber,
   formatMillimeters,
   formatPercent,
   formatRelativeTime,
@@ -45,6 +46,22 @@ export function AlertRow({ alert, busy, duplicateCount = 1, onAcknowledge }: Ale
     alert.conditionPrecipitationAmount != null
       ? formatMetricLabel('Accum.', formatMillimeters(alert.conditionPrecipitationAmount))
       : null,
+    alert.conditionRiverGaugeId ? formatMetricLabel('Gauge', alert.conditionRiverGaugeId) : null,
+    alert.conditionRiverObservedStage != null
+      ? formatMetricLabel('Observed', formatRiverStage(alert.conditionRiverObservedStage, alert.conditionRiverStageUnit))
+      : null,
+    alert.conditionRiverForecastStage != null
+      ? formatMetricLabel('Forecast', formatRiverStage(alert.conditionRiverForecastStage, alert.conditionRiverStageUnit))
+      : null,
+    alert.conditionRiverFloodStage != null
+      ? formatMetricLabel('Flood stage', formatRiverStage(alert.conditionRiverFloodStage, alert.conditionRiverStageUnit))
+      : null,
+    alert.conditionRiverObservedCategory
+      ? formatMetricLabel('Current flood', formatRiverCategory(alert.conditionRiverObservedCategory))
+      : null,
+    alert.conditionRiverForecastCategory
+      ? formatMetricLabel('Forecast flood', formatRiverCategory(alert.conditionRiverForecastCategory))
+      : null,
   ].filter((value): value is string => Boolean(value))
 
   return (
@@ -80,4 +97,25 @@ export function AlertRow({ alert, busy, duplicateCount = 1, onAcknowledge }: Ale
       </div>
     </article>
   )
+}
+
+function formatRiverStage(stage?: number | null, unit?: string | null): string {
+  if (stage === undefined || stage === null || Number.isNaN(stage)) {
+    return '--'
+  }
+
+  return `${formatNumber(stage)} ${unit ?? 'ft'}`
+}
+
+function formatRiverCategory(category?: string | null): string {
+  if (!category) {
+    return 'Unknown'
+  }
+
+  const normalized = category.replace(/_/g, ' ').trim()
+  if (normalized.length === 0) {
+    return 'Unknown'
+  }
+
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
 }

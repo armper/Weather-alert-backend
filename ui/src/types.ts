@@ -2,6 +2,7 @@ export type TemperatureDirection = 'ABOVE' | 'BELOW'
 export type ComparisonDirection = 'ABOVE' | 'BELOW'
 export type TemperatureUnit = 'F' | 'C'
 export type RainThresholdType = 'PROBABILITY' | 'AMOUNT'
+export type FloodCategory = 'ACTION' | 'MINOR' | 'MODERATE' | 'MAJOR'
 export type AlertStatus = 'PENDING' | 'SENT' | 'ACKNOWLEDGED' | 'EXPIRED'
 export type UserApprovalStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED'
 
@@ -97,6 +98,10 @@ export interface AlertCriteria {
   windGustThreshold?: number
   skyCoverThreshold?: number
   skyCoverDirection?: ComparisonDirection
+  riverGaugeId?: string
+  riverStageThreshold?: number
+  riverStageDirection?: ComparisonDirection
+  riverFloodCategoryThreshold?: FloodCategory
   monitorCurrent?: boolean
   monitorForecast?: boolean
   forecastWindowHours?: number
@@ -126,6 +131,14 @@ export interface AlertEvent {
   conditionDewPointC?: number
   conditionWindGust?: number
   conditionSkyCover?: number
+  conditionRiverGaugeId?: string
+  conditionRiverObservedStage?: number
+  conditionRiverForecastStage?: number
+  conditionRiverFloodStage?: number
+  conditionRiverActionStage?: number
+  conditionRiverObservedCategory?: string
+  conditionRiverForecastCategory?: string
+  conditionRiverStageUnit?: string
   alertTime?: string
   status?: AlertStatus
   sentAt?: string
@@ -147,6 +160,15 @@ export interface WeatherCondition {
   dewPoint?: number
   windGust?: number
   skyCover?: number
+  riverGaugeId?: string
+  riverObservedStage?: number
+  riverForecastStage?: number
+  riverFloodStage?: number
+  riverActionStage?: number
+  riverObservedCategory?: string
+  riverForecastCategory?: string
+  riverStageUnit?: string
+  riverDistanceKm?: number
   timestamp?: string
 }
 

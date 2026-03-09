@@ -1,6 +1,9 @@
 import type { AlertCriteria, ComparisonDirection } from '../types'
 import type { CriteriaFormState, RuleType } from '../state/types'
 
+export const RIVER_STAGE_RULE_TYPES: RuleType[] = ['RIVER_STAGE_ABOVE', 'RIVER_STAGE_BELOW']
+export const RIVER_RULE_TYPES: RuleType[] = [...RIVER_STAGE_RULE_TYPES, 'RIVER_FLOOD_CATEGORY']
+
 export function defaultThreshold(ruleType: RuleType): string {
   switch (ruleType) {
     case 'TEMP_BELOW':
@@ -25,6 +28,12 @@ export function defaultThreshold(ruleType: RuleType): string {
       return '80'
     case 'SKY_COVER_BELOW':
       return '20'
+    case 'RIVER_STAGE_ABOVE':
+      return '10'
+    case 'RIVER_STAGE_BELOW':
+      return '5'
+    case 'RIVER_FLOOD_CATEGORY':
+      return ''
     default:
       return '60'
   }
@@ -37,6 +46,7 @@ export function buildCriteriaPayload(criteriaForm: CriteriaFormState, userId: st
     location: criteriaForm.location.trim(),
     latitude: Number(criteriaForm.latitude),
     longitude: Number(criteriaForm.longitude),
+    riverGaugeId: criteriaForm.riverGaugeId.trim() || undefined,
     monitorCurrent: criteriaForm.monitorCurrent,
     monitorForecast: criteriaForm.monitorForecast,
     forecastWindowHours: Number(criteriaForm.forecastWindowHours),
@@ -90,6 +100,17 @@ export function buildCriteriaPayload(criteriaForm: CriteriaFormState, userId: st
       payload.skyCoverThreshold = threshold
       payload.skyCoverDirection = 'BELOW'
       break
+    case 'RIVER_STAGE_ABOVE':
+      payload.riverStageThreshold = threshold
+      payload.riverStageDirection = 'ABOVE'
+      break
+    case 'RIVER_STAGE_BELOW':
+      payload.riverStageThreshold = threshold
+      payload.riverStageDirection = 'BELOW'
+      break
+    case 'RIVER_FLOOD_CATEGORY':
+      payload.riverFloodCategoryThreshold = criteriaForm.riverFloodCategoryThreshold
+      break
   }
 
   return payload
@@ -123,6 +144,14 @@ export function describeCriteria(criteria: AlertCriteria): string {
   }
   if (criteria.skyCoverThreshold !== undefined && criteria.skyCoverThreshold !== null && criteria.skyCoverDirection) {
     return `${formatDirectionLabel(criteria.skyCoverDirection)} sky cover ${formatNumber(criteria.skyCoverThreshold)}%`
+  }
+  if (criteria.riverStageThreshold !== undefined && criteria.riverStageThreshold !== null && criteria.riverStageDirection) {
+    const suffix = criteria.riverGaugeId ? ` at ${criteria.riverGaugeId}` : ''
+    return `River stage ${criteria.riverStageDirection.toLowerCase()} ${formatNumber(criteria.riverStageThreshold)} ft${suffix}`
+  }
+  if (criteria.riverFloodCategoryThreshold) {
+    const suffix = criteria.riverGaugeId ? ` at ${criteria.riverGaugeId}` : ''
+    return `River flood category at or above ${criteria.riverFloodCategoryThreshold.toLowerCase()}${suffix}`
   }
   return 'Custom weather condition'
 }

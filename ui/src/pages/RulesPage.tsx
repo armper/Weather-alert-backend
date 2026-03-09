@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Disclosure, DisclosurePanel } from 'react-aria-components'
 import { useLocation } from 'react-router-dom'
-import { defaultThreshold } from '../lib/criteria'
+import { apiRequest, toErrorMessage } from '../api'
+import { formatNumber } from '../lib/formatting'
+import { RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES, defaultThreshold } from '../lib/criteria'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
@@ -9,13 +11,16 @@ import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
 import { useAppState } from '../state/useAppState'
 import { DEFAULT_LAT, DEFAULT_LON, type RuleType } from '../state/types'
+import type { FloodCategory, WeatherCondition } from '../types'
 
 interface RuleFormErrors {
   name?: string
   location?: string
   threshold?: string
+  riverGaugeId?: string
   forecastWindowHours?: string
   rearmWindowMinutes?: string
+  gaugeSearchRadiusKm?: string
   latitude?: string
   longitude?: string
 }
@@ -32,6 +37,7 @@ interface RulePreset {
   temperatureUnit?: 'F' | 'C'
   forecastWindowHours?: string
   rearmWindowMinutes?: string
+  riverFloodCategoryThreshold?: FloodCategory
   monitorCurrent?: boolean
   monitorForecast?: boolean
   oncePerEvent?: boolean
@@ -49,11 +55,21 @@ const RULE_TYPE_OPTIONS = [
   { id: 'WIND_GUST', label: 'Wind gust above' },
   { id: 'SKY_COVER_ABOVE', label: 'Sky cover at/above' },
   { id: 'SKY_COVER_BELOW', label: 'Sky cover below' },
+  { id: 'RIVER_STAGE_ABOVE', label: 'River stage above' },
+  { id: 'RIVER_STAGE_BELOW', label: 'River stage below' },
+  { id: 'RIVER_FLOOD_CATEGORY', label: 'River flood category at/above' },
 ] as const
 
 const TEMP_UNIT_OPTIONS = [
   { id: 'F', label: 'Fahrenheit' },
   { id: 'C', label: 'Celsius' },
+]
+
+const FLOOD_CATEGORY_OPTIONS = [
+  { id: 'ACTION', label: 'Action stage' },
+  { id: 'MINOR', label: 'Minor flood' },
+  { id: 'MODERATE', label: 'Moderate flood' },
+  { id: 'MAJOR', label: 'Major flood' },
 ]
 
 const LOCATION_MODE_OPTIONS = [
@@ -160,10 +176,46 @@ const RULE_PRESETS: RulePreset[] = [
     monitorCurrent: false,
     monitorForecast: true,
   },
+  {
+    id: 'river-rising',
+    title: 'River Rising',
+    description: 'A starting stage threshold you can tune after picking a gauge.',
+    icon: 'River',
+    ruleType: 'RIVER_STAGE_ABOVE',
+    threshold: '8',
+    monitorCurrent: true,
+    monitorForecast: true,
+    forecastWindowHours: '24',
+  },
+  {
+    id: 'action-stage-watch',
+    title: 'Action Stage Watch',
+    description: 'Warn when a river is forecast to reach official action stage.',
+    icon: 'Gauge',
+    ruleType: 'RIVER_FLOOD_CATEGORY',
+    threshold: '',
+    riverFloodCategoryThreshold: 'ACTION',
+    monitorCurrent: true,
+    monitorForecast: true,
+    forecastWindowHours: '24',
+  },
+  {
+    id: 'minor-flood-risk',
+    title: 'Minor Flood Risk',
+    description: 'Track gauges that are entering official minor flood territory.',
+    icon: 'Flood',
+    ruleType: 'RIVER_FLOOD_CATEGORY',
+    threshold: '',
+    riverFloodCategoryThreshold: 'MINOR',
+    monitorCurrent: true,
+    monitorForecast: true,
+    forecastWindowHours: '36',
+  },
 ]
 
 export function RulesPage() {
-  const { criteriaForm, setCriteriaForm, canSubmitCriteria, savingCriteria, handleCreateCriteria } = useAppState()
+  const { token, setNotice, criteriaForm, setCriteriaForm, canSubmitCriteria, savingCriteria, handleCreateCriteria } =
+    useAppState()
   const location = useLocation()
 
   const [formErrors, setFormErrors] = useState<RuleFormErrors>({})
@@ -171,11 +223,16 @@ export function RulesPage() {
   const [locationMode, setLocationMode] = useState<LocationMode>('CITY')
   const [useCustomCoordinates, setUseCustomCoordinates] = useState(false)
   const [flashForm, setFlashForm] = useState(false)
+  const [resolvingRiverGauge, setResolvingRiverGauge] = useState(false)
+  const [resolvedRiverGauge, setResolvedRiverGauge] = useState<WeatherCondition | null>(null)
 
   const isTemperatureRule = criteriaForm.ruleType === 'TEMP_BELOW' || criteriaForm.ruleType === 'TEMP_ABOVE'
   const isDewPointRule = criteriaForm.ruleType === 'DEW_POINT_ABOVE' || criteriaForm.ruleType === 'DEW_POINT_BELOW'
   const isTemperatureScaleRule = isTemperatureRule || isDewPointRule
   const isGridRule = GRID_RULE_TYPES.includes(criteriaForm.ruleType)
+  const isRiverRule = RIVER_RULE_TYPES.includes(criteriaForm.ruleType)
+  const isRiverStageRule = RIVER_STAGE_RULE_TYPES.includes(criteriaForm.ruleType)
+  const isRiverCategoryRule = criteriaForm.ruleType === 'RIVER_FLOOD_CATEGORY'
   const shouldShowCoordinateToggle = locationMode === 'MANUAL'
   const shouldUseCustomCoordinates = shouldShowCoordinateToggle && useCustomCoordinates
   const mapLatitude = Number(criteriaForm.latitude)
@@ -207,10 +264,22 @@ export function RulesPage() {
         return `Alert when sky cover reaches ${criteriaForm.threshold || 'X'}% or higher.`
       case 'SKY_COVER_BELOW':
         return `Alert when sky cover drops below ${criteriaForm.threshold || 'X'}%.`
+      case 'RIVER_STAGE_ABOVE':
+        return `Alert when river stage rises above ${criteriaForm.threshold || 'X'} ft at gauge ${criteriaForm.riverGaugeId || 'XXXX'}.`
+      case 'RIVER_STAGE_BELOW':
+        return `Alert when river stage drops below ${criteriaForm.threshold || 'X'} ft at gauge ${criteriaForm.riverGaugeId || 'XXXX'}.`
+      case 'RIVER_FLOOD_CATEGORY':
+        return `Alert when the gauge reaches ${formatFloodCategoryLabel(criteriaForm.riverFloodCategoryThreshold)} or higher.`
       default:
         return 'Alert when forecast conditions match this threshold.'
     }
-  }, [criteriaForm.ruleType, criteriaForm.threshold, criteriaForm.temperatureUnit])
+  }, [
+    criteriaForm.ruleType,
+    criteriaForm.threshold,
+    criteriaForm.temperatureUnit,
+    criteriaForm.riverGaugeId,
+    criteriaForm.riverFloodCategoryThreshold,
+  ])
 
   useEffect(() => {
     const targetId = location.hash.replace('#', '').trim()
@@ -240,6 +309,31 @@ export function RulesPage() {
     return () => window.clearTimeout(id)
   }, [flashForm])
 
+  useEffect(() => {
+    if (!isRiverRule) {
+      setResolvedRiverGauge(null)
+    }
+  }, [isRiverRule])
+
+  useEffect(() => {
+    if (!resolvedRiverGauge) {
+      return
+    }
+    setResolvedRiverGauge(null)
+  }, [criteriaForm.location, criteriaForm.latitude, criteriaForm.longitude, resolvedRiverGauge])
+
+  useEffect(() => {
+    if (!resolvedRiverGauge?.riverGaugeId) {
+      return
+    }
+
+    if (criteriaForm.riverGaugeId.trim().toUpperCase() === resolvedRiverGauge.riverGaugeId.toUpperCase()) {
+      return
+    }
+
+    setResolvedRiverGauge(null)
+  }, [criteriaForm.riverGaugeId, resolvedRiverGauge])
+
   function validateRuleForm(): RuleFormErrors {
     const errors: RuleFormErrors = {}
 
@@ -250,13 +344,26 @@ export function RulesPage() {
       errors.location = 'Location is required.'
     }
 
-    const threshold = Number(criteriaForm.threshold)
-    if (Number.isNaN(threshold)) {
-      errors.threshold = 'Threshold must be a number.'
-    } else {
-      const thresholdError = validateThreshold(criteriaForm.ruleType, threshold, criteriaForm.temperatureUnit)
-      if (thresholdError) {
-        errors.threshold = thresholdError
+    if (!isRiverCategoryRule) {
+      const threshold = Number(criteriaForm.threshold)
+      if (Number.isNaN(threshold)) {
+        errors.threshold = 'Threshold must be a number.'
+      } else {
+        const thresholdError = validateThreshold(criteriaForm.ruleType, threshold, criteriaForm.temperatureUnit)
+        if (thresholdError) {
+          errors.threshold = thresholdError
+        }
+      }
+    }
+
+    if (isRiverRule && !criteriaForm.riverGaugeId.trim()) {
+      errors.riverGaugeId = 'Gauge ID is required for river alerts.'
+    }
+
+    if (isRiverRule) {
+      const searchRadius = Number(criteriaForm.gaugeSearchRadiusKm)
+      if (!Number.isInteger(searchRadius) || searchRadius < 1 || searchRadius > 500) {
+        errors.gaugeSearchRadiusKm = 'Use a whole number between 1 and 500.'
       }
     }
 
@@ -307,6 +414,79 @@ export function RulesPage() {
     void handleCreateCriteria(event)
   }
 
+  async function handleResolveNearestGauge() {
+    if (!token) {
+      setNotice({ kind: 'error', text: 'Your session expired. Sign in again.' })
+      return
+    }
+
+    const latitude = Number(criteriaForm.latitude)
+    const longitude = Number(criteriaForm.longitude)
+    const radiusKm = Number(criteriaForm.gaugeSearchRadiusKm)
+    const nextErrors: RuleFormErrors = {}
+
+    if (Number.isNaN(latitude) || latitude < -90 || latitude > 90) {
+      nextErrors.latitude = 'Latitude must be between -90 and 90.'
+    }
+
+    if (Number.isNaN(longitude) || longitude < -180 || longitude > 180) {
+      nextErrors.longitude = 'Longitude must be between -180 and 180.'
+    }
+
+    if (!Number.isInteger(radiusKm) || radiusKm < 1 || radiusKm > 500) {
+      nextErrors.gaugeSearchRadiusKm = 'Use a whole number between 1 and 500.'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors((state) => ({ ...state, ...nextErrors }))
+      setAdvancedExpanded(true)
+      return
+    }
+
+    setResolvingRiverGauge(true)
+    setResolvedRiverGauge(null)
+    setFormErrors((state) => ({
+      ...state,
+      riverGaugeId: undefined,
+      gaugeSearchRadiusKm: undefined,
+      latitude: undefined,
+      longitude: undefined,
+    }))
+
+    const query = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+      radiusKm: String(radiusKm),
+    })
+
+    try {
+      const [current, forecast] = await Promise.all([
+        apiRequest<WeatherCondition | null>(`/api/weather/hydrology/current?${query.toString()}`, { token }).catch(() => null),
+        apiRequest<WeatherCondition | null>(`/api/weather/hydrology/forecast?${query.toString()}`, { token }).catch(() => null),
+      ])
+
+      const merged = mergeRiverGaugeConditions(current, forecast)
+
+      if (!merged?.riverGaugeId) {
+        throw new Error('No nearby river gauge was found for this location.')
+      }
+
+      setCriteriaForm((state) => ({
+        ...state,
+        riverGaugeId: merged.riverGaugeId ?? state.riverGaugeId,
+      }))
+      setResolvedRiverGauge(merged)
+      setNotice({
+        kind: 'success',
+        text: `Nearest gauge set to ${merged.riverGaugeId}${merged.location ? ` (${merged.location})` : ''}.`,
+      })
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+    } finally {
+      setResolvingRiverGauge(false)
+    }
+  }
+
   function handleLocationModeChange(value: string) {
     const nextMode = value as LocationMode
     setLocationMode(nextMode)
@@ -335,11 +515,21 @@ export function RulesPage() {
 
   function handleRuleTypeChange(value: string) {
     const next = value as RuleType
+    const nextIsGridRule = GRID_RULE_TYPES.includes(next)
+    const nextIsRiverRule = RIVER_RULE_TYPES.includes(next)
     setCriteriaForm((state) => ({
       ...state,
       ruleType: next,
       threshold: defaultThreshold(next),
-      monitorForecast: GRID_RULE_TYPES.includes(next) ? true : state.monitorForecast,
+      riverFloodCategoryThreshold: next === 'RIVER_FLOOD_CATEGORY' ? state.riverFloodCategoryThreshold || 'ACTION' : state.riverFloodCategoryThreshold,
+      monitorCurrent: nextIsRiverRule ? true : state.monitorCurrent,
+      monitorForecast: nextIsGridRule || nextIsRiverRule ? true : state.monitorForecast,
+    }))
+    setFormErrors((state) => ({
+      ...state,
+      threshold: undefined,
+      riverGaugeId: undefined,
+      gaugeSearchRadiusKm: undefined,
     }))
   }
 
@@ -350,6 +540,7 @@ export function RulesPage() {
       ruleType: preset.ruleType,
       threshold: preset.threshold,
       temperatureUnit: preset.temperatureUnit ?? state.temperatureUnit,
+      riverFloodCategoryThreshold: preset.riverFloodCategoryThreshold ?? state.riverFloodCategoryThreshold,
       monitorCurrent: preset.monitorCurrent ?? state.monitorCurrent,
       monitorForecast: preset.monitorForecast ?? state.monitorForecast,
       oncePerEvent: preset.oncePerEvent ?? state.oncePerEvent,
@@ -357,7 +548,7 @@ export function RulesPage() {
       rearmWindowMinutes: preset.rearmWindowMinutes ?? state.rearmWindowMinutes,
     }))
     setFormErrors({})
-    setAdvancedExpanded(GRID_RULE_TYPES.includes(preset.ruleType))
+    setAdvancedExpanded(GRID_RULE_TYPES.includes(preset.ruleType) || RIVER_RULE_TYPES.includes(preset.ruleType))
     setFlashForm(true)
 
     window.requestAnimationFrame(() => {
@@ -463,35 +654,157 @@ export function RulesPage() {
             </p>
           ) : null}
 
-          <div className="threshold-row full-row">
-            <AriaTextField
-              label="Threshold"
-              inputClassName="aria-input"
-              type="number"
-              required
-              value={criteriaForm.threshold}
-              description={thresholdHelp}
-              errorMessage={formErrors.threshold}
-              onChange={(value) => setCriteriaForm((state) => ({ ...state, threshold: value }))}
-            />
+          {isRiverRule ? (
+            <section className="full-row river-rule-panel">
+              <div className="river-rule-header">
+                <div>
+                  <h3>River gauge</h3>
+                  <p className="muted small river-rule-copy">
+                    Pick a known NWPS gauge or resolve the nearest one from the map point above.
+                  </p>
+                </div>
+                <AriaButton
+                  type="button"
+                  className="button-inline river-helper-button"
+                  isDisabled={savingCriteria || resolvingRiverGauge}
+                  onPress={() => void handleResolveNearestGauge()}
+                >
+                  {resolvingRiverGauge ? 'Finding gauge...' : 'Use nearest gauge'}
+                </AriaButton>
+              </div>
 
-            {isTemperatureScaleRule ? (
+              <div className="river-gauge-grid">
+                <AriaTextField
+                  label="Gauge ID"
+                  inputClassName="aria-input"
+                  value={criteriaForm.riverGaugeId}
+                  required
+                  errorMessage={formErrors.riverGaugeId}
+                  onChange={(value) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      riverGaugeId: value.toUpperCase(),
+                    }))
+                  }
+                />
+
+                <AriaTextField
+                  label="Nearest-gauge radius (km)"
+                  inputClassName="aria-input"
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={criteriaForm.gaugeSearchRadiusKm}
+                  errorMessage={formErrors.gaugeSearchRadiusKm}
+                  onChange={(value) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      gaugeSearchRadiusKm: value,
+                    }))
+                  }
+                />
+              </div>
+
+              {resolvedRiverGauge?.riverGaugeId ? (
+                <div className="river-gauge-card">
+                  <div className="river-gauge-card-header">
+                    <p className="river-gauge-title">
+                      {resolvedRiverGauge.location || 'Resolved gauge'} <span>{resolvedRiverGauge.riverGaugeId}</span>
+                    </p>
+                    {resolvedRiverGauge.riverDistanceKm != null ? (
+                      <span className="badge">{formatNumber(resolvedRiverGauge.riverDistanceKm)} km away</span>
+                    ) : null}
+                  </div>
+
+                  <div className="river-gauge-metrics">
+                    {resolvedRiverGauge.riverObservedStage != null ? (
+                      <span className="metric-pill">
+                        Observed: {formatStage(resolvedRiverGauge.riverObservedStage, resolvedRiverGauge.riverStageUnit)}
+                      </span>
+                    ) : null}
+                    {resolvedRiverGauge.riverForecastStage != null ? (
+                      <span className="metric-pill">
+                        Forecast: {formatStage(resolvedRiverGauge.riverForecastStage, resolvedRiverGauge.riverStageUnit)}
+                      </span>
+                    ) : null}
+                    {resolvedRiverGauge.riverActionStage != null ? (
+                      <span className="metric-pill">
+                        Action: {formatStage(resolvedRiverGauge.riverActionStage, resolvedRiverGauge.riverStageUnit)}
+                      </span>
+                    ) : null}
+                    {resolvedRiverGauge.riverFloodStage != null ? (
+                      <span className="metric-pill">
+                        Flood: {formatStage(resolvedRiverGauge.riverFloodStage, resolvedRiverGauge.riverStageUnit)}
+                      </span>
+                    ) : null}
+                    {resolvedRiverGauge.riverObservedCategory ? (
+                      <span className="metric-pill">
+                        Current: {formatRiverCategoryLabel(resolvedRiverGauge.riverObservedCategory)}
+                      </span>
+                    ) : null}
+                    {resolvedRiverGauge.riverForecastCategory ? (
+                      <span className="metric-pill">
+                        Forecast category: {formatRiverCategoryLabel(resolvedRiverGauge.riverForecastCategory)}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {isRiverCategoryRule ? (
+            <div className="threshold-row full-row river-threshold-row">
               <AriaSelect
-                label={isDewPointRule ? 'Dew point unit' : 'Temperature unit'}
+                label="Flood category"
                 buttonClassName="aria-select-trigger"
                 popoverClassName="aria-select-popover"
                 listBoxClassName="aria-select-listbox"
-                selectedKey={criteriaForm.temperatureUnit}
-                options={TEMP_UNIT_OPTIONS}
+                selectedKey={criteriaForm.riverFloodCategoryThreshold}
+                options={FLOOD_CATEGORY_OPTIONS}
                 onSelectionChange={(value) =>
                   setCriteriaForm((state) => ({
                     ...state,
-                    temperatureUnit: value as 'F' | 'C',
+                    riverFloodCategoryThreshold: value as FloodCategory,
                   }))
                 }
               />
-            ) : null}
-          </div>
+
+              <div className="river-threshold-help">
+                <p className="muted small">{thresholdHelp}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="threshold-row full-row">
+              <AriaTextField
+                label={isRiverStageRule ? 'Stage threshold' : 'Threshold'}
+                inputClassName="aria-input"
+                type="number"
+                required
+                value={criteriaForm.threshold}
+                description={thresholdHelp}
+                errorMessage={formErrors.threshold}
+                onChange={(value) => setCriteriaForm((state) => ({ ...state, threshold: value }))}
+              />
+
+              {isTemperatureScaleRule ? (
+                <AriaSelect
+                  label={isDewPointRule ? 'Dew point unit' : 'Temperature unit'}
+                  buttonClassName="aria-select-trigger"
+                  popoverClassName="aria-select-popover"
+                  listBoxClassName="aria-select-listbox"
+                  selectedKey={criteriaForm.temperatureUnit}
+                  options={TEMP_UNIT_OPTIONS}
+                  onSelectionChange={(value) =>
+                    setCriteriaForm((state) => ({
+                      ...state,
+                      temperatureUnit: value as 'F' | 'C',
+                    }))
+                  }
+                />
+              ) : null}
+            </div>
+          )}
 
           <div className="toggle-row full-row toggle-row-wide">
             <AriaSwitch
@@ -663,4 +976,64 @@ function validateThreshold(ruleType: RuleType, threshold: number, unit: 'F' | 'C
   }
 
   return undefined
+}
+
+function mergeRiverGaugeConditions(
+  current: WeatherCondition | null,
+  forecast: WeatherCondition | null,
+): WeatherCondition | null {
+  if (!current && !forecast) {
+    return null
+  }
+
+  return {
+    ...(current ?? {}),
+    ...(forecast ?? {}),
+    id: current?.id ?? forecast?.id ?? 'resolved-river-gauge',
+    riverGaugeId: current?.riverGaugeId ?? forecast?.riverGaugeId,
+    location: current?.location ?? forecast?.location,
+    riverObservedStage: current?.riverObservedStage ?? forecast?.riverObservedStage,
+    riverObservedCategory: current?.riverObservedCategory ?? forecast?.riverObservedCategory,
+    riverForecastStage: forecast?.riverForecastStage ?? current?.riverForecastStage,
+    riverForecastCategory: forecast?.riverForecastCategory ?? current?.riverForecastCategory,
+    riverFloodStage: current?.riverFloodStage ?? forecast?.riverFloodStage,
+    riverActionStage: current?.riverActionStage ?? forecast?.riverActionStage,
+    riverStageUnit: current?.riverStageUnit ?? forecast?.riverStageUnit,
+    riverDistanceKm: current?.riverDistanceKm ?? forecast?.riverDistanceKm,
+    timestamp: current?.timestamp ?? forecast?.timestamp,
+  }
+}
+
+function formatFloodCategoryLabel(category: FloodCategory): string {
+  switch (category) {
+    case 'ACTION':
+      return 'action stage'
+    case 'MINOR':
+      return 'minor flooding'
+    case 'MODERATE':
+      return 'moderate flooding'
+    case 'MAJOR':
+      return 'major flooding'
+  }
+}
+
+function formatRiverCategoryLabel(category?: string | null): string {
+  if (!category) {
+    return 'Unknown'
+  }
+
+  const normalized = category.replace(/_/g, ' ').trim()
+  if (normalized.length === 0) {
+    return 'Unknown'
+  }
+
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
+}
+
+function formatStage(stage?: number | null, unit?: string | null): string {
+  const stageLabel = formatNumber(stage)
+  if (stageLabel === '-') {
+    return '--'
+  }
+  return `${stageLabel} ${unit ?? 'ft'}`
 }

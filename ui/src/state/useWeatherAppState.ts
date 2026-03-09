@@ -15,7 +15,7 @@ import type {
   UsernameRecoveryResponse,
   WeatherCondition,
 } from '../types'
-import { buildCriteriaPayload } from '../lib/criteria'
+import { buildCriteriaPayload, RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES } from '../lib/criteria'
 import {
   DEFAULT_LAT,
   DEFAULT_LON,
@@ -82,6 +82,16 @@ export function useWeatherAppState() {
     }
     if (!criteriaForm.latitude.trim() || !criteriaForm.longitude.trim()) {
       return false
+    }
+    const isRiverRule = RIVER_RULE_TYPES.includes(criteriaForm.ruleType)
+    if (isRiverRule && !criteriaForm.riverGaugeId.trim()) {
+      return false
+    }
+    if (criteriaForm.ruleType === 'RIVER_FLOOD_CATEGORY') {
+      return true
+    }
+    if (RIVER_STAGE_RULE_TYPES.includes(criteriaForm.ruleType)) {
+      return !Number.isNaN(Number(criteriaForm.threshold))
     }
     return !Number.isNaN(Number(criteriaForm.threshold))
   }, [criteriaForm])
@@ -501,6 +511,10 @@ export function useWeatherAppState() {
           windGustThreshold: existing.windGustThreshold,
           skyCoverThreshold: existing.skyCoverThreshold,
           skyCoverDirection: existing.skyCoverDirection,
+          riverGaugeId: existing.riverGaugeId,
+          riverStageThreshold: existing.riverStageThreshold,
+          riverStageDirection: existing.riverStageDirection,
+          riverFloodCategoryThreshold: existing.riverFloodCategoryThreshold,
           monitorCurrent: existing.monitorCurrent,
           monitorForecast: existing.monitorForecast,
           forecastWindowHours: existing.forecastWindowHours,

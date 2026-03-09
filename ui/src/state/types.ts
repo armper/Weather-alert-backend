@@ -15,6 +15,9 @@ export type RuleType =
   | 'WIND_GUST'
   | 'SKY_COVER_ABOVE'
   | 'SKY_COVER_BELOW'
+  | 'RIVER_STAGE_ABOVE'
+  | 'RIVER_STAGE_BELOW'
+  | 'RIVER_FLOOD_CATEGORY'
 
 export interface NoticeState {
   kind: NoticeKind
@@ -61,6 +64,9 @@ export interface CriteriaFormState {
   threshold: string
   ruleType: RuleType
   temperatureUnit: 'F' | 'C'
+  riverGaugeId: string
+  riverFloodCategoryThreshold: 'ACTION' | 'MINOR' | 'MODERATE' | 'MAJOR'
+  gaugeSearchRadiusKm: string
   monitorCurrent: boolean
   monitorForecast: boolean
   forecastWindowHours: string
@@ -119,6 +125,9 @@ export const initialCriteriaForm: CriteriaFormState = {
   threshold: '60',
   ruleType: 'TEMP_BELOW',
   temperatureUnit: 'F',
+  riverGaugeId: '',
+  riverFloodCategoryThreshold: 'ACTION',
+  gaugeSearchRadiusKm: '80',
   monitorCurrent: true,
   monitorForecast: true,
   forecastWindowHours: '48',
