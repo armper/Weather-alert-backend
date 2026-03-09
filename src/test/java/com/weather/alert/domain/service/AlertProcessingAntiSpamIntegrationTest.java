@@ -200,5 +200,15 @@ class AlertProcessingAntiSpamIntegrationTest {
             states.put(state.getCriteriaId(), state);
             return state;
         }
+
+        @Override
+        public int deleteByUpdatedAtBefore(Instant cutoff) {
+            return 0;
+        }
+
+        @Override
+        public int deleteOrphanedStates() {
+            return 0;
+        }
     }
 }

@@ -11,14 +11,6 @@ spring:
       ddl-auto: create-drop
     show-sql: false
     
-  kafka:
-    bootstrap-servers: ${spring.embedded.kafka.brokers}
-    
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
-
   flyway:
     enabled: false
     

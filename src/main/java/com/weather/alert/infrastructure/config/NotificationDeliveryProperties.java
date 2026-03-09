@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
 public class NotificationDeliveryProperties {
 
     private boolean workerEnabled = true;
-    private String tasksTopic = "weather-alert-delivery-tasks";
-    private String dlqTopic = "weather-alert-delivery-dlq";
+    private boolean retryPollerEnabled = true;
     private int maxAttempts = 5;
     private long retryBaseSeconds = 30;
     private long retryMaxSeconds = 900;

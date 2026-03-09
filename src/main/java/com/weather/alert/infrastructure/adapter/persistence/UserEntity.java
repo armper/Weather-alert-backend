@@ -52,6 +52,21 @@ public class UserEntity {
     @Column(name = "push_enabled")
     private Boolean pushEnabled;
 
+    @Column(name = "stripe_customer_id", unique = true)
+    private String stripeCustomerId;
+
+    @Column(name = "stripe_subscription_id", unique = true)
+    private String stripeSubscriptionId;
+
+    @Column(name = "stripe_price_id")
+    private String stripePriceId;
+
+    @Column(name = "stripe_subscription_status", length = 64)
+    private String stripeSubscriptionStatus;
+
+    @Column(name = "stripe_current_period_end")
+    private Instant stripeCurrentPeriodEnd;
+
     @Column(name = "approved_at")
     private Instant approvedAt;
     

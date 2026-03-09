@@ -5,6 +5,7 @@ import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @Component
@@ -23,6 +24,16 @@ public class AlertCriteriaStateRepositoryAdapter implements AlertCriteriaStateRe
         AlertCriteriaStateEntity entity = toEntity(state);
         AlertCriteriaStateEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
+    }
+
+    @Override
+    public int deleteByUpdatedAtBefore(Instant cutoff) {
+        return jpaRepository.deleteByUpdatedAtBefore(cutoff);
+    }
+
+    @Override
+    public int deleteOrphanedStates() {
+        return jpaRepository.deleteOrphanedStates();
     }
 
     private AlertCriteriaStateEntity toEntity(AlertCriteriaState state) {

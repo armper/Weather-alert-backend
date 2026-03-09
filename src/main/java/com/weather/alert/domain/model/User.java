@@ -29,6 +29,11 @@ public class User {
     private Boolean emailEnabled;
     private Boolean smsEnabled;
     private Boolean pushEnabled;
+    private String stripeCustomerId;
+    private String stripeSubscriptionId;
+    private String stripePriceId;
+    private String stripeSubscriptionStatus;
+    private Instant stripeCurrentPeriodEnd;
     private Instant approvedAt;
     private Instant createdAt;
     private Instant updatedAt;

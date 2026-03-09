@@ -24,6 +24,9 @@ fi
 REGION="${REGION:-us-east1}"
 SERVICE_NAME="${SERVICE_NAME:-weather-alert-backend}"
 ENV_FILE="${ENV_FILE:-$DEFAULT_ENV_FILE}"
+MIN_INSTANCES="${MIN_INSTANCES:-0}"
+MAX_INSTANCES="${MAX_INSTANCES:-5}"
+CONCURRENCY="${CONCURRENCY:-40}"
 
 if [[ -z "$PROJECT_ID" ]]; then
   echo "PROJECT_ID is not set and gcloud has no active project."
@@ -48,6 +51,9 @@ echo "Project: $PROJECT_ID"
 echo "Region: $REGION"
 echo "Service: $SERVICE_NAME"
 echo "Env file: $ENV_FILE"
+echo "Min instances: $MIN_INSTANCES"
+echo "Max instances: $MAX_INSTANCES"
+echo "Concurrency: $CONCURRENCY"
 
 "$GCLOUD" services enable \
   run.googleapis.com \
@@ -57,8 +63,6 @@ echo "Env file: $ENV_FILE"
   secretmanager.googleapis.com \
   --project "$PROJECT_ID"
 
-# This service contains in-process schedulers and Kafka consumers.
-# Keep it on a single always-on instance until the coordination model is made multi-instance safe.
 "$GCLOUD" run deploy "$SERVICE_NAME" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
@@ -67,9 +71,8 @@ echo "Env file: $ENV_FILE"
   --allow-unauthenticated \
   --cpu 1 \
   --memory 1Gi \
-  --concurrency 10 \
+  --concurrency "$CONCURRENCY" \
   --timeout 300 \
-  --min-instances 1 \
-  --max-instances 1 \
-  --no-cpu-throttling \
+  --min-instances "$MIN_INSTANCES" \
+  --max-instances "$MAX_INSTANCES" \
   --env-vars-file "$ENV_FILE"

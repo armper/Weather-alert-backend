@@ -26,8 +26,8 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
    - Adapters implementing domain ports
    - NOAA API integration
    - PostgreSQL persistence
-   - Kafka messaging
-   - Elasticsearch indexing
+   - PostgreSQL-backed weather read model
+   - In-process async delivery orchestration
    - REST API controllers
 
 ## Features
@@ -42,11 +42,11 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Immediate Evaluation on Criteria Create**: If conditions are already true, alerting can happen right away
 - ✅ **Alert Lifecycle + Dedupe**: `PENDING -> SENT -> ACKNOWLEDGED/EXPIRED` with `criteriaId + eventKey` duplicate protection
 - ✅ **Geographic Filtering**: Radius-based location matching using Haversine formula
-- ✅ **Async Processing**: Kafka-based message queue for scalable alert processing
-- ✅ **Search Capabilities**: Elasticsearch integration for fast weather data queries
+- ✅ **Async Processing**: Database-backed delivery records with in-process async worker execution
+- ✅ **Search Capabilities**: PostgreSQL-backed weather read model for indexed weather queries
 - ✅ **CQRS Pattern**: Separate command and query operations for optimal performance
 - ✅ **Scheduled Updates**: Automatic weather data fetching every 5 minutes
-- ✅ **Automatic Data Retention Cleanup**: Scheduled pruning of old alerts, criteria state, indexed weather data, and Kafka topic backlog
+- ✅ **Automatic Data Retention Cleanup**: Scheduled pruning of old alerts, criteria state, and indexed weather data
 - ✅ **RESTful API**: Comprehensive REST endpoints for all operations
 - ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
 - ✅ **Account Onboarding Flow**: Self-service registration, email verification, admin approval, and profile updates (including phone number)
@@ -54,13 +54,14 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Account Security Controls**: Auth throttling, login lockouts, recovery request throttling, and recovery confirm lockouts
 - ✅ **Account Admin Controls**: Approve, suspend/reactivate, and force-password-reset by admin
 - ✅ **Self-Service Password Change**: Authenticated users can rotate their password from `/api/users/me/change-password`
-- ✅ **WebSocket Updates**: STOMP endpoint for real-time weather alert streams
+- ✅ **Stripe Billing Foundations**: Authenticated billing status, Checkout session creation, and webhook-based subscription sync
+- ✅ **Simple Activity Refresh**: Triggered alerts are available through authenticated API reads
 - ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
 - ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
 - ✅ **Email Verification Flow**: Start/confirm verification tokens for channel readiness
 - ✅ **Verified Channel Resolution**: Unverified channels are excluded from delivery preference resolution
 - ✅ **Email Delivery Adapters**: SMTP (MailHog/local) and AWS SES (production) with retryability classification
-- ✅ **Async Delivery Worker + Retry/DLQ**: Per-alert delivery tasks, idempotency guard, exponential backoff, and dead-letter routing
+- ✅ **Async Delivery Worker + Retry**: Per-alert delivery tasks, idempotency guard, exponential backoff, and terminal-failure logging
 - ✅ **Notification Preference APIs**: User defaults plus criteria-level overrides (`inherit` or explicit channels)
 
 ## Technology Stack
@@ -68,8 +69,6 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - **Java 17**: LTS version with modern language features
 - **Spring Boot 3.2.2**: Framework for building production-ready applications
 - **PostgreSQL**: Relational database for persistent storage
-- **Apache Kafka**: Distributed message streaming platform
-- **Elasticsearch**: Search and analytics engine
 - **Maven**: Dependency management and build tool
 - **Lombok**: Reduces boilerplate code
 - **WebFlux**: Reactive HTTP client for NOAA API calls
@@ -106,8 +105,28 @@ VITE_API_TARGET=http://localhost:8080 npm run dev
 - Java 17 or higher
 - Maven 3.6+
 - PostgreSQL 14+
-- Apache Kafka 3.0+
-- Elasticsearch 8.0+
+
+## Stripe Billing
+
+The backend includes a first Stripe subscription slice:
+
+- `GET /api/billing/me`
+- `POST /api/billing/checkout-session`
+- `POST /api/stripe/webhook`
+
+Required config:
+
+- `APP_BILLING_STRIPE_ENABLED=true`
+- `APP_BILLING_STRIPE_SECRET_KEY`
+- `APP_BILLING_STRIPE_WEBHOOK_SECRET`
+- `APP_BILLING_STRIPE_PRICE_ID`
+
+Optional overrides:
+
+- `APP_BILLING_STRIPE_SUCCESS_URL`
+- `APP_BILLING_STRIPE_CANCEL_URL`
+
+The webhook endpoint is intentionally unauthenticated and relies on Stripe signature verification. The billing endpoints for end users remain JWT-protected.
 
 ## Roadmap
 
@@ -228,9 +247,9 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - PostgreSQL `alerts` rows older than retention window
   - PostgreSQL `criteria_state` rows older than retention window
   - Orphaned `criteria_state` rows for deleted criteria
-  - Elasticsearch `weather-data` documents older than retention window
+  - Indexed `weather_data` rows older than retention window
 - Added DB index `idx_alerts_alert_time` to keep alert pruning efficient.
-- Added Kafka topic retention policy for `weather-alerts` in `docker-compose.yml` (`retention.ms=86400000`).
+- Added local retention configuration for generated alert records.
 - Added retention configuration knobs under `app.retention.*` with `.env` support.
 
 ### 2026-02-26 (Notification Delivery Foundations - Chunk 1)
@@ -282,21 +301,21 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Added MailHog service to `docker-compose.yml`:
   - SMTP: `localhost:1025`
   - UI: `http://localhost:8025`
-- Updated Kafka alert consumer email path (superseded by chunk 5 async worker pipeline).
+- Updated the original async alert email path (superseded by chunk 5 worker pipeline).
 - Added adapter tests for SMTP/SES success + failure classification.
 
 ### 2026-02-26 (Delivery Worker + Retry - Chunk 5)
 
 - Added async delivery pipeline:
-  - `AlertKafkaConsumer` now enqueues delivery tasks instead of sending directly.
+  - Alert dispatch now enqueues delivery tasks instead of sending directly.
   - `alert_delivery` records are created per `alertId + channel` (idempotent).
 - Added delivery task execution worker:
-  - Kafka task topic: `weather-alert-delivery-tasks`
-  - DLQ topic for permanent failures: `weather-alert-delivery-dlq`
+  - in-process task execution for pending delivery work
+  - terminal-failure capture for permanent failures
 - Added retry policy:
   - statuses: `PENDING -> IN_PROGRESS -> SENT` or `RETRY_SCHEDULED -> FAILED`
   - exponential backoff with configurable base/max delay
-  - max-attempt cap with DLQ publish on terminal failure
+  - max-attempt cap with terminal failure logging
 - Added scheduled republisher for due retries (`nextAttemptAt <= now`).
 - Added tests for enqueue idempotency, retry/failure behavior, scheduler publishing, and alert consumer integration.
 
@@ -318,7 +337,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 
 - Added `ApiIntegrationContractTest` using `@SpringBootTest(webEnvironment = RANDOM_PORT)` + RestAssured.
 - Added OpenAPI contract validation filter (`swagger-request-validator-restassured`) on authenticated API happy paths.
-- Added test-safe runtime overrides for this suite so it runs without external Kafka/Elasticsearch services.
+- Added test-safe runtime overrides for this suite so it runs without external broker/search services.
 - Improved OpenAPI metadata:
   - `DELETE /api/criteria/{criteriaId}` now documents `204` and `404` responses.
   - Removed duplicate enum metadata that produced invalid generated request schema for criteria payloads.
@@ -352,12 +371,8 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 ### 1. Start Local Dependencies with Docker
 
 ```bash
-# Starts PostgreSQL, Zookeeper, Kafka, Kafka topic bootstrap, Elasticsearch,
-# MailHog, and the Spring Boot app container on http://localhost:8088
+# Starts PostgreSQL, MailHog, and the Spring Boot app container on http://localhost:8088
 docker compose up -d --build
-
-# Optional: include Kafka UI on http://localhost:8081
-docker compose --profile tools up -d --build
 
 # Optional: include observability stack
 # Zipkin:  http://localhost:9411
@@ -367,11 +382,6 @@ docker compose --profile observability up -d --build
 
 This stack is defined in `docker-compose.yml` and includes:
 - PostgreSQL on `localhost:5432` (database: `weather_alerts`)
-- Kafka on `localhost:9092` (topics created automatically):
-  - `weather-alerts`
-  - `weather-alert-delivery-tasks`
-  - `weather-alert-delivery-dlq`
-- Elasticsearch on `localhost:9200`
 - MailHog SMTP on `localhost:1025` with web UI on `http://localhost:8025`
 - Spring Boot app container on `http://localhost:8088` (runs with `.env` + `.env.smtp`)
 - Optional observability profile:
@@ -451,14 +461,24 @@ Notification verification tuning values in `.env`:
 Notification delivery worker tuning values in `.env`:
 
 - `APP_NOTIFICATION_DELIVERY_WORKER_ENABLED` (default `true`)
-- `APP_NOTIFICATION_DELIVERY_TASKS_TOPIC` (default `weather-alert-delivery-tasks`)
-- `APP_NOTIFICATION_DELIVERY_DLQ_TOPIC` (default `weather-alert-delivery-dlq`)
+- `APP_ADMIN_JOBS_TOKEN` (optional shared token for external job runners like Cloud Scheduler)
+- `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_ENABLED` (default `true`)
 - `APP_NOTIFICATION_DELIVERY_MAX_ATTEMPTS` (default `5`)
 - `APP_NOTIFICATION_DELIVERY_RETRY_BASE_SECONDS` (default `30`)
 - `APP_NOTIFICATION_DELIVERY_RETRY_MAX_SECONDS` (default `900`)
 - `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_FIXED_DELAY_MS` (default `10000`)
 - `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_INITIAL_DELAY_MS` (default `15000`)
 - `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_BATCH_SIZE` (default `100`)
+
+Weather-processing scheduler values in `.env`:
+
+- `APP_WEATHER_PROCESSING_SCHEDULE_ENABLED` (default `true`)
+- `APP_WEATHER_PROCESSING_FIXED_DELAY_MS` (default `300000`)
+- `APP_WEATHER_PROCESSING_INITIAL_DELAY_MS` (default `30000`)
+
+Retention scheduler values in `.env`:
+
+- `APP_RETENTION_SCHEDULE_ENABLED` (default `true`)
 
 ### 3. Database Migrations (Flyway)
 
@@ -569,12 +589,18 @@ GET /actuator/metrics/weather.noaa.request.duration
 
 ### Scheduler + Orchestration Behavior
 
-- Scheduler runs every 5 minutes with fixed delay and 30s initial delay.
+- Weather-processing scheduler runs every 5 minutes with fixed delay and 30s initial delay by default.
 - Each run:
   - fetches active NOAA alerts
   - loads enabled criteria
   - processes criteria in batches of 100
   - reuses per-run caches for current conditions (`lat/lon`) and forecast (`lat/lon/window`)
+- Delivery retries are polled every 10 seconds by default.
+- Retention cleanup runs hourly by default.
+- Any of these in-process schedulers can be disabled and triggered explicitly through admin job endpoints:
+  - `POST /api/admin/jobs/weather-processing`
+  - `POST /api/admin/jobs/alert-delivery-retries`
+  - `POST /api/admin/jobs/data-retention`
 - Outage guard behavior:
   - repeated NOAA request failures open a short outage window
   - while open, NOAA requests are short-circuited
@@ -583,14 +609,13 @@ GET /actuator/metrics/weather.noaa.request.duration
 
 ### Data Retention + Pruning
 
-- A separate scheduled cleanup job runs hourly (after a 2-minute startup delay by default).
+- A separate retention cleanup job runs hourly (after a 2-minute startup delay by default).
 - Cleanup scopes:
   - delete old `alerts` rows by `alert_time`
   - delete stale `criteria_state` rows by `updated_at`
   - delete orphaned `criteria_state` rows whose criteria no longer exists
-  - delete old Elasticsearch `weather-data` docs by `timestamp`
-- Kafka topic `weather-alerts` is configured with 24h retention in docker compose.
-- All retention windows are configurable via `APP_RETENTION_*` environment variables.
+  - delete old indexed `weather_data` rows by `recorded_at`
+- All retention windows are configurable via `APP_RETENTION_*` environment variables, and the in-process trigger itself can be disabled with `APP_RETENTION_SCHEDULE_ENABLED=false`.
 
 When you are done:
 
@@ -615,13 +640,14 @@ All `/api/**` endpoints require JWT Bearer authentication except onboarding/auth
 The four `/api/auth/recovery/**` endpoints are intentionally unauthenticated.
 
 - **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own profile (`/api/users/me`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
-- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, review/approve pending users (`/api/admin/users/**`), and access `/api/alerts/pending` and alert-expire endpoint
+- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, review/approve pending users (`/api/admin/users/**`), trigger operational jobs (`/api/admin/jobs/**`), and access `/api/alerts/pending` and alert-expire endpoint
 
 Credentials must be configured via environment variables:
 
 - `APP_SECURITY_USER_USERNAME`, `APP_SECURITY_USER_PASSWORD`
 - `APP_SECURITY_ADMIN_USERNAME`, `APP_SECURITY_ADMIN_PASSWORD`
 - `APP_SECURITY_JWT_SECRET` (minimum 32 characters)
+- `APP_ADMIN_JOBS_TOKEN` if you want Cloud Scheduler or another machine client to trigger `/api/admin/jobs/**` with `X-Admin-Job-Token`
 
 Generate a token:
 
@@ -703,12 +729,7 @@ POST /api/auth/recovery/password/confirm
 }
 ```
 
-WebSocket endpoint for real-time subscriptions:
-
-```text
-CONNECT ws://localhost:8080/ws-alerts
-SUBSCRIBE /topic/alerts/{userId}
-```
+Triggered alerts and activity are available through the authenticated REST endpoints used by the dashboard refresh flow.
 
 Swagger/OpenAPI docs (relative to `http://localhost:8080`):
 
@@ -837,7 +858,7 @@ PUT /api/criteria/{criteriaId}/notification-preferences
 ### Weather Data
 
 ```bash
-# Get active weather alerts (Elasticsearch read model, paginated)
+# Get active weather alerts (PostgreSQL read model, paginated)
 GET /api/weather/active?page=0&size=50
 
 # Get alerts for specific location
@@ -852,7 +873,7 @@ GET /api/weather/conditions/current?latitude=28.5383&longitude=-81.3792
 # Get hourly forecast conditions for coordinates (default 48h)
 GET /api/weather/conditions/forecast?latitude=28.5383&longitude=-81.3792&hours=48
 
-# Search by location (Elasticsearch)
+# Search by location (indexed weather data)
 GET /api/weather/search/location/Seattle
 
 # Search by event type
@@ -908,7 +929,7 @@ Generated alert matching user criteria with weather data.
 
 Lifecycle + dedupe behavior:
 - Alerts are created with `PENDING` status and persisted `eventKey`.
-- Kafka consumer marks persisted alerts as `SENT` (`sentAt` set) when processed.
+- Delivery processing marks persisted alerts as `SENT` (`sentAt` set) when the worker succeeds.
 - API supports transitions to `ACKNOWLEDGED` and `EXPIRED`.
 - Duplicate inserts for the same `criteriaId + eventKey` are skipped.
 
@@ -938,12 +959,8 @@ The application implements CQRS (Command Query Responsibility Segregation):
 - Weather data is automatically fetched from NOAA every 5 minutes
 - Alerts are processed and matched against user criteria (active alerts + current/forecast conditions for criteria with condition rules)
 - Criteria anti-spam state is persisted and evaluated before notifying (`criteria_state`)
-- Matched alerts are published to Kafka for async notification processing
+- Matched alerts are dispatched into the async delivery worker path
 - Newly-created criteria are evaluated immediately so already-true conditions can notify right away
-
-## Kafka Topics
-
-- `weather-alerts`: Contains all generated alerts for processing
 
 ## Development
 
@@ -1003,9 +1020,8 @@ src/main/java/com/weather/alert/
 └── infrastructure/
     ├── adapter/
     │   ├── noaa/       # NOAA API adapter
-    │   ├── kafka/      # Kafka adapter
-    │   ├── persistence/# Database adapter
-    │   └── elasticsearch/ # Search adapter
+    │   ├── notification/ # Delivery orchestration + email adapters
+    │   └── persistence/ # Database adapters
     ├── config/         # Spring configuration
     └── web/
         └── controller/ # REST controllers
@@ -1029,7 +1045,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [ ] Email/SMS notification integration
 - [ ] Mobile push notifications
 - [ ] GraphQL API
-- [x] WebSocket support for real-time updates
+- [x] Simple authenticated alert activity refresh
 - [ ] Advanced analytics and reporting
 - [ ] Machine learning for alert prediction
 - [ ] Multi-language support

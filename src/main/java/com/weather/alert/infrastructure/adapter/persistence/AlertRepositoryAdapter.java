@@ -95,6 +95,11 @@ public class AlertRepositoryAdapter implements AlertRepositoryPort {
                     return Optional.of(toDomain(jpaRepository.save(entity)));
                 });
     }
+
+    @Override
+    public int deleteByAlertTimeBefore(Instant cutoff) {
+        return jpaRepository.deleteByAlertTimeBefore(cutoff);
+    }
     
     @Override
     public void delete(String id) {

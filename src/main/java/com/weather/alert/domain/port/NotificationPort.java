@@ -3,7 +3,7 @@ package com.weather.alert.domain.port;
 import com.weather.alert.domain.model.Alert;
 
 /**
- * Port for sending notifications
+ * Port for dispatching alert notifications and follow-up delivery work.
  */
 public interface NotificationPort {
     
@@ -13,7 +13,7 @@ public interface NotificationPort {
     void sendAlert(Alert alert, String userId);
     
     /**
-     * Publish alert to messaging system (Kafka)
+     * Publish an alert to downstream delivery and realtime channels.
      */
     void publishAlert(Alert alert);
 }

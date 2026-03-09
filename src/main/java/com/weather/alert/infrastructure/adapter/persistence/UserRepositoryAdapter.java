@@ -32,6 +32,16 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     public Optional<User> findByEmail(String email) {
         return jpaRepository.findByEmail(email).map(this::toDomain);
     }
+
+    @Override
+    public Optional<User> findByStripeCustomerId(String stripeCustomerId) {
+        return jpaRepository.findByStripeCustomerId(stripeCustomerId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByStripeSubscriptionId(String stripeSubscriptionId) {
+        return jpaRepository.findByStripeSubscriptionId(stripeSubscriptionId).map(this::toDomain);
+    }
     
     @Override
     public List<User> findAll() {
@@ -59,6 +69,11 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .emailEnabled(user.getEmailEnabled())
                 .smsEnabled(user.getSmsEnabled())
                 .pushEnabled(user.getPushEnabled())
+                .stripeCustomerId(user.getStripeCustomerId())
+                .stripeSubscriptionId(user.getStripeSubscriptionId())
+                .stripePriceId(user.getStripePriceId())
+                .stripeSubscriptionStatus(user.getStripeSubscriptionStatus())
+                .stripeCurrentPeriodEnd(user.getStripeCurrentPeriodEnd())
                 .approvedAt(user.getApprovedAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
@@ -81,6 +96,11 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
                 .emailEnabled(entity.getEmailEnabled())
                 .smsEnabled(entity.getSmsEnabled())
                 .pushEnabled(entity.getPushEnabled())
+                .stripeCustomerId(entity.getStripeCustomerId())
+                .stripeSubscriptionId(entity.getStripeSubscriptionId())
+                .stripePriceId(entity.getStripePriceId())
+                .stripeSubscriptionStatus(entity.getStripeSubscriptionStatus())
+                .stripeCurrentPeriodEnd(entity.getStripeCurrentPeriodEnd())
                 .approvedAt(entity.getApprovedAt())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

@@ -24,17 +24,6 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
         
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: alert-processor
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      
   mail:
     host: ${SPRING_MAIL_HOST:localhost}
     port: ${SPRING_MAIL_PORT:1025}
@@ -93,6 +82,11 @@ springdoc:
     persist-authorization: true
 
 app:
+  weather:
+    processing:
+      schedule-enabled: ${APP_WEATHER_PROCESSING_SCHEDULE_ENABLED:true}
+      fixed-delay-ms: ${APP_WEATHER_PROCESSING_FIXED_DELAY_MS:300000}
+      initial-delay-ms: ${APP_WEATHER_PROCESSING_INITIAL_DELAY_MS:30000}
   noaa:
     # NOAA /alerts/active responses can exceed WebClient's default 256KB buffer
     max-in-memory-size: ${APP_NOAA_MAX_IN_MEMORY_SIZE:10MB}
@@ -115,6 +109,7 @@ app:
     window-seconds: 60
     trust-forwarded-for: false
   retention:
+    schedule-enabled: ${APP_RETENTION_SCHEDULE_ENABLED:true}
     enabled: ${APP_RETENTION_ENABLED:true}
     alerts-days: ${APP_RETENTION_ALERTS_DAYS:2}
     weather-data-hours: ${APP_RETENTION_WEATHER_DATA_HOURS:72}
@@ -133,11 +128,13 @@ app:
       secret: ${APP_SECURITY_JWT_SECRET}
       # JWT lifetime in seconds (default 3600 = 1 hour)
       expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:3600}
+  admin:
+    jobs:
+      token: ${APP_ADMIN_JOBS_TOKEN:}
   notification:
     delivery:
       worker-enabled: ${APP_NOTIFICATION_DELIVERY_WORKER_ENABLED:true}
-      tasks-topic: ${APP_NOTIFICATION_DELIVERY_TASKS_TOPIC:weather-alert-delivery-tasks}
-      dlq-topic: ${APP_NOTIFICATION_DELIVERY_DLQ_TOPIC:weather-alert-delivery-dlq}
+      retry-poller-enabled: ${APP_NOTIFICATION_DELIVERY_RETRY_POLLER_ENABLED:true}
       max-attempts: ${APP_NOTIFICATION_DELIVERY_MAX_ATTEMPTS:5}
       retry-base-seconds: ${APP_NOTIFICATION_DELIVERY_RETRY_BASE_SECONDS:30}
       retry-max-seconds: ${APP_NOTIFICATION_DELIVERY_RETRY_MAX_SECONDS:900}
@@ -182,3 +179,11 @@ app:
           max-failures: ${APP_AUTH_SECURITY_RECOVERY_CONFIRM_MAX_FAILURES:6}
           window-minutes: ${APP_AUTH_SECURITY_RECOVERY_CONFIRM_WINDOW_MINUTES:15}
           lock-minutes: ${APP_AUTH_SECURITY_RECOVERY_CONFIRM_LOCK_MINUTES:15}
+  billing:
+    stripe:
+      enabled: ${APP_BILLING_STRIPE_ENABLED:false}
+      secret-key: ${APP_BILLING_STRIPE_SECRET_KEY:}
+      webhook-secret: ${APP_BILLING_STRIPE_WEBHOOK_SECRET:}
+      price-id: ${APP_BILLING_STRIPE_PRICE_ID:}
+      success-url: ${APP_BILLING_STRIPE_SUCCESS_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/billing/success?session_id={CHECKOUT_SESSION_ID}}
+      cancel-url: ${APP_BILLING_STRIPE_CANCEL_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/billing/cancel}

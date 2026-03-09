@@ -19,8 +19,6 @@ This guide provides instructions for deploying the Weather Alert Backend in vari
 - Java 17 or higher
 - Maven 3.6+
 - PostgreSQL 14+
-- Apache Kafka 3.0+
-- Elasticsearch 8.0+
 
 ### Optional Tools
 - Docker & Docker Compose
@@ -51,40 +49,7 @@ docker run --name postgres-weather \
 createdb weather_alerts
 ```
 
-### 3. Start Kafka with Zookeeper
-```bash
-# Using Docker Compose
-docker-compose up -d zookeeper kafka
-
-# Or manually
-# Start Zookeeper
-bin/zookeeper-server-start.sh config/zookeeper.properties
-
-# Start Kafka
-bin/kafka-server-start.sh config/server.properties
-
-# Create topic
-bin/kafka-topics.sh --create \
-  --topic weather-alerts \
-  --bootstrap-server localhost:9092 \
-  --partitions 3 \
-  --replication-factor 1
-```
-
-### 4. Start Elasticsearch
-```bash
-# Using Docker
-docker run --name elasticsearch-weather \
-  -e "discovery.type=single-node" \
-  -e "xpack.security.enabled=false" \
-  -p 9200:9200 \
-  -d elasticsearch:8.0.0
-
-# Or start locally
-bin/elasticsearch
-```
-
-### 5. Configure Application
+### 3. Configure Application
 Edit `src/main/resources/application.yml`:
 ```yaml
 spring:
@@ -92,15 +57,9 @@ spring:
     url: jdbc:postgresql://localhost:5432/weather_alerts
     username: postgres
     password: postgres
-  
-  kafka:
-    bootstrap-servers: localhost:9092
-    
-  elasticsearch:
-    uris: http://localhost:9200
 ```
 
-### 6. Build and Run
+### 4. Build and Run
 ```bash
 # Build the project
 mvn clean install
@@ -114,7 +73,7 @@ java -jar target/weather-alert-backend-0.0.1-SNAPSHOT.jar
 
 The application will start on `http://localhost:8080`
 
-### 7. Verify Installation
+### 5. Verify Installation
 ```bash
 # Check health endpoint (if implemented)
 curl http://localhost:8080/actuator/health
@@ -147,63 +106,21 @@ services:
     networks:
       - weather-net
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - weather-net
-
-  kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    networks:
-      - weather-net
-
-  elasticsearch:
-    image: elasticsearch:8.0.0
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    networks:
-      - weather-net
-
   app:
     build: .
     depends_on:
       - postgres
-      - kafka
-      - elasticsearch
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_alerts
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
     networks:
       - weather-net
 
 volumes:
   postgres-data:
-  elasticsearch-data:
 
 networks:
   weather-net:
@@ -249,15 +166,16 @@ docker-compose down -v
 
 Cloud Run is the recommended Google Cloud target for this repository because the application is already containerized. A few constraints matter for this service:
 
-- The app contains in-process schedulers (`WeatherAlertScheduler`, `AlertDeliveryRetryScheduler`, `DataRetentionScheduler`) and Kafka consumers, so default horizontal autoscaling is unsafe today.
-- Deploy with `min-instances=1`, `max-instances=1`, and `--no-cpu-throttling` so scheduled work and Kafka polling are not paused between HTTP requests.
+- Scheduler work can now be disabled inside the app and triggered externally through admin job endpoints.
+- Alert activity is delivered through authenticated API reads, so the service no longer depends on an instance-local push broker.
 - Cloud SQL works cleanly through the Cloud SQL Java connector now included in `pom.xml`.
-- Kafka still needs a managed external provider.
 
 Files added for this path:
 
 - `scripts/deploy-cloud-run.sh`
 - `deploy/cloudrun/env.example.yaml`
+- `cloudbuild.yaml`
+- `infra/terraform/`
 - `.gcloudignore`
 
 #### 1. Install and authenticate Google Cloud CLI
@@ -273,8 +191,7 @@ gcloud config set project YOUR_PROJECT_ID
 
 - **Cloud Run**: application runtime
 - **Cloud SQL for PostgreSQL**: primary database
-- **Managed Kafka**: Confluent Cloud, Aiven, Redpanda, or similar
-For Cloud SQL, grant the Cloud Run runtime service account the `Cloud SQL Client` IAM role.
+Terraform in `infra/terraform` can provision the Cloud SQL instance, database, and database user directly.
 
 #### 3. Fill environment variables
 
@@ -282,11 +199,21 @@ Use `deploy/cloudrun/env.example.yaml` as the starting point for `deploy/cloudru
 
 Required values include:
 
-- Cloud SQL connection name and database credentials
-- Kafka bootstrap servers and SASL credentials
+- Cloud SQL sizing and database credentials
 - `APP_SECURITY_*` usernames/passwords
 - `APP_SECURITY_JWT_SECRET` with at least 32 UTF-8 bytes
+- `APP_ADMIN_JOBS_TOKEN` if Cloud Scheduler will call `/api/admin/jobs/**`
 - SMTP settings if email delivery is enabled
+- Stripe settings if subscription billing is enabled:
+  - `APP_BILLING_STRIPE_ENABLED=true`
+  - `APP_BILLING_STRIPE_SECRET_KEY`
+  - `APP_BILLING_STRIPE_WEBHOOK_SECRET`
+  - `APP_BILLING_STRIPE_PRICE_ID`
+  - optional `APP_BILLING_STRIPE_SUCCESS_URL`
+  - optional `APP_BILLING_STRIPE_CANCEL_URL`
+- `APP_WEATHER_PROCESSING_SCHEDULE_ENABLED=false`
+- `APP_NOTIFICATION_DELIVERY_RETRY_POLLER_ENABLED=false`
+- `APP_RETENTION_SCHEDULE_ENABLED=false`
 
 #### 4. Deploy
 
@@ -297,7 +224,74 @@ PROJECT_ID=YOUR_PROJECT_ID REGION=us-east1 ./scripts/deploy-cloud-run.sh
 
 The deploy script enables the required Google APIs and runs `gcloud run deploy` from source.
 
-#### 5. Verify
+#### 5. Trigger scheduled work from Cloud Scheduler
+
+Recommended Cloud Scheduler targets:
+
+- `POST /api/admin/jobs/weather-processing`
+- `POST /api/admin/jobs/alert-delivery-retries`
+- `POST /api/admin/jobs/data-retention`
+
+Send the shared token in the `X-Admin-Job-Token` header. The app accepts that header only for `/api/admin/jobs/**` when `APP_ADMIN_JOBS_TOKEN` is configured.
+
+#### 6. Infra as Code
+
+Terraform scaffolding lives in `infra/terraform`.
+
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+This provisions:
+
+- required Google APIs
+- Artifact Registry
+- Cloud SQL instance, database, and database user
+- Secret Manager secrets
+- Cloud Run service
+- optional Cloud Scheduler jobs
+
+Stripe secret values can also be carried through Terraform:
+
+- `stripe_enabled`
+- `stripe_price_id`
+- `stripe_secret_key`
+- `stripe_webhook_secret`
+- optional `stripe_success_url`
+- optional `stripe_cancel_url`
+
+For a brand-new project, publish the first container image before the first full `terraform apply`:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions=_REGION=us-east1,_SERVICE_NAME=weather-alert-backend,_AR_REPOSITORY=weather-alert-backend,_IMAGE_NAME=weather-alert-backend,_DEPLOY=false
+```
+
+#### 7. Continuous Delivery
+
+`cloudbuild.yaml` builds the image, pushes it to Artifact Registry, and deploys a new Cloud Run revision by default.
+
+Manual run:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions=_REGION=us-east1,_SERVICE_NAME=weather-alert-backend,_AR_REPOSITORY=weather-alert-backend,_IMAGE_NAME=weather-alert-backend
+```
+
+Bootstrap image only:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions=_REGION=us-east1,_SERVICE_NAME=weather-alert-backend,_AR_REPOSITORY=weather-alert-backend,_IMAGE_NAME=weather-alert-backend,_DEPLOY=false
+```
+
+For repeated deploys, create a Cloud Build trigger that points at this repo and `cloudbuild.yaml`.
+
+#### 8. Verify
 
 ```bash
 gcloud run services describe weather-alert-backend \
@@ -306,6 +300,19 @@ gcloud run services describe weather-alert-backend \
 
 curl https://YOUR_CLOUD_RUN_URL/actuator/health
 ```
+
+For Stripe in test mode, point a webhook endpoint at:
+
+```text
+https://YOUR_CLOUD_RUN_URL/api/stripe/webhook
+```
+
+Listen for at least:
+
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
 
 ### AWS Deployment
 
@@ -340,8 +347,6 @@ docker push <ecr-repo-url>:latest
 
 #### 3. Services Configuration
 - **RDS PostgreSQL**: For database
-- **Amazon MSK**: For Kafka
-- **Amazon Elasticsearch Service**: For search
 - **Application Load Balancer**: For traffic distribution
 - **CloudWatch**: For monitoring and logs
 
@@ -444,12 +449,6 @@ kubectl scale deployment/weather-alert-backend --replicas=5
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/weather_alerts
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=<secure-password>
-
-# Kafka
-SPRING_KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-
-# Elasticsearch
-SPRING_ELASTICSEARCH_URIS=http://localhost:9200
 
 # Application
 SERVER_PORT=8080
@@ -578,31 +577,7 @@ psql -h localhost -U postgres -d weather_alerts
 # Verify credentials in application.yml
 ```
 
-#### 2. Kafka Connection Failed
-```bash
-# Check Kafka status
-bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092
-
-# Check if topic exists
-bin/kafka-topics.sh --list --bootstrap-server localhost:9092
-
-# Create topic if missing
-bin/kafka-topics.sh --create --topic weather-alerts --bootstrap-server localhost:9092
-```
-
-#### 3. Elasticsearch Not Responding
-```bash
-# Check Elasticsearch status
-curl http://localhost:9200/_cluster/health
-
-# Check indexes
-curl http://localhost:9200/_cat/indices
-
-# View logs
-docker logs elasticsearch-weather
-```
-
-#### 4. Application Won't Start
+#### 2. Application Won't Start
 ```bash
 # Check Java version
 java -version
@@ -617,7 +592,7 @@ tail -f logs/weather-alert.log
 java -jar app.jar --debug
 ```
 
-#### 5. NOAA API Rate Limiting
+#### 3. NOAA API Rate Limiting
 - Tune `APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS` to reduce upstream pressure
 - Tune retries/timeouts (`APP_NOAA_REQUEST_TIMEOUT_SECONDS`, `APP_NOAA_RETRY_*`)
 - Use outage guard defaults (`APP_NOAA_OUTAGE_FAILURE_THRESHOLD`, `APP_NOAA_OUTAGE_OPEN_SECONDS`) to short-circuit repeated failures
@@ -643,24 +618,12 @@ spring:
       connection-timeout: 30000
 ```
 
-#### Kafka Producer Settings
-```yaml
-spring:
-  kafka:
-    producer:
-      batch-size: 16384
-      buffer-memory: 33554432
-      compression-type: gzip
-```
-
 ---
 
 ## Security Checklist
 
 - [ ] Change default database password
 - [ ] Enable HTTPS/TLS
-- [ ] Configure Kafka SASL/SSL
-- [ ] Secure Elasticsearch with authentication
 - [ ] Implement API rate limiting
 - [ ] Add Spring Security
 - [ ] Use secrets management (AWS Secrets Manager, HashiCorp Vault)
@@ -686,32 +649,10 @@ psql -h localhost -U postgres weather_alerts < backup.sql
 0 2 * * * pg_dump -h localhost -U postgres weather_alerts > /backups/weather_$(date +\%Y\%m\%d).sql
 ```
 
-### Elasticsearch Snapshot
-```bash
-# Create snapshot repository
-curl -X PUT "localhost:9200/_snapshot/my_backup" -H 'Content-Type: application/json' -d'
-{
-  "type": "fs",
-  "settings": {
-    "location": "/mount/backups/elasticsearch"
-  }
-}'
-
-# Create snapshot
-curl -X PUT "localhost:9200/_snapshot/my_backup/snapshot_1?wait_for_completion=true"
-
-# Restore snapshot
-curl -X POST "localhost:9200/_snapshot/my_backup/snapshot_1/_restore"
-```
-
----
-
 ## Support & Maintenance
 
 ### Health Checks
 - Database connectivity
-- Kafka broker status
-- Elasticsearch cluster health
 - NOAA API availability
 - Disk space and memory usage
 
@@ -730,8 +671,6 @@ curl -X POST "localhost:9200/_snapshot/my_backup/snapshot_1/_restore"
 
 - [Spring Boot Documentation](https://spring.io/projects/spring-boot)
 - [NOAA Weather API](https://www.weather.gov/documentation/services-web-api)
-- [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
-- [Elasticsearch Documentation](https://www.elastic.co/guide/index.html)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 
 ---

@@ -2,8 +2,13 @@ package com.weather.alert.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weather.alert.application.dto.AuthRequest;
+import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
+import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
+import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
+import com.weather.alert.application.usecase.GetBillingStatusUseCase;
+import com.weather.alert.application.usecase.HandleStripeWebhookUseCase;
 import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.ManageNotificationPreferencesUseCase;
@@ -19,7 +24,9 @@ import com.weather.alert.infrastructure.error.SecurityErrorResponseWriter;
 import com.weather.alert.infrastructure.web.controller.AlertCriteriaController;
 import com.weather.alert.infrastructure.web.controller.AccountRecoveryController;
 import com.weather.alert.infrastructure.web.controller.AuthController;
+import com.weather.alert.infrastructure.web.controller.BillingController;
 import com.weather.alert.infrastructure.web.controller.NotificationPreferenceController;
+import com.weather.alert.infrastructure.web.controller.StripeWebhookController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -47,7 +54,14 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest({AlertCriteriaController.class, AuthController.class, NotificationPreferenceController.class, AccountRecoveryController.class})
+@WebMvcTest({
+        AlertCriteriaController.class,
+        AuthController.class,
+        NotificationPreferenceController.class,
+        AccountRecoveryController.class,
+        BillingController.class,
+        StripeWebhookController.class
+})
 @Import({
         SecurityConfig.class,
         RestAuthenticationEntryPoint.class,
@@ -93,6 +107,15 @@ class SecurityConfigTest {
 
     @MockBean
     private ManageAccountRecoveryUseCase manageAccountRecoveryUseCase;
+
+    @MockBean
+    private GetBillingStatusUseCase getBillingStatusUseCase;
+
+    @MockBean
+    private CreateBillingCheckoutSessionUseCase createBillingCheckoutSessionUseCase;
+
+    @MockBean
+    private HandleStripeWebhookUseCase handleStripeWebhookUseCase;
 
     @Test
     void shouldRequireAuthenticationForApiEndpoints() throws Exception {
@@ -291,5 +314,49 @@ class SecurityConfigTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Password updated successfully."));
+    }
+
+    @Test
+    void shouldRequireAuthenticationForBillingStatusEndpoint() throws Exception {
+        mockMvc.perform(get("/api/billing/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldAllowAuthenticatedUserToReadBillingStatus() throws Exception {
+        when(getBillingStatusUseCase.getForUser("user-1")).thenReturn(BillingStatusResponse.builder()
+                .userId("user-1")
+                .stripeSubscriptionStatus("active")
+                .activeSubscription(true)
+                .build());
+
+        mockMvc.perform(get("/api/billing/me")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("user-1"))
+                .andExpect(jsonPath("$.activeSubscription").value(true));
+    }
+
+    @Test
+    void shouldAllowAuthenticatedUserToCreateBillingCheckoutSession() throws Exception {
+        when(createBillingCheckoutSessionUseCase.createForUser("user-1")).thenReturn(BillingCheckoutSessionResponse.builder()
+                .sessionId("cs_test_123")
+                .url("https://checkout.stripe.com/c/pay/cs_test_123")
+                .build());
+
+        mockMvc.perform(post("/api/billing/checkout-session")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value("cs_test_123"));
+    }
+
+    @Test
+    void shouldAllowStripeWebhookWithoutAuthentication() throws Exception {
+        mockMvc.perform(post("/api/stripe/webhook")
+                        .header("Stripe-Signature", "t=1,v1=test")
+                        .contentType("application/json")
+                        .content("{\"id\":\"evt_123\",\"type\":\"checkout.session.completed\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Webhook processed"));
     }
 }

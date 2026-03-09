@@ -2,6 +2,7 @@ package com.weather.alert.domain.port;
 
 import com.weather.alert.domain.model.AlertCriteriaState;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -12,4 +13,8 @@ public interface AlertCriteriaStateRepositoryPort {
     Optional<AlertCriteriaState> findByCriteriaId(String criteriaId);
 
     AlertCriteriaState save(AlertCriteriaState state);
+
+    int deleteByUpdatedAtBefore(Instant cutoff);
+
+    int deleteOrphanedStates();
 }

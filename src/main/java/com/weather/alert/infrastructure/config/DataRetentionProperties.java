@@ -10,6 +10,11 @@ import org.springframework.stereotype.Component;
 public class DataRetentionProperties {
 
     /**
+     * Enable the in-process scheduler trigger for retention cleanup.
+     */
+    private boolean scheduleEnabled = true;
+
+    /**
      * Master switch for scheduled data cleanup.
      */
     private boolean enabled = true;

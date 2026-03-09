@@ -17,86 +17,6 @@ services:
       timeout: 5s
       retries: 10
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: weather-zookeeper
-    restart: unless-stopped
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: weather-kafka
-    restart: unless-stopped
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-    healthcheck:
-      test: ["CMD-SHELL", "cub kafka-ready -b localhost:9092 1 30"]
-      interval: 10s
-      timeout: 10s
-      retries: 12
-
-  kafka-init:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: weather-kafka-init
-    depends_on:
-      kafka:
-        condition: service_healthy
-    entrypoint: ["/bin/bash", "-c"]
-    command: >
-      "kafka-topics --bootstrap-server kafka:29092
-      --create --if-not-exists
-      --topic weather-alerts
-      --replication-factor 1
-      --partitions 3
-      &&
-      kafka-topics --bootstrap-server kafka:29092
-      --create --if-not-exists
-      --topic weather-alert-delivery-tasks
-      --replication-factor 1
-      --partitions 3
-      &&
-      kafka-topics --bootstrap-server kafka:29092
-      --create --if-not-exists
-      --topic weather-alert-delivery-dlq
-      --replication-factor 1
-      --partitions 3
-      &&
-      kafka-configs --bootstrap-server kafka:29092
-      --entity-type topics
-      --entity-name weather-alerts
-      --alter
-      --add-config retention.ms=86400000,cleanup.policy=delete
-      &&
-      kafka-configs --bootstrap-server kafka:29092
-      --entity-type topics
-      --entity-name weather-alert-delivery-tasks
-      --alter
-      --add-config retention.ms=86400000,cleanup.policy=delete
-      &&
-      kafka-configs --bootstrap-server kafka:29092
-      --entity-type topics
-      --entity-name weather-alert-delivery-dlq
-      --alter
-      --add-config retention.ms=604800000,cleanup.policy=delete"
-    restart: "no"
-
   mailhog:
     image: mailhog/mailhog:v1.0.1
     container_name: weather-mailhog
@@ -114,35 +34,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
-      kafka-init:
-        condition: service_completed_successfully
     env_file:
       - .env
       - .env.smtp
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_alerts
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       LOGGING_FILE_NAME: /app/logs/weather-alert-backend.log
     ports:
       - "8088:8080"
     volumes:
       - ./logs:/app/logs
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:v0.7.2
-    container_name: weather-kafka-ui
-    profiles: ["tools"]
-    depends_on:
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8081:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
   zipkin:
     image: openzipkin/zipkin:3.5.1

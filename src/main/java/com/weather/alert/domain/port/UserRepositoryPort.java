@@ -15,6 +15,10 @@ public interface UserRepositoryPort {
     Optional<User> findById(String id);
     
     Optional<User> findByEmail(String email);
+
+    Optional<User> findByStripeCustomerId(String stripeCustomerId);
+
+    Optional<User> findByStripeSubscriptionId(String stripeSubscriptionId);
     
     List<User> findAll();
     

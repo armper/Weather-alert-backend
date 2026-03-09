@@ -56,6 +56,10 @@ application-local.properties
 .env.local
 .env.smtp
 deploy/cloudrun/env.yaml
+infra/terraform/.terraform/
+infra/terraform/terraform.tfstate
+infra/terraform/terraform.tfstate.*
+infra/terraform/terraform.tfvars
 
 # Node / frontend (ui)
 **/node_modules/

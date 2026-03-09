@@ -25,6 +25,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import javax.crypto.SecretKey;
@@ -37,6 +38,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
+            AdminJobAuthFilter adminJobAuthFilter,
             RestAuthenticationEntryPoint authenticationEntryPoint,
             RestAccessDeniedHandler accessDeniedHandler) throws Exception {
         http
@@ -62,7 +64,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/recovery/username/confirm").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/recovery/password/request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/recovery/password/confirm").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                         .requestMatchers("/api/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/jobs/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/billing/me").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/billing/checkout-session").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/users/me").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/users/me/change-password").hasAnyRole("USER", "ADMIN")
@@ -76,6 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
+                .addFilterBefore(adminJobAuthFilter, BearerTokenAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }

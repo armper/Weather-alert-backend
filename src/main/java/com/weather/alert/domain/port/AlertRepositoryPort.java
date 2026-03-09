@@ -28,6 +28,8 @@ public interface AlertRepositoryPort {
     Optional<Alert> acknowledge(String alertId, Instant acknowledgedAt);
 
     Optional<Alert> expire(String alertId, Instant expiredAt);
+
+    int deleteByAlertTimeBefore(Instant cutoff);
     
     void delete(String id);
 }

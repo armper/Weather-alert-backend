@@ -1,6 +1,14 @@
 package com.weather.alert.integration;
 
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
+import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
+import com.weather.alert.application.dto.BillingStatusResponse;
+import com.weather.alert.application.dto.JobRunResponse;
+import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
+import com.weather.alert.application.usecase.GetBillingStatusUseCase;
+import com.weather.alert.application.usecase.PublishDueAlertDeliveryTasksUseCase;
+import com.weather.alert.application.usecase.RunDataRetentionCleanupUseCase;
+import com.weather.alert.application.usecase.RunWeatherAlertProcessingUseCase;
 import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
@@ -10,8 +18,6 @@ import com.weather.alert.domain.port.NotificationPort;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.domain.service.AlertProcessingService;
-import com.weather.alert.infrastructure.adapter.kafka.AlertKafkaConsumer;
-import com.weather.alert.infrastructure.adapter.kafka.AlertDeliveryTaskKafkaConsumer;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,8 +54,8 @@ import static org.mockito.Mockito.when;
         "app.security.admin.username=test-admin",
         "app.security.admin.password=test-admin-password",
         "app.security.jwt.secret=test-jwt-signing-secret-with-minimum-length-123",
+        "app.admin.jobs.token=test-admin-jobs-token",
         "spring.task.scheduling.enabled=false",
-        "spring.kafka.listener.auto-startup=false",
         "management.tracing.enabled=false"
 })
 class ApiIntegrationContractTest {
@@ -70,16 +76,25 @@ class ApiIntegrationContractTest {
     private NotificationPort notificationPort;
 
     @MockBean
-    private AlertKafkaConsumer alertKafkaConsumer;
-
-    @MockBean
-    private AlertDeliveryTaskKafkaConsumer alertDeliveryTaskKafkaConsumer;
-
-    @MockBean
     private AlertDeliveryTaskPublisherPort alertDeliveryTaskPublisherPort;
 
     @MockBean
     private AlertDeliveryDlqPublisherPort alertDeliveryDlqPublisherPort;
+
+    @MockBean
+    private RunWeatherAlertProcessingUseCase runWeatherAlertProcessingUseCase;
+
+    @MockBean
+    private PublishDueAlertDeliveryTasksUseCase publishDueAlertDeliveryTasksUseCase;
+
+    @MockBean
+    private RunDataRetentionCleanupUseCase runDataRetentionCleanupUseCase;
+
+    @MockBean
+    private GetBillingStatusUseCase getBillingStatusUseCase;
+
+    @MockBean
+    private CreateBillingCheckoutSessionUseCase createBillingCheckoutSessionUseCase;
 
     private OpenApiValidationFilter openApiValidationFilter;
 
@@ -154,6 +169,30 @@ class ApiIntegrationContractTest {
                         .riverStageUnit("ft")
                         .timestamp(Instant.parse("2026-03-07T00:00:00Z"))
                         .build()));
+
+        when(runWeatherAlertProcessingUseCase.run())
+                .thenReturn(jobResponse("weather-processing"));
+        when(publishDueAlertDeliveryTasksUseCase.run())
+                .thenReturn(jobResponse("alert-delivery-retries"));
+        when(runDataRetentionCleanupUseCase.run())
+                .thenReturn(jobResponse("data-retention"));
+
+        when(getBillingStatusUseCase.getForUser("test-admin"))
+                .thenReturn(BillingStatusResponse.builder()
+                        .userId("test-admin")
+                        .stripeCustomerId("cus_test_admin")
+                        .stripeSubscriptionId("sub_test_admin")
+                        .stripePriceId("price_test_weather_alerts")
+                        .stripeSubscriptionStatus("active")
+                        .stripeCurrentPeriodEnd(Instant.parse("2026-04-01T00:00:00Z"))
+                        .activeSubscription(true)
+                        .build());
+
+        when(createBillingCheckoutSessionUseCase.createForUser("test-admin"))
+                .thenReturn(BillingCheckoutSessionResponse.builder()
+                        .sessionId("cs_test_weather_alerts")
+                        .url("https://checkout.stripe.com/c/pay/cs_test_weather_alerts")
+                        .build());
     }
 
     @Test
@@ -171,6 +210,37 @@ class ApiIntegrationContractTest {
                 .body("accessToken", notNullValue())
                 .body("tokenType", equalTo("Bearer"))
                 .body("expiresIn", greaterThan(0));
+    }
+
+    @Test
+    void shouldReturnBillingStatusWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .when()
+                .get("/api/billing/me")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("userId", equalTo("test-admin"))
+                .body("stripeCustomerId", equalTo("cus_test_admin"))
+                .body("activeSubscription", equalTo(true));
+    }
+
+    @Test
+    void shouldCreateBillingCheckoutSessionWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/billing/checkout-session")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("sessionId", equalTo("cs_test_weather_alerts"))
+                .body("url", equalTo("https://checkout.stripe.com/c/pay/cs_test_weather_alerts"));
     }
 
     @Test
@@ -397,6 +467,54 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("criteriaId", equalTo(criteriaId))
                 .body("useUserDefaults", equalTo(false));
+    }
+
+    @Test
+    void shouldRunAdminJobsWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/admin/jobs/weather-processing")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("jobName", equalTo("weather-processing"))
+                .body("status", equalTo("COMPLETED"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/admin/jobs/alert-delivery-retries")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("jobName", equalTo("alert-delivery-retries"))
+                .body("status", equalTo("COMPLETED"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/admin/jobs/data-retention")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("jobName", equalTo("data-retention"))
+                .body("status", equalTo("COMPLETED"));
+    }
+
+    @Test
+    void shouldRunAdminJobsWithSharedToken() {
+        given()
+                .header("X-Admin-Job-Token", "test-admin-jobs-token")
+                .filter(openApiValidationFilter)
+                .when()
+                .post("/api/admin/jobs/weather-processing")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("jobName", equalTo("weather-processing"))
+                .body("status", equalTo("COMPLETED"));
     }
 
     @Test
@@ -663,6 +781,19 @@ class ApiIntegrationContractTest {
                 Map.entry("oncePerEvent", true),
                 Map.entry("rearmWindowMinutes", 120)
         );
+    }
+
+    private JobRunResponse jobResponse(String jobName) {
+        Instant now = Instant.parse("2026-03-09T12:00:00Z");
+        return JobRunResponse.builder()
+                .jobName(jobName)
+                .status("COMPLETED")
+                .startedAt(now)
+                .finishedAt(now.plusSeconds(1))
+                .durationMillis(1000)
+                .message("test trigger")
+                .metrics(Map.of("runs", 1L))
+                .build();
     }
 
     private WeatherData sampleWeatherData(String id) {
