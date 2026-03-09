@@ -386,6 +386,31 @@ button:disabled {
   align-items: stretch;
 }
 
+.preset-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.preset-group {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.preset-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preset-group-title {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .easy-alert-card {
   border: 1px solid var(--surface-border);
   border-radius: 0.9rem;
@@ -424,14 +449,35 @@ button:disabled {
   box-shadow: 0 8px 18px rgba(12, 31, 46, 0.08);
 }
 
+.easy-alert-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.28rem;
+}
+
 .easy-alert-title {
-  margin: 0 0 0.2rem;
+  margin: 0;
   font-weight: 800;
   font-family: var(--font-heading);
 }
 
-.easy-alert-icon {
-  font-size: 1rem;
+.easy-alert-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(255, 239, 200, 0.9) 0%, rgba(213, 236, 248, 0.92) 100%);
+  color: var(--accent-700);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.easy-alert-icon-svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .easy-alert-desc {
@@ -1406,6 +1452,11 @@ button:disabled {
 
 .river-rule-copy {
   margin: 0.18rem 0 0;
+}
+
+.river-setup-hint,
+.river-monitor-note {
+  margin: 0;
 }
 
 .river-helper-button {

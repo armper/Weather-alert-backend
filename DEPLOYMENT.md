@@ -245,6 +245,71 @@ docker-compose down -v
 
 ## Production Deployment
 
+### Google Cloud Run
+
+Cloud Run is the recommended Google Cloud target for this repository because the application is already containerized. A few constraints matter for this service:
+
+- The app contains in-process schedulers (`WeatherAlertScheduler`, `AlertDeliveryRetryScheduler`, `DataRetentionScheduler`) and Kafka consumers, so default horizontal autoscaling is unsafe today.
+- Deploy with `min-instances=1`, `max-instances=1`, and `--no-cpu-throttling` so scheduled work and Kafka polling are not paused between HTTP requests.
+- Cloud SQL works cleanly through the Cloud SQL Java connector now included in `pom.xml`.
+- Kafka and Elasticsearch still need managed external providers.
+
+Files added for this path:
+
+- `scripts/deploy-cloud-run.sh`
+- `deploy/cloudrun/env.example.yaml`
+- `.gcloudignore`
+
+#### 1. Install and authenticate Google Cloud CLI
+
+```bash
+brew install --cask gcloud-cli
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project YOUR_PROJECT_ID
+```
+
+#### 2. Provision backing services
+
+- **Cloud Run**: application runtime
+- **Cloud SQL for PostgreSQL**: primary database
+- **Managed Kafka**: Confluent Cloud, Aiven, Redpanda, or similar
+- **Managed Elasticsearch**: Elastic Cloud or similar
+
+For Cloud SQL, grant the Cloud Run runtime service account the `Cloud SQL Client` IAM role.
+
+#### 3. Fill environment variables
+
+Use `deploy/cloudrun/env.example.yaml` as the starting point for `deploy/cloudrun/env.yaml`.
+
+Required values include:
+
+- Cloud SQL connection name and database credentials
+- Kafka bootstrap servers and SASL credentials
+- Elasticsearch URL and credentials
+- `APP_SECURITY_*` usernames/passwords
+- `APP_SECURITY_JWT_SECRET` with at least 32 UTF-8 bytes
+- SMTP settings if email delivery is enabled
+
+#### 4. Deploy
+
+```bash
+chmod +x scripts/deploy-cloud-run.sh
+PROJECT_ID=YOUR_PROJECT_ID REGION=us-east1 ./scripts/deploy-cloud-run.sh
+```
+
+The deploy script enables the required Google APIs and runs `gcloud run deploy` from source.
+
+#### 5. Verify
+
+```bash
+gcloud run services describe weather-alert-backend \
+  --region us-east1 \
+  --format='value(status.url)'
+
+curl https://YOUR_CLOUD_RUN_URL/actuator/health
+```
+
 ### AWS Deployment
 
 #### 1. Using AWS Elastic Beanstalk

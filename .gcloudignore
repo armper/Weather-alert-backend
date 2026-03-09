@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gcloudignore
+target/
+logs/
+.env
+.env.local
+.env.smtp
+deploy/cloudrun/env.yaml
+**/node_modules/
+ui/dist/
+ui/.vite/

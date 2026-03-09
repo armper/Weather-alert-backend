@@ -55,6 +55,7 @@ application-local.properties
 .env
 .env.local
 .env.smtp
+deploy/cloudrun/env.yaml
 
 # Node / frontend (ui)
 **/node_modules/

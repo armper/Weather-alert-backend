@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Disclosure, DisclosurePanel } from 'react-aria-components'
 import { useLocation } from 'react-router-dom'
 import { apiRequest, toErrorMessage } from '../api'
@@ -26,12 +26,15 @@ interface RuleFormErrors {
 }
 
 type LocationMode = 'CITY' | 'MANUAL'
+type PresetCategory = 'TEMPERATURE' | 'RAIN_WIND' | 'AIR_SKY' | 'RIVER'
+type PresetIcon = 'jacket' | 'heat' | 'rain' | 'wind' | 'humidity' | 'dew' | 'gust' | 'sky' | 'river' | 'alert' | 'flood'
 
 interface RulePreset {
   id: string
+  category: PresetCategory
   title: string
   description: string
-  icon: string
+  icon: PresetIcon
   ruleType: RuleType
   threshold: string
   temperatureUnit?: 'F' | 'C'
@@ -87,12 +90,22 @@ const GRID_RULE_TYPES: RuleType[] = [
   'SKY_COVER_BELOW',
 ]
 
+const PRESET_CATEGORY_LABELS: Record<PresetCategory, string> = {
+  TEMPERATURE: 'Temperature',
+  RAIN_WIND: 'Rain and Wind',
+  AIR_SKY: 'Air and Sky',
+  RIVER: 'River',
+}
+
+const PRESET_CATEGORY_ORDER: PresetCategory[] = ['TEMPERATURE', 'RAIN_WIND', 'AIR_SKY', 'RIVER']
+
 const RULE_PRESETS: RulePreset[] = [
   {
     id: 'bring-jacket',
-    title: 'Bring a Jacket',
-    description: 'Warn when temperatures dip into light-jacket territory.',
-    icon: 'Coat',
+    category: 'TEMPERATURE',
+    title: 'Chilly Weather',
+    description: 'Get a heads-up when it is cool enough to want a jacket.',
+    icon: 'jacket',
     ruleType: 'TEMP_BELOW',
     threshold: '60',
     temperatureUnit: 'F',
@@ -101,9 +114,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'heat-watch',
-    title: 'Heat Watch',
-    description: 'Catch hotter afternoons before they spike.',
-    icon: 'Heat',
+    category: 'TEMPERATURE',
+    title: 'Hot Day Ahead',
+    description: 'Get warned before the day turns very hot.',
+    icon: 'heat',
     ruleType: 'TEMP_ABOVE',
     threshold: '92',
     temperatureUnit: 'F',
@@ -112,9 +126,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'storm-window',
-    title: 'Storm Window',
-    description: 'Track higher rain chances over the next day.',
-    icon: 'Rain',
+    category: 'RAIN_WIND',
+    title: 'Rain Coming',
+    description: 'Get warned when rain chances start looking high.',
+    icon: 'rain',
     ruleType: 'RAIN',
     threshold: '65',
     forecastWindowHours: '24',
@@ -123,9 +138,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'wind-advisory',
-    title: 'Wind Advisory',
-    description: 'Flag stronger sustained winds for plans outdoors.',
-    icon: 'Wind',
+    category: 'RAIN_WIND',
+    title: 'Windy Outside',
+    description: 'Get a heads-up when winds may get strong.',
+    icon: 'wind',
     ruleType: 'WIND',
     threshold: '30',
     monitorCurrent: true,
@@ -133,9 +149,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'sticky-air',
-    title: 'Sticky Air',
-    description: 'Use NOAA grid humidity to catch swampy conditions.',
-    icon: 'Humidity',
+    category: 'AIR_SKY',
+    title: 'Very Humid',
+    description: 'Get warned when the air starts feeling sticky and uncomfortable.',
+    icon: 'humidity',
     ruleType: 'HUMIDITY_ABOVE',
     threshold: '85',
     forecastWindowHours: '18',
@@ -144,9 +161,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'tropical-night',
-    title: 'Tropical Night',
-    description: 'Watch for muggy dew points that keep evenings uncomfortable.',
-    icon: 'Dew',
+    category: 'AIR_SKY',
+    title: 'Warm, Muggy Night',
+    description: 'Get a heads-up when the evening may stay warm and muggy.',
+    icon: 'dew',
     ruleType: 'DEW_POINT_ABOVE',
     threshold: '70',
     temperatureUnit: 'F',
@@ -156,9 +174,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'gust-watch',
-    title: 'Gust Watch',
-    description: 'Use forecast grid gusts to catch squalls before they arrive.',
-    icon: 'Gust',
+    category: 'RAIN_WIND',
+    title: 'Strong Wind Gusts',
+    description: 'Get warned before sudden strong gusts move in.',
+    icon: 'gust',
     ruleType: 'WIND_GUST',
     threshold: '40',
     forecastWindowHours: '12',
@@ -167,9 +186,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'blue-sky',
-    title: 'Blue Sky Break',
-    description: 'Alert when sky cover opens up for a clear-weather window.',
-    icon: 'Sky',
+    category: 'AIR_SKY',
+    title: 'Clearing Skies',
+    description: 'Get a heads-up when clouds are expected to clear out.',
+    icon: 'sky',
     ruleType: 'SKY_COVER_BELOW',
     threshold: '20',
     forecastWindowHours: '12',
@@ -178,9 +198,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'river-rising',
-    title: 'River Rising',
-    description: 'A starting stage threshold you can tune after picking a gauge.',
-    icon: 'River',
+    category: 'RIVER',
+    title: 'River Is Rising',
+    description: 'Get a heads-up when the nearby river starts rising past your chosen level.',
+    icon: 'river',
     ruleType: 'RIVER_STAGE_ABOVE',
     threshold: '8',
     monitorCurrent: true,
@@ -189,9 +210,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'action-stage-watch',
-    title: 'Action Stage Watch',
-    description: 'Warn when a river is forecast to reach official action stage.',
-    icon: 'Gauge',
+    category: 'RIVER',
+    title: 'River Could Become a Problem',
+    description: 'Get warned when the nearby river may be heading toward trouble.',
+    icon: 'alert',
     ruleType: 'RIVER_FLOOD_CATEGORY',
     threshold: '',
     riverFloodCategoryThreshold: 'ACTION',
@@ -201,9 +223,10 @@ const RULE_PRESETS: RulePreset[] = [
   },
   {
     id: 'minor-flood-risk',
-    title: 'Minor Flood Risk',
-    description: 'Track gauges that are entering official minor flood territory.',
-    icon: 'Flood',
+    category: 'RIVER',
+    title: 'Minor Flooding Possible',
+    description: 'Get warned when the nearby river may start causing minor flooding.',
+    icon: 'flood',
     ruleType: 'RIVER_FLOOD_CATEGORY',
     threshold: '',
     riverFloodCategoryThreshold: 'MINOR',
@@ -239,6 +262,15 @@ export function RulesPage() {
   const mapLongitude = Number(criteriaForm.longitude)
   const resolvedLatitude = Number.isNaN(mapLatitude) ? Number(DEFAULT_LAT) : mapLatitude
   const resolvedLongitude = Number.isNaN(mapLongitude) ? Number(DEFAULT_LON) : mapLongitude
+  const presetGroups = useMemo(
+    () =>
+      PRESET_CATEGORY_ORDER.map((category) => ({
+        category,
+        label: PRESET_CATEGORY_LABELS[category],
+        items: RULE_PRESETS.filter((preset) => preset.category === category),
+      })).filter((group) => group.items.length > 0),
+    [],
+  )
 
   const thresholdHelp = useMemo(() => {
     switch (criteriaForm.ruleType) {
@@ -265,9 +297,9 @@ export function RulesPage() {
       case 'SKY_COVER_BELOW':
         return `Alert when sky cover drops below ${criteriaForm.threshold || 'X'}%.`
       case 'RIVER_STAGE_ABOVE':
-        return `Alert when river stage rises above ${criteriaForm.threshold || 'X'} ft at gauge ${criteriaForm.riverGaugeId || 'XXXX'}.`
+        return `Alert when the nearby river rises above ${criteriaForm.threshold || 'X'} ft.`
       case 'RIVER_STAGE_BELOW':
-        return `Alert when river stage drops below ${criteriaForm.threshold || 'X'} ft at gauge ${criteriaForm.riverGaugeId || 'XXXX'}.`
+        return `Alert when the nearby river drops below ${criteriaForm.threshold || 'X'} ft.`
       case 'RIVER_FLOOD_CATEGORY':
         return `Alert when the gauge reaches ${formatFloodCategoryLabel(criteriaForm.riverFloodCategoryThreshold)} or higher.`
       default:
@@ -357,7 +389,7 @@ export function RulesPage() {
     }
 
     if (isRiverRule && !criteriaForm.riverGaugeId.trim()) {
-      errors.riverGaugeId = 'Gauge ID is required for river alerts.'
+      errors.riverGaugeId = 'Find a nearby river before saving this alert.'
     }
 
     if (isRiverRule) {
@@ -468,7 +500,7 @@ export function RulesPage() {
       const merged = mergeRiverGaugeConditions(current, forecast)
 
       if (!merged?.riverGaugeId) {
-        throw new Error('No nearby river gauge was found for this location.')
+        throw new Error('No nearby river was found for this spot. Try another point on the map or increase the search range in Advanced.')
       }
 
       setCriteriaForm((state) => ({
@@ -478,7 +510,9 @@ export function RulesPage() {
       setResolvedRiverGauge(merged)
       setNotice({
         kind: 'success',
-        text: `Nearest gauge set to ${merged.riverGaugeId}${merged.location ? ` (${merged.location})` : ''}.`,
+        text: merged.location
+          ? `Connected this alert to ${merged.location}.`
+          : 'Connected this alert to nearby river data.',
       })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
@@ -579,24 +613,33 @@ export function RulesPage() {
         </div>
 
         <fieldset className="rules-fieldset-reset" disabled={savingCriteria}>
-          <div className="easy-alert-grid">
-          {RULE_PRESETS.map((preset) => (
-            <AriaButton
-              key={preset.id}
-              type="button"
-              className={`easy-alert-card${criteriaForm.name === preset.title ? ' is-active' : ''}`}
-              isDisabled={savingCriteria}
-              onPress={() => applyPreset(preset)}
-            >
-              <p className="easy-alert-title">
-                <span aria-hidden className="easy-alert-icon">
-                  {preset.icon}
-                </span>{' '}
-                {preset.title}
-              </p>
-              <p className="easy-alert-desc">{preset.description}</p>
-            </AriaButton>
-          ))}
+          <div className="preset-groups">
+            {presetGroups.map((group) => (
+              <section key={group.category} className="preset-group">
+                <div className="preset-group-header">
+                  <p className="preset-group-title">{group.label}</p>
+                </div>
+                <div className="easy-alert-grid">
+                  {group.items.map((preset) => (
+                    <AriaButton
+                      key={preset.id}
+                      type="button"
+                      className={`easy-alert-card${criteriaForm.name === preset.title ? ' is-active' : ''}`}
+                      isDisabled={savingCriteria}
+                      onPress={() => applyPreset(preset)}
+                    >
+                      <div className="easy-alert-title-row">
+                        <span aria-hidden className="easy-alert-icon-badge">
+                          {renderPresetIcon(preset.icon)}
+                        </span>
+                        <p className="easy-alert-title">{preset.title}</p>
+                      </div>
+                      <p className="easy-alert-desc">{preset.description}</p>
+                    </AriaButton>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         </fieldset>
       </article>
@@ -658,9 +701,9 @@ export function RulesPage() {
             <section className="full-row river-rule-panel">
               <div className="river-rule-header">
                 <div>
-                  <h3>River gauge</h3>
+                  <h3>River location</h3>
                   <p className="muted small river-rule-copy">
-                    Pick a known NWPS gauge or resolve the nearest one from the map point above.
+                    Pick a spot on the map, then find the nearest river monitor. We use that in the background so you do not have to.
                   </p>
                 </div>
                 <AriaButton
@@ -669,47 +712,22 @@ export function RulesPage() {
                   isDisabled={savingCriteria || resolvingRiverGauge}
                   onPress={() => void handleResolveNearestGauge()}
                 >
-                  {resolvingRiverGauge ? 'Finding gauge...' : 'Use nearest gauge'}
+                  {resolvingRiverGauge ? 'Finding nearby river...' : 'Find nearby river'}
                 </AriaButton>
               </div>
 
-              <div className="river-gauge-grid">
-                <AriaTextField
-                  label="Gauge ID"
-                  inputClassName="aria-input"
-                  value={criteriaForm.riverGaugeId}
-                  required
-                  errorMessage={formErrors.riverGaugeId}
-                  onChange={(value) =>
-                    setCriteriaForm((state) => ({
-                      ...state,
-                      riverGaugeId: value.toUpperCase(),
-                    }))
-                  }
-                />
-
-                <AriaTextField
-                  label="Nearest-gauge radius (km)"
-                  inputClassName="aria-input"
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={criteriaForm.gaugeSearchRadiusKm}
-                  errorMessage={formErrors.gaugeSearchRadiusKm}
-                  onChange={(value) =>
-                    setCriteriaForm((state) => ({
-                      ...state,
-                      gaugeSearchRadiusKm: value,
-                    }))
-                  }
-                />
-              </div>
+              {!criteriaForm.riverGaugeId.trim() ? (
+                <p className="muted small river-setup-hint">
+                  Choose the river point first. After that, the save button will unlock for this alert.
+                </p>
+              ) : null}
+              {formErrors.riverGaugeId ? <p className="field-error">{formErrors.riverGaugeId}</p> : null}
 
               {resolvedRiverGauge?.riverGaugeId ? (
                 <div className="river-gauge-card">
                   <div className="river-gauge-card-header">
                     <p className="river-gauge-title">
-                      {resolvedRiverGauge.location || 'Resolved gauge'} <span>{resolvedRiverGauge.riverGaugeId}</span>
+                      {resolvedRiverGauge.location || 'Nearby river selected'}
                     </p>
                     {resolvedRiverGauge.riverDistanceKm != null ? (
                       <span className="badge">{formatNumber(resolvedRiverGauge.riverDistanceKm)} km away</span>
@@ -719,32 +737,32 @@ export function RulesPage() {
                   <div className="river-gauge-metrics">
                     {resolvedRiverGauge.riverObservedStage != null ? (
                       <span className="metric-pill">
-                        Observed: {formatStage(resolvedRiverGauge.riverObservedStage, resolvedRiverGauge.riverStageUnit)}
+                        Now: {formatStage(resolvedRiverGauge.riverObservedStage, resolvedRiverGauge.riverStageUnit)}
                       </span>
                     ) : null}
                     {resolvedRiverGauge.riverForecastStage != null ? (
                       <span className="metric-pill">
-                        Forecast: {formatStage(resolvedRiverGauge.riverForecastStage, resolvedRiverGauge.riverStageUnit)}
+                        Later: {formatStage(resolvedRiverGauge.riverForecastStage, resolvedRiverGauge.riverStageUnit)}
                       </span>
                     ) : null}
                     {resolvedRiverGauge.riverActionStage != null ? (
                       <span className="metric-pill">
-                        Action: {formatStage(resolvedRiverGauge.riverActionStage, resolvedRiverGauge.riverStageUnit)}
+                        Early warning: {formatStage(resolvedRiverGauge.riverActionStage, resolvedRiverGauge.riverStageUnit)}
                       </span>
                     ) : null}
                     {resolvedRiverGauge.riverFloodStage != null ? (
                       <span className="metric-pill">
-                        Flood: {formatStage(resolvedRiverGauge.riverFloodStage, resolvedRiverGauge.riverStageUnit)}
+                        Flood level: {formatStage(resolvedRiverGauge.riverFloodStage, resolvedRiverGauge.riverStageUnit)}
                       </span>
                     ) : null}
                     {resolvedRiverGauge.riverObservedCategory ? (
                       <span className="metric-pill">
-                        Current: {formatRiverCategoryLabel(resolvedRiverGauge.riverObservedCategory)}
+                        Current risk: {formatRiverCategoryLabel(resolvedRiverGauge.riverObservedCategory)}
                       </span>
                     ) : null}
                     {resolvedRiverGauge.riverForecastCategory ? (
                       <span className="metric-pill">
-                        Forecast category: {formatRiverCategoryLabel(resolvedRiverGauge.riverForecastCategory)}
+                        Forecast risk: {formatRiverCategoryLabel(resolvedRiverGauge.riverForecastCategory)}
                       </span>
                     ) : null}
                   </div>
@@ -756,7 +774,7 @@ export function RulesPage() {
           {isRiverCategoryRule ? (
             <div className="threshold-row full-row river-threshold-row">
               <AriaSelect
-                label="Flood category"
+                label="Flood risk level"
                 buttonClassName="aria-select-trigger"
                 popoverClassName="aria-select-popover"
                 listBoxClassName="aria-select-listbox"
@@ -777,7 +795,7 @@ export function RulesPage() {
           ) : (
             <div className="threshold-row full-row">
               <AriaTextField
-                label={isRiverStageRule ? 'Stage threshold' : 'Threshold'}
+                label={isRiverStageRule ? 'Water level trigger' : 'Threshold'}
                 inputClassName="aria-input"
                 type="number"
                 required
@@ -943,6 +961,47 @@ export function RulesPage() {
                   </>
                 ) : null}
               </section>
+
+              {isRiverRule ? (
+                <section className="advanced-section">
+                  <h3>River source</h3>
+                  <p className="muted small advanced-helper">
+                    These settings control how we find the river monitor behind the scenes.
+                  </p>
+                  <div className="advanced-coordinate-grid">
+                    <AriaTextField
+                      label="River monitor ID"
+                      inputClassName="aria-input"
+                      value={criteriaForm.riverGaugeId}
+                      errorMessage={formErrors.riverGaugeId}
+                      onChange={(value) =>
+                        setCriteriaForm((state) => ({
+                          ...state,
+                          riverGaugeId: value.toUpperCase(),
+                        }))
+                      }
+                    />
+                    <AriaTextField
+                      label="Search range (km)"
+                      inputClassName="aria-input"
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={criteriaForm.gaugeSearchRadiusKm}
+                      errorMessage={formErrors.gaugeSearchRadiusKm}
+                      onChange={(value) =>
+                        setCriteriaForm((state) => ({
+                          ...state,
+                          gaugeSearchRadiusKm: value,
+                        }))
+                      }
+                    />
+                  </div>
+                  {criteriaForm.riverGaugeId ? (
+                    <p className="muted small river-monitor-note">Current monitor: {criteriaForm.riverGaugeId}</p>
+                  ) : null}
+                </section>
+              ) : null}
             </DisclosurePanel>
           </Disclosure>
           </form>
@@ -1036,4 +1095,104 @@ function formatStage(stage?: number | null, unit?: string | null): string {
     return '--'
   }
   return `${stageLabel} ${unit ?? 'ft'}`
+}
+
+function renderPresetIcon(icon: PresetIcon): ReactNode {
+  const commonProps = {
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    className: 'easy-alert-icon-svg',
+  }
+
+  switch (icon) {
+    case 'jacket':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 5 7 8l-2 1.5L7 13v6h10v-6l2-3.5L17 8l-2-3-3 2-3-2Z" />
+          <path d="M10.5 9.5v9" />
+          <path d="M13.5 9.5v9" />
+        </svg>
+      )
+    case 'heat':
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="4.2" />
+          <path d="M12 2.5v2.2M12 19.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+        </svg>
+      )
+    case 'rain':
+      return (
+        <svg {...commonProps}>
+          <path d="M7 16a4 4 0 1 1 .8-7.9A5.5 5.5 0 0 1 18 10a3.5 3.5 0 1 1-.5 7H7Z" />
+          <path d="m9 18.5-.8 2M13 18.5l-.8 2M17 18.5l-.8 2" />
+        </svg>
+      )
+    case 'wind':
+      return (
+        <svg {...commonProps}>
+          <path d="M4 9h11a2.5 2.5 0 1 0-2.5-2.5" />
+          <path d="M3 13h15a2.5 2.5 0 1 1-2.5 2.5" />
+          <path d="M6 17h8" />
+        </svg>
+      )
+    case 'humidity':
+      return (
+        <svg {...commonProps}>
+          <path d="M12 3.5c3.5 4 5.3 6.8 5.3 9.1A5.3 5.3 0 1 1 6.7 12.6c0-2.3 1.8-5.1 5.3-9.1Z" />
+          <path d="M9.2 14.2a3 3 0 0 0 5.2 0" />
+        </svg>
+      )
+    case 'dew':
+      return (
+        <svg {...commonProps}>
+          <path d="M8.5 5.5c2.3 2.6 3.5 4.5 3.5 6a3.5 3.5 0 1 1-7 0c0-1.5 1.2-3.4 3.5-6Z" />
+          <path d="M16.5 9.5c2.3 2.6 3.5 4.5 3.5 6a3.5 3.5 0 1 1-7 0c0-1.5 1.2-3.4 3.5-6Z" />
+        </svg>
+      )
+    case 'gust':
+      return (
+        <svg {...commonProps}>
+          <path d="M3 9.5h10.5a2.5 2.5 0 1 0-2.5-2.5" />
+          <path d="M3 14h14.5a2.5 2.5 0 1 1-2.5 2.5" />
+          <path d="m14 6 2-2 2 2M15 18l2 2 2-2" />
+        </svg>
+      )
+    case 'sky':
+      return (
+        <svg {...commonProps}>
+          <path d="M8 16a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 10a3 3 0 1 1 0 6H8Z" />
+          <path d="M6 6.5h.01M9 4h.01M15.5 5.5h.01" />
+        </svg>
+      )
+    case 'river':
+      return (
+        <svg {...commonProps}>
+          <path d="M3 8c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
+          <path d="M3 13c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
+          <path d="M3 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
+        </svg>
+      )
+    case 'alert':
+      return (
+        <svg {...commonProps}>
+          <path d="M12 3 4 19h16L12 3Z" />
+          <path d="M12 9v4.5M12 17h.01" />
+        </svg>
+      )
+    case 'flood':
+      return (
+        <svg {...commonProps}>
+          <path d="M7 11V6.5A1.5 1.5 0 0 1 8.5 5h7A1.5 1.5 0 0 1 17 6.5V11" />
+          <path d="M5 11h14" />
+          <path d="M3 15c1.5 0 1.5 1.5 3 1.5s1.5-1.5 3-1.5 1.5 1.5 3 1.5 1.5-1.5 3-1.5 1.5 1.5 3 1.5" />
+          <path d="M3 19c1.5 0 1.5 1.5 3 1.5s1.5-1.5 3-1.5 1.5 1.5 3 1.5 1.5-1.5 3-1.5 1.5 1.5 3 1.5" />
+        </svg>
+      )
+    default:
+      return null
+  }
 }
