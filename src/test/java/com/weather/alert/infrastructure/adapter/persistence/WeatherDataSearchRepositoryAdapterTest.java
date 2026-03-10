@@ -57,6 +57,24 @@ class WeatherDataSearchRepositoryAdapterTest {
                 .containsExactly("new-1");
     }
 
+    @Test
+    void shouldPersistLocationLongerThanLegacyVarcharLimit() {
+        String longLocation = "Orlando; " + "Seminole, Orange, Osceola, Lake, Volusia, Brevard, Polk, "
+                .repeat(8);
+
+        adapter.indexWeatherData(sample("long-location-1", longLocation, "Flood Warning", "Moderate",
+                Instant.parse("2026-03-07T12:00:00Z")));
+
+        PagedResult<WeatherData> result = adapter.getActiveWeatherData(0, 10);
+
+        assertThat(result.getItems()).extracting(WeatherData::getId).contains("long-location-1");
+        assertThat(result.getItems().stream()
+                .filter(item -> "long-location-1".equals(item.getId()))
+                .findFirst()
+                .map(WeatherData::getLocation))
+                .contains(longLocation);
+    }
+
     private WeatherData sample(String id, String location, String eventType, String severity, Instant timestamp) {
         return WeatherData.builder()
                 .id(id)
