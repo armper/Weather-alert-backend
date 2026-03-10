@@ -1,6 +1,7 @@
 package com.weather.alert.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.weather.alert.domain.model.BillingPlan;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,6 +16,10 @@ import java.time.Instant;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BillingStatusResponse {
     private String userId;
+    private BillingPlan plan;
+    private boolean paidPlan;
+    private Integer maxActiveAlerts;
+    private Boolean adSponsoredEmails;
     private String stripeCustomerId;
     private String stripeSubscriptionId;
     private String stripePriceId;

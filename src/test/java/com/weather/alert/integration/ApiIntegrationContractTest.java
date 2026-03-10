@@ -3,6 +3,7 @@ package com.weather.alert.integration;
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
 import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
+import com.weather.alert.domain.model.BillingPlan;
 import com.weather.alert.application.dto.JobRunResponse;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
@@ -14,6 +15,7 @@ import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryTaskPublisherPort;
+import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.NotificationPort;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
@@ -25,6 +27,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -62,6 +65,9 @@ class ApiIntegrationContractTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private AlertCriteriaRepositoryPort alertCriteriaRepository;
 
     @MockBean
     private WeatherDataPort weatherDataPort;
@@ -103,6 +109,8 @@ class ApiIntegrationContractTest {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
         openApiValidationFilter = new OpenApiValidationFilter("http://localhost:" + port + "/v3/api-docs");
+        deleteCriteriaForUser("test-admin");
+        deleteCriteriaForUser("dev-admin");
 
         when(weatherDataSearchPort.getActiveWeatherData(anyInt(), anyInt()))
                 .thenReturn(PagedResult.<WeatherData>builder()
@@ -180,6 +188,10 @@ class ApiIntegrationContractTest {
         when(getBillingStatusUseCase.getForUser("test-admin"))
                 .thenReturn(BillingStatusResponse.builder()
                         .userId("test-admin")
+                        .plan(BillingPlan.PLUS)
+                        .paidPlan(true)
+                        .maxActiveAlerts(10)
+                        .adSponsoredEmails(false)
                         .stripeCustomerId("cus_test_admin")
                         .stripeSubscriptionId("sub_test_admin")
                         .stripePriceId("price_test_weather_alerts")
@@ -188,7 +200,7 @@ class ApiIntegrationContractTest {
                         .activeSubscription(true)
                         .build());
 
-        when(createBillingCheckoutSessionUseCase.createForUser("test-admin"))
+        when(createBillingCheckoutSessionUseCase.createForUser("test-admin", null))
                 .thenReturn(BillingCheckoutSessionResponse.builder()
                         .sessionId("cs_test_weather_alerts")
                         .url("https://checkout.stripe.com/c/pay/cs_test_weather_alerts")
@@ -233,8 +245,10 @@ class ApiIntegrationContractTest {
         String token = issueAdminToken();
 
         given()
+                .contentType(JSON)
                 .header("Authorization", "Bearer " + token)
                 .filter(openApiValidationFilter)
+                .body(Map.of())
                 .when()
                 .post("/api/billing/checkout-session")
                 .then()
@@ -258,7 +272,7 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("id", notNullValue())
                 .body("name", equalTo("Orlando Temp + Rain"))
-                .body("userId", equalTo("dev-admin"))
+                .body("userId", equalTo("test-admin"))
                 .extract()
                 .path("id");
 
@@ -271,7 +285,7 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("id", equalTo(criteriaId))
                 .body("name", equalTo("Orlando Temp + Rain"))
-                .body("userId", equalTo("dev-admin"))
+                .body("userId", equalTo("test-admin"))
                 .body("temperatureUnit", equalTo("F"));
 
         given()
@@ -763,9 +777,15 @@ class ApiIntegrationContractTest {
                 .path("accessToken");
     }
 
+    private void deleteCriteriaForUser(String userId) {
+        alertCriteriaRepository.findByUserId(userId).stream()
+                .map(criteria -> criteria.getId())
+                .forEach(alertCriteriaRepository::delete);
+    }
+
     private Map<String, Object> validCriteriaRequest() {
         return Map.ofEntries(
-                Map.entry("userId", "dev-admin"),
+                Map.entry("userId", "test-admin"),
                 Map.entry("name", "Orlando Temp + Rain"),
                 Map.entry("location", "Orlando"),
                 Map.entry("latitude", 28.5383),

@@ -339,12 +339,14 @@ class SecurityConfigTest {
 
     @Test
     void shouldAllowAuthenticatedUserToCreateBillingCheckoutSession() throws Exception {
-        when(createBillingCheckoutSessionUseCase.createForUser("user-1")).thenReturn(BillingCheckoutSessionResponse.builder()
+        when(createBillingCheckoutSessionUseCase.createForUser("user-1", null)).thenReturn(BillingCheckoutSessionResponse.builder()
                 .sessionId("cs_test_123")
                 .url("https://checkout.stripe.com/c/pay/cs_test_123")
                 .build());
 
         mockMvc.perform(post("/api/billing/checkout-session")
+                        .contentType("application/json")
+                        .content("{}")
                         .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessionId").value("cs_test_123"));

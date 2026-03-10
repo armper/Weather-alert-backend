@@ -59,10 +59,20 @@ function AuthRoute() {
   return <Outlet />
 }
 
+function BillingRedirect({ status }: { status: 'success' | 'cancel' }) {
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  params.set('billing', status)
+  const suffix = params.toString()
+  return <Navigate to={`/app/account${suffix ? `?${suffix}` : ''}`} replace />
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<RootRedirect />} />
+      <Route path="/billing/success" element={<BillingRedirect status="success" />} />
+      <Route path="/billing/cancel" element={<BillingRedirect status="cancel" />} />
       <Route path="/auth" element={<AuthRoute />}>
         <Route index element={<Navigate to="login" replace />} />
         <Route path="login" element={<AuthLoginPage />} />

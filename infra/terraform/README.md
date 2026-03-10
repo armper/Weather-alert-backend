@@ -40,6 +40,7 @@ terraform apply
 
 - `google_cloud_run_v2_service.backend` ignores image changes so `cloudbuild.yaml` can deploy new revisions without Terraform fighting those updates.
 - `terraform.tfvars` now controls Cloud SQL sizing and protection flags. The Cloud Run service reads the generated Cloud SQL connection name directly from Terraform-managed resources.
-- Stripe runtime values can be managed with `stripe_enabled`, `stripe_price_id`, `stripe_secret_key`, and `stripe_webhook_secret`.
+- Stripe runtime values can be managed with `stripe_enabled`, `stripe_plus_price_id`, `stripe_pro_price_id`, `stripe_secret_key`, and `stripe_webhook_secret`.
+- `stripe_price_id` remains available as a legacy fallback and should generally match `stripe_plus_price_id` if you still use it.
 - If `create_scheduler_jobs=true`, Terraform stores `admin_jobs_token` in state because Cloud Scheduler needs it in an HTTP header. Use a secured remote backend if you keep that enabled.
 - The Cloud Run service is configured for external traffic and authenticated admin job triggers via `X-Admin-Job-Token`.

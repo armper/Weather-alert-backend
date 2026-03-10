@@ -2,6 +2,7 @@ package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
+import com.weather.alert.application.dto.CreateBillingCheckoutSessionRequest;
 import com.weather.alert.application.exception.ForbiddenOperationException;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,8 +52,12 @@ public class BillingController {
                             description = "User already has an active subscription",
                             content = @Content(mediaType = "application/problem+json"))
             })
-    public ResponseEntity<BillingCheckoutSessionResponse> createCheckoutSession(Authentication authentication) {
-        return ResponseEntity.ok(createBillingCheckoutSessionUseCase.createForUser(authenticatedUserId(authentication)));
+    public ResponseEntity<BillingCheckoutSessionResponse> createCheckoutSession(
+            Authentication authentication,
+            @RequestBody(required = false) CreateBillingCheckoutSessionRequest request) {
+        return ResponseEntity.ok(createBillingCheckoutSessionUseCase.createForUser(
+                authenticatedUserId(authentication),
+                request == null ? null : request.getPlan()));
     }
 
     private String authenticatedUserId(Authentication authentication) {

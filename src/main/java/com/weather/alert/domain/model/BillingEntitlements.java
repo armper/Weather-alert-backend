@@ -9,10 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BillingCheckoutSessionRequest {
-    private String userId;
-    private String email;
-    private String stripeCustomerId;
+public class BillingEntitlements {
     private BillingPlan plan;
-    private String priceId;
+    private boolean paidPlan;
+    private int maxActiveAlerts;
+    private boolean adSponsoredEmails;
 }

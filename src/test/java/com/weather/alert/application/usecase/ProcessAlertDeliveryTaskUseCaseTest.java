@@ -1,18 +1,23 @@
 package com.weather.alert.application.usecase;
 
+import com.weather.alert.application.service.BillingPlanService;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertDeliveryRecord;
 import com.weather.alert.domain.model.AlertDeliveryStatus;
+import com.weather.alert.domain.model.BillingEntitlements;
+import com.weather.alert.domain.model.BillingPlan;
 import com.weather.alert.domain.model.DeliveryFailureType;
 import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.model.NotificationChannel;
+import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.EmailSenderPort;
+import com.weather.alert.domain.port.UserRepositoryPort;
 import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,6 +59,12 @@ class ProcessAlertDeliveryTaskUseCaseTest {
     @Mock
     private AlertDeliveryDlqPublisherPort dlqPublisher;
 
+    @Mock
+    private UserRepositoryPort userRepository;
+
+    @Mock
+    private BillingPlanService billingPlanService;
+
     private ProcessAlertDeliveryTaskUseCase useCase;
 
     @BeforeEach
@@ -67,7 +79,18 @@ class ProcessAlertDeliveryTaskUseCaseTest {
                 alertCriteriaRepository,
                 emailSenderPort,
                 dlqPublisher,
-                properties);
+                properties,
+                userRepository,
+                billingPlanService);
+        lenient().when(userRepository.findById("dev-admin")).thenReturn(Optional.of(User.builder()
+                .id("dev-admin")
+                .build()));
+        lenient().when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.PRO)
+                .paidPlan(true)
+                .maxActiveAlerts(50)
+                .adSponsoredEmails(false)
+                .build());
     }
 
     @Test
@@ -150,6 +173,42 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         String body = emailCaptor.getValue().body();
         assertTrue(body.contains("Rule: wind speed is above 70 km/h"));
         assertFalse(body.contains("Matched reading: temperature"));
+    }
+
+    @Test
+    void shouldAppendSponsoredFooterForFreePlanEmail() {
+        AlertDeliveryRecord delivery = pending("delivery-ads", 0);
+        when(alertDeliveryRepository.findById("delivery-ads")).thenReturn(Optional.of(delivery));
+        when(alertDeliveryRepository.save(any(AlertDeliveryRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.findById("alert-1")).thenReturn(Optional.of(Alert.builder()
+                .id("alert-1")
+                .userId("dev-admin")
+                .criteriaId("criteria-1")
+                .location("Orlando")
+                .alertTime(Instant.parse("2026-03-10T03:00:00Z"))
+                .build()));
+        when(alertCriteriaRepository.findById("criteria-1")).thenReturn(Optional.of(AlertCriteria.builder()
+                .id("criteria-1")
+                .name("Single Free Alert")
+                .location("Orlando")
+                .temperatureThreshold(80.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .build()));
+        when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.FREE)
+                .paidPlan(false)
+                .maxActiveAlerts(1)
+                .adSponsoredEmails(true)
+                .build());
+        when(emailSenderPort.send(any())).thenReturn(new EmailSendResult("provider-id-ads"));
+
+        useCase.processTask("delivery-ads");
+
+        ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSenderPort).send(emailCaptor.capture());
+        assertTrue(emailCaptor.getValue().body().contains("Sponsored message:"));
+        assertTrue(emailCaptor.getValue().body().contains("Upgrade to Weather Alert Plus"));
     }
 
     @Test

@@ -1041,6 +1041,12 @@ button:disabled {
   border-color: rgba(100, 116, 139, 0.24);
 }
 
+.badge.is-muted {
+  color: #475569;
+  background: rgba(226, 232, 240, 0.4);
+  border-color: rgba(148, 163, 184, 0.32);
+}
+
 .create-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1821,6 +1827,154 @@ button:disabled {
   gap: 0.9rem;
 }
 
+.account-billing-block {
+  display: grid;
+  gap: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(246, 251, 255, 0.78) 100%),
+    radial-gradient(circle at top right, rgba(244, 188, 103, 0.12) 0%, transparent 34%);
+}
+
+.account-billing-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.account-billing-hero h3 {
+  margin: 0.18rem 0 0;
+  font-size: 1.18rem;
+}
+
+.account-billing-copy {
+  max-width: 42rem;
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+}
+
+.account-plan-summary {
+  min-width: 16rem;
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(29, 106, 144, 0.12);
+  border-radius: 0.9rem;
+  background: rgba(248, 252, 255, 0.86);
+}
+
+.billing-feedback {
+  border-radius: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid transparent;
+}
+
+.billing-feedback p {
+  margin: 0;
+}
+
+.billing-feedback.is-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.billing-feedback.is-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.billing-plan-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.billing-plan-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.billing-plan-card.is-current {
+  border-color: rgba(29, 106, 144, 0.34);
+  box-shadow:
+    0 14px 28px rgba(12, 31, 46, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+.billing-plan-card.is-emphasized {
+  background:
+    linear-gradient(180deg, rgba(255, 251, 242, 0.94) 0%, rgba(255, 255, 255, 0.86) 100%);
+  border-color: rgba(240, 181, 106, 0.46);
+}
+
+.billing-plan-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.billing-plan-header h4 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+}
+
+.billing-plan-price {
+  margin: 0.18rem 0 0;
+  font-size: 1.9rem;
+  line-height: 1;
+  font-family: var(--font-heading);
+  color: #1b4965;
+}
+
+.billing-plan-price span {
+  margin-left: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.billing-plan-body {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.billing-plan-body p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.billing-plan-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.38rem;
+  color: var(--text-secondary);
+}
+
+.billing-plan-note {
+  margin-top: auto;
+}
+
+.billing-footnote {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.billing-footnote p {
+  margin: 0;
+}
+
 .section-block {
   border: 1px solid var(--surface-border);
   border-radius: 0.95rem;
@@ -2013,6 +2167,7 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .billing-plan-grid,
   .create-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2084,6 +2239,7 @@ button:disabled {
 
   .two-col,
   .create-grid,
+  .billing-plan-grid,
   .recovery-grid {
     grid-template-columns: 1fr;
   }
@@ -2140,6 +2296,11 @@ button:disabled {
 
   .button-row {
     flex-direction: column;
+  }
+
+  .account-plan-summary {
+    min-width: 0;
+    width: 100%;
   }
 
   .alert-row {

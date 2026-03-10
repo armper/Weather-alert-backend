@@ -1,8 +1,12 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
+import com.weather.alert.application.exception.BillingStateException;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
+import com.weather.alert.application.exception.UserNotFoundException;
+import com.weather.alert.application.service.BillingPlanService;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.BillingEntitlements;
 import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
@@ -19,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -33,6 +38,7 @@ public class ManageAlertCriteriaUseCase {
     private final AlertProcessingService alertProcessingService;
     private final UserRepositoryPort userRepository;
     private final EmailSenderPort emailSenderPort;
+    private final BillingPlanService billingPlanService;
 
     @Value("${app.notification.criteria-created.send-email:false}")
     private boolean sendCriteriaCreatedEmail;
@@ -47,6 +53,9 @@ public class ManageAlertCriteriaUseCase {
     private String criteriaDeletedEmailSubject;
     
     public AlertCriteria createCriteria(CreateAlertCriteriaRequest request) {
+        boolean enabled = defaultEnabled(request.getEnabled());
+        enforceActiveAlertLimit(request.getUserId(), null, enabled);
+
         AlertCriteria criteria = AlertCriteria.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(request.getUserId())
@@ -82,7 +91,7 @@ public class ManageAlertCriteriaUseCase {
                 .temperatureUnit(defaultTemperatureUnit(request.getTemperatureUnit()))
                 .oncePerEvent(defaultOncePerEvent(request.getOncePerEvent()))
                 .rearmWindowMinutes(defaultRearmWindowMinutes(request.getRearmWindowMinutes()))
-                .enabled(defaultEnabled(request.getEnabled()))
+                .enabled(enabled)
                 .build();
         
         AlertCriteria saved = criteriaRepository.save(criteria);
@@ -105,6 +114,9 @@ public class ManageAlertCriteriaUseCase {
     public AlertCriteria updateCriteria(String criteriaId, CreateAlertCriteriaRequest request) {
         return criteriaRepository.findById(criteriaId)
                 .map(existing -> {
+                    boolean enabled = resolveUpdatedEnabled(existing.getEnabled(), request.getEnabled());
+                    enforceActiveAlertLimit(existing.getUserId(), existing.getId(), enabled);
+
                     existing.setName(normalizeName(request.getName()));
                     existing.setLocation(request.getLocation());
                     existing.setLatitude(request.getLatitude());
@@ -137,10 +149,31 @@ public class ManageAlertCriteriaUseCase {
                     existing.setTemperatureUnit(defaultTemperatureUnit(request.getTemperatureUnit()));
                     existing.setOncePerEvent(defaultOncePerEvent(request.getOncePerEvent()));
                     existing.setRearmWindowMinutes(defaultRearmWindowMinutes(request.getRearmWindowMinutes()));
-                    existing.setEnabled(resolveUpdatedEnabled(existing.getEnabled(), request.getEnabled()));
+                    existing.setEnabled(enabled);
                     return criteriaRepository.save(existing);
                 })
                 .orElseThrow(() -> new CriteriaNotFoundException(criteriaId));
+    }
+
+    private void enforceActiveAlertLimit(String userId, String criteriaIdBeingUpdated, boolean enabled) {
+        if (!enabled || userId == null || userId.isBlank()) {
+            return;
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+        BillingEntitlements entitlements = billingPlanService.resolveEntitlements(user);
+
+        long activeAlertCount = criteriaRepository.findByUserId(userId).stream()
+                .filter(criteria -> Boolean.TRUE.equals(criteria.getEnabled()))
+                .filter(criteria -> !Objects.equals(criteria.getId(), criteriaIdBeingUpdated))
+                .count();
+
+        if (activeAlertCount >= entitlements.getMaxActiveAlerts()) {
+            throw new BillingStateException("Your " + entitlements.getPlan().name().toLowerCase(Locale.ROOT)
+                    + " plan allows up to " + entitlements.getMaxActiveAlerts()
+                    + " active alert" + (entitlements.getMaxActiveAlerts() == 1 ? "" : "s") + ".");
+        }
     }
 
     private boolean defaultMonitorCurrent(Boolean monitorCurrent) {

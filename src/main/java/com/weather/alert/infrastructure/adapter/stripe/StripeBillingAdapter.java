@@ -1,9 +1,11 @@
 package com.weather.alert.infrastructure.adapter.stripe;
 
 import com.stripe.Stripe;
+import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
@@ -31,7 +33,7 @@ public class StripeBillingAdapter implements BillingProviderPort {
 
     @Override
     public BillingCheckoutSession createSubscriptionCheckoutSession(BillingCheckoutSessionRequest request) {
-        requireCheckoutConfigured();
+        requireCheckoutConfigured(request);
         try {
             Stripe.apiKey = properties.getSecretKey();
 
@@ -45,7 +47,7 @@ public class StripeBillingAdapter implements BillingProviderPort {
                             .putMetadata("userId", request.getUserId())
                             .build())
                     .addLineItem(SessionCreateParams.LineItem.builder()
-                            .setPrice(properties.getPriceId())
+                            .setPrice(request.getPriceId())
                             .setQuantity(1L)
                             .build());
 
@@ -70,9 +72,7 @@ public class StripeBillingAdapter implements BillingProviderPort {
         requireWebhookConfigured();
         try {
             Event event = Webhook.constructEvent(payload, signatureHeader, properties.getWebhookSecret());
-            StripeObject stripeObject = event.getDataObjectDeserializer()
-                    .getObject()
-                    .orElse(null);
+            StripeObject stripeObject = deserializeEventObject(event.getDataObjectDeserializer());
             if (stripeObject == null) {
                 return BillingWebhookEvent.builder().type(BillingWebhookEventType.IGNORED).build();
             }
@@ -89,6 +89,19 @@ public class StripeBillingAdapter implements BillingProviderPort {
         } catch (RuntimeException ex) {
             throw new StripeWebhookException("Unable to parse Stripe webhook payload", ex);
         }
+    }
+
+    StripeObject deserializeEventObject(EventDataObjectDeserializer deserializer) {
+        if (deserializer == null) {
+            return null;
+        }
+        return deserializer.getObject().orElseGet(() -> {
+            try {
+                return deserializer.deserializeUnsafe();
+            } catch (EventDataObjectDeserializationException ex) {
+                throw new StripeWebhookException("Unable to deserialize Stripe webhook event", ex);
+            }
+        });
     }
 
     private BillingWebhookEvent fromCheckoutSession(Session session) {
@@ -123,10 +136,11 @@ public class StripeBillingAdapter implements BillingProviderPort {
                 .build();
     }
 
-    private void requireCheckoutConfigured() {
+    private void requireCheckoutConfigured(BillingCheckoutSessionRequest request) {
         if (!properties.isEnabled()
                 || isBlank(properties.getSecretKey())
-                || isBlank(properties.getPriceId())) {
+                || request == null
+                || isBlank(request.getPriceId())) {
             throw new BillingNotConfiguredException();
         }
     }

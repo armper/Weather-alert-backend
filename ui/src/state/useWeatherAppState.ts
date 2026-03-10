@@ -4,6 +4,9 @@ import { apiRequest, toErrorMessage } from '../api'
 import type {
   AlertCriteria,
   AlertEvent,
+  BillingCheckoutSession,
+  BillingPlan,
+  BillingStatus,
   AuthTokenResponse,
   ChannelVerification,
   MessageResponse,
@@ -56,6 +59,7 @@ export function useWeatherAppState() {
   const [alerts, setAlerts] = useState<AlertEvent[]>([])
   const [currentWeather, setCurrentWeather] = useState<WeatherCondition | null>(null)
   const [notificationPreference, setNotificationPreference] = useState<UserNotificationPreference | null>(null)
+  const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
   const [adminUsers, setAdminUsers] = useState<UserAccount[]>([])
 
@@ -67,6 +71,8 @@ export function useWeatherAppState() {
   const [loadingData, setLoadingData] = useState(false)
   const [savingCriteria, setSavingCriteria] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [loadingBilling, setLoadingBilling] = useState(false)
+  const [checkoutPlan, setCheckoutPlan] = useState<BillingPlan | null>(null)
   const [busyAlertId, setBusyAlertId] = useState<string | null>(null)
   const [busyCriteriaId, setBusyCriteriaId] = useState<string | null>(null)
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null)
@@ -98,13 +104,14 @@ export function useWeatherAppState() {
 
   const refreshData = useCallback(async (activeToken: string, account: UserAccount) => {
     setLoadingData(true)
+    setLoadingBilling(true)
     try {
       const freshCriteria = await apiRequest<AlertCriteria[]>(`/api/criteria/user/${account.id}`, {
         token: activeToken,
       })
       setCriteria(freshCriteria)
 
-      const [freshAlerts, preferences, weather, adminAccounts] = await Promise.all([
+      const [freshAlerts, preferences, weather, billing, adminAccounts] = await Promise.all([
         apiRequest<AlertEvent[]>(`/api/alerts/user/${account.id}`, { token: activeToken }),
         apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }),
         apiRequest<WeatherCondition>(
@@ -113,6 +120,7 @@ export function useWeatherAppState() {
           )}&longitude=${encodeURIComponent(freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON)}`,
           { token: activeToken },
         ).catch(() => null),
+        apiRequest<BillingStatus>('/api/billing/me', { token: activeToken }),
         account.role.includes('ADMIN')
           ? apiRequest<UserAccount[]>('/api/admin/users', { token: activeToken })
           : Promise.resolve([]),
@@ -123,12 +131,14 @@ export function useWeatherAppState() {
       )
       setNotificationPreference(preferences)
       setCurrentWeather(weather)
+      setBillingStatus(billing)
       setAdminUsers(adminAccounts)
       setPendingUsers(adminAccounts.filter((user) => user.approvalStatus === 'PENDING_APPROVAL'))
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {
       setLoadingData(false)
+      setLoadingBilling(false)
     }
   }, [])
 
@@ -161,6 +171,7 @@ export function useWeatherAppState() {
       setAlerts([])
       setCurrentWeather(null)
       setNotificationPreference(null)
+      setBillingStatus(null)
       setPendingUsers([])
       setAdminUsers([])
       return
@@ -668,6 +679,30 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleStartCheckout(plan: BillingPlan): Promise<boolean> {
+    if (!token) {
+      return false
+    }
+
+    setCheckoutPlan(plan)
+    setNotice(null)
+
+    try {
+      const session = await apiRequest<BillingCheckoutSession>('/api/billing/checkout-session', {
+        method: 'POST',
+        token,
+        body: { plan },
+      })
+      window.location.assign(session.url)
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setCheckoutPlan(null)
+    }
+  }
+
   async function handleApproveUser(userId: string) {
     if (!token) {
       return
@@ -759,6 +794,7 @@ export function useWeatherAppState() {
     alerts,
     currentWeather,
     notificationPreference,
+    billingStatus,
     pendingUsers,
     adminUsers,
 
@@ -773,6 +809,8 @@ export function useWeatherAppState() {
     loadingData,
     savingCriteria,
     savingProfile,
+    loadingBilling,
+    checkoutPlan,
     busyAlertId,
     busyCriteriaId,
     busyApprovalId,
@@ -794,6 +832,7 @@ export function useWeatherAppState() {
     handleSaveProfile,
     handleChangePassword,
     handleSaveNotificationPreference,
+    handleStartCheckout,
     handleApproveUser,
     handleAdminAction,
 
