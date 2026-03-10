@@ -19,9 +19,9 @@ interface AppShellProps {
 
 const PRIMARY_NAV_ITEMS = [
   { key: 'overview', label: 'Overview', to: '/app/overview' },
-  { key: 'rules', label: 'Create', to: '/app/rules' },
-  { key: 'alerts', label: 'Alerts', to: '/app/alerts' },
-  { key: 'events', label: 'Activity', to: '/app/events' },
+  { key: 'rules', label: 'New Alert', to: '/app/rules' },
+  { key: 'alerts', label: 'My Alerts', to: '/app/alerts' },
+  { key: 'events', label: 'Triggered Alerts', to: '/app/events' },
 ]
 
 export function AppShell({ children }: AppShellProps) {
@@ -82,7 +82,7 @@ export function AppShell({ children }: AppShellProps) {
                 <path d="M6 2.25v7.5M2.25 6h7.5" />
               </svg>
             </span>
-            <span>Create alert</span>
+            <span>New alert</span>
           </Link>
 
           <MenuTrigger>
