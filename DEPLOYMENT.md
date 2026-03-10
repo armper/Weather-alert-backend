@@ -301,6 +301,32 @@ gcloud run services describe weather-alert-backend \
 curl https://YOUR_CLOUD_RUN_URL/actuator/health
 ```
 
+### React UI on Cloud Run
+
+The `ui/` Vite app can run as a separate Cloud Run service and proxy API traffic back to the backend service.
+
+Files for this path:
+
+- `ui/Dockerfile`
+- `ui/nginx.conf.template`
+- `ui/cloudbuild.yaml`
+
+Deploy:
+
+```bash
+gcloud builds submit --config ui/cloudbuild.yaml \
+  --substitutions=_REGION=us-east1,_SERVICE_NAME=weather-alert-ui,_AR_REPOSITORY=weather-alert-backend,_IMAGE_NAME=weather-alert-ui,_BACKEND_ORIGIN=https://YOUR_BACKEND_RUN_URL
+```
+
+The UI service stays publicly reachable on its own `run.app` URL and forwards:
+
+- `/api`
+- `/actuator`
+- `/swagger-ui`
+- `/v3`
+
+to the backend service, so no frontend CORS configuration is required.
+
 For Stripe in test mode, point a webhook endpoint at:
 
 ```text

@@ -1,0 +1,43 @@
+substitutions:
+  _REGION: us-east1
+  _SERVICE_NAME: weather-alert-ui
+  _AR_REPOSITORY: weather-alert-backend
+  _IMAGE_NAME: weather-alert-ui
+  _BACKEND_ORIGIN: https://weather-alert-backend-4u3dah5b4q-ue.a.run.app
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest
+      - ./ui
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        gcloud run deploy "${_SERVICE_NAME}" \
+          --project "$PROJECT_ID" \
+          --region "${_REGION}" \
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID" \
+          --allow-unauthenticated \
+          --port 8080 \
+          --set-env-vars "BACKEND_ORIGIN=${_BACKEND_ORIGIN}" \
+          --quiet
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:latest

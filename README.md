@@ -100,6 +100,15 @@ Override backend target if needed:
 VITE_API_TARGET=http://localhost:8080 npm run dev
 ```
 
+Cloud Run deployment for the UI is also included:
+
+```bash
+gcloud builds submit --config ui/cloudbuild.yaml \
+  --substitutions=_REGION=us-east1,_SERVICE_NAME=weather-alert-ui,_AR_REPOSITORY=weather-alert-backend,_IMAGE_NAME=weather-alert-ui,_BACKEND_ORIGIN=https://weather-alert-backend-4u3dah5b4q-ue.a.run.app
+```
+
+That service serves the built frontend and reverse-proxies `/api`, `/actuator`, `/swagger-ui`, and `/v3` to the backend service so the browser stays same-origin.
+
 ## Prerequisites
 
 - Java 17 or higher
