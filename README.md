@@ -128,7 +128,9 @@ Required config:
 - `APP_BILLING_STRIPE_ENABLED=true`
 - `APP_BILLING_STRIPE_SECRET_KEY`
 - `APP_BILLING_STRIPE_WEBHOOK_SECRET`
-- `APP_BILLING_STRIPE_PRICE_ID`
+- `APP_BILLING_STRIPE_PLUS_PRICE_ID`
+- `APP_BILLING_STRIPE_PRO_PRICE_ID`
+- optional legacy `APP_BILLING_STRIPE_PRICE_ID` fallback for Plus
 
 Optional overrides:
 
@@ -460,7 +462,7 @@ Notification verification tuning values in `.env`:
 - `APP_AUTH_RECOVERY_REQUEST_COOLDOWN_SECONDS` (default `60`)
 - `APP_AUTH_RECOVERY_EXPOSE_RAW_CODE` (default `true` for local/dev)
 - `APP_AUTH_RECOVERY_SEND_EMAIL` (default `false`; set `true` to deliver recovery emails)
-- `APP_AUTH_RECOVERY_FRONTEND_BASE_URL` (default `http://localhost:5174`, used for one-click recovery links)
+- `APP_AUTH_RECOVERY_FRONTEND_BASE_URL` (default `http://localhost:5174`; set this to your deployed UI URL in Cloud Run so recovery and Stripe return links land in the right app)
 - `APP_AUTH_RECOVERY_USERNAME_EMAIL_SUBJECT` (default `Your Weather Alert username`)
 - `APP_AUTH_RECOVERY_PASSWORD_EMAIL_SUBJECT` (default `Reset your Weather Alert password`)
 - `APP_AUTH_SECURITY_LOGIN_MAX_FAILURES` / `APP_AUTH_SECURITY_LOGIN_WINDOW_MINUTES` / `APP_AUTH_SECURITY_LOGIN_LOCK_MINUTES`

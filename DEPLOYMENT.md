@@ -208,7 +208,9 @@ Required values include:
   - `APP_BILLING_STRIPE_ENABLED=true`
   - `APP_BILLING_STRIPE_SECRET_KEY`
   - `APP_BILLING_STRIPE_WEBHOOK_SECRET`
-  - `APP_BILLING_STRIPE_PRICE_ID`
+  - `APP_BILLING_STRIPE_PLUS_PRICE_ID`
+  - `APP_BILLING_STRIPE_PRO_PRICE_ID`
+  - optional legacy `APP_BILLING_STRIPE_PRICE_ID` fallback for Plus
   - optional `APP_BILLING_STRIPE_SUCCESS_URL`
   - optional `APP_BILLING_STRIPE_CANCEL_URL`
 - `APP_WEATHER_PROCESSING_SCHEDULE_ENABLED=false`
@@ -259,6 +261,8 @@ Stripe secret values can also be carried through Terraform:
 
 - `stripe_enabled`
 - `stripe_price_id`
+- `stripe_plus_price_id`
+- `stripe_pro_price_id`
 - `stripe_secret_key`
 - `stripe_webhook_secret`
 - optional `stripe_success_url`

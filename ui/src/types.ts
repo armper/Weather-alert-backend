@@ -5,6 +5,7 @@ export type RainThresholdType = 'PROBABILITY' | 'AMOUNT'
 export type FloodCategory = 'ACTION' | 'MINOR' | 'MODERATE' | 'MAJOR'
 export type AlertStatus = 'PENDING' | 'SENT' | 'ACKNOWLEDGED' | 'EXPIRED'
 export type UserApprovalStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED'
+export type BillingPlan = 'FREE' | 'PLUS' | 'PRO'
 
 export interface ProblemFieldError {
   field: string
@@ -177,6 +178,25 @@ export interface UserNotificationPreference {
   enabledChannels: Array<'EMAIL' | 'SMS' | 'PUSH'>
   preferredChannel: 'EMAIL' | 'SMS' | 'PUSH'
   fallbackStrategy: 'FIRST_SUCCESS' | 'FAIL_FAST'
+}
+
+export interface BillingStatus {
+  userId: string
+  plan: BillingPlan
+  paidPlan: boolean
+  maxActiveAlerts: number
+  adSponsoredEmails: boolean
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  stripePriceId?: string
+  stripeSubscriptionStatus?: string
+  stripeCurrentPeriodEnd?: string
+  activeSubscription: boolean
+}
+
+export interface BillingCheckoutSession {
+  sessionId: string
+  url: string
 }
 
 export type PendingUser = UserAccount

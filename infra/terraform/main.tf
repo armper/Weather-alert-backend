@@ -314,6 +314,16 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
+        name  = "APP_BILLING_STRIPE_PLUS_PRICE_ID"
+        value = var.stripe_plus_price_id
+      }
+
+      env {
+        name  = "APP_BILLING_STRIPE_PRO_PRICE_ID"
+        value = var.stripe_pro_price_id
+      }
+
+      env {
         name  = "APP_BILLING_STRIPE_SUCCESS_URL"
         value = local.stripe_success_url
       }

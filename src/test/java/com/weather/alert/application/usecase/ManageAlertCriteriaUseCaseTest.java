@@ -1,8 +1,12 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
+import com.weather.alert.application.exception.BillingStateException;
+import com.weather.alert.application.service.BillingPlanService;
 import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.BillingEntitlements;
+import com.weather.alert.domain.model.BillingPlan;
 import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
@@ -18,10 +22,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,12 +45,30 @@ class ManageAlertCriteriaUseCaseTest {
 
     @Mock
     private EmailSenderPort emailSenderPort;
+
+    @Mock
+    private BillingPlanService billingPlanService;
     
     private ManageAlertCriteriaUseCase useCase;
     
     @BeforeEach
     void setUp() {
-        useCase = new ManageAlertCriteriaUseCase(criteriaRepository, alertProcessingService, userRepository, emailSenderPort);
+        useCase = new ManageAlertCriteriaUseCase(
+                criteriaRepository,
+                alertProcessingService,
+                userRepository,
+                emailSenderPort,
+                billingPlanService);
+        lenient().when(criteriaRepository.findByUserId(anyString())).thenReturn(List.of());
+        lenient().when(userRepository.findById(anyString())).thenAnswer(invocation -> Optional.of(User.builder()
+                .id(invocation.getArgument(0, String.class))
+                .build()));
+        lenient().when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.PRO)
+                .paidPlan(true)
+                .maxActiveAlerts(50)
+                .adSponsoredEmails(false)
+                .build());
     }
     
     @Test
@@ -182,6 +207,34 @@ class ManageAlertCriteriaUseCaseTest {
         assertTrue(saved.getOncePerEvent());
         assertEquals(0, saved.getRearmWindowMinutes());
         verify(alertProcessingService, times(1)).processCriteriaImmediately(saved);
+    }
+
+    @Test
+    void shouldRejectCreatingSecondActiveAlertForFreePlan() {
+        CreateAlertCriteriaRequest request = CreateAlertCriteriaRequest.builder()
+                .userId("user1")
+                .name("Second Alert")
+                .location("Orlando")
+                .build();
+
+        when(userRepository.findById("user1")).thenReturn(Optional.of(User.builder()
+                .id("user1")
+                .stripeSubscriptionStatus("canceled")
+                .build()));
+        when(criteriaRepository.findByUserId("user1")).thenReturn(List.of(AlertCriteria.builder()
+                .id("criteria-existing")
+                .userId("user1")
+                .enabled(true)
+                .build()));
+        when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.FREE)
+                .paidPlan(false)
+                .maxActiveAlerts(1)
+                .adSponsoredEmails(true)
+                .build());
+
+        assertThrows(BillingStateException.class, () -> useCase.createCriteria(request));
+        verify(criteriaRepository, never()).save(any(AlertCriteria.class));
     }
     
     @Test

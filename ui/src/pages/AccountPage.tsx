@@ -1,10 +1,12 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { formatStatusLabel } from '../lib/formatting'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
+import type { BillingPlan } from '../types'
 
 const CHANNEL_OPTIONS = [
   { id: 'EMAIL', label: 'Email' },
@@ -17,9 +19,47 @@ const FALLBACK_OPTIONS = [
   { id: 'FAIL_FAST', label: 'Fail fast' },
 ]
 
+const PLAN_DETAILS: Array<{
+  id: BillingPlan
+  name: string
+  monthlyPrice: string
+  activeAlertsLabel: string
+  emailMode: string
+  highlight: string
+}> = [
+  {
+    id: 'FREE',
+    name: 'Free',
+    monthlyPrice: '$0',
+    activeAlertsLabel: '1 active alert',
+    emailMode: 'Sponsored email alerts',
+    highlight: 'Best for trying one weather watch before committing.',
+  },
+  {
+    id: 'PLUS',
+    name: 'Plus',
+    monthlyPrice: '$9',
+    activeAlertsLabel: '10 active alerts',
+    emailMode: 'Ad-free email alerts',
+    highlight: 'Good fit for a few locations, trips, or seasonal storm watches.',
+  },
+  {
+    id: 'PRO',
+    name: 'Pro',
+    monthlyPrice: '$19',
+    activeAlertsLabel: '50 active alerts',
+    emailMode: 'Ad-free email alerts',
+    highlight: 'Built for heavy monitoring across many rules and places.',
+  },
+]
+
 export function AccountPage() {
   const {
     me,
+    criteria,
+    billingStatus,
+    loadingBilling,
+    checkoutPlan,
     profileForm,
     setProfileForm,
     passwordForm,
@@ -29,7 +69,10 @@ export function AccountPage() {
     handleSaveProfile,
     handleChangePassword,
     handleSaveNotificationPreference,
+    handleStartCheckout,
+    refresh,
   } = useAppState()
+  const location = useLocation()
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
@@ -65,6 +108,23 @@ export function AccountPage() {
     if (score <= 3) return 'Medium'
     return 'Strong'
   }, [passwordForm.newPassword])
+
+  const billingFlow = useMemo(() => new URLSearchParams(location.search).get('billing'), [location.search])
+  const currentPlan = billingStatus?.plan ?? 'FREE'
+  const enabledCriteriaCount = criteria.filter((item) => item.enabled !== false).length
+  const maxActiveAlerts = billingStatus?.maxActiveAlerts ?? 1
+  const remainingAlerts = Math.max(maxActiveAlerts - enabledCriteriaCount, 0)
+  const billingStatusLabel = billingStatus?.activeSubscription
+    ? formatStatusLabel(billingStatus.stripeSubscriptionStatus)
+    : currentPlan === 'FREE'
+      ? 'No paid subscription'
+      : 'Plan pending'
+
+  useEffect(() => {
+    if (billingFlow === 'success' && me) {
+      void refresh()
+    }
+  }, [billingFlow, me, refresh])
 
   async function onSaveProfile(event: FormEvent<HTMLFormElement>) {
     const success = await handleSaveProfile(event)
@@ -105,6 +165,29 @@ export function AccountPage() {
     })
   }
 
+  function planActionLabel(planId: BillingPlan) {
+    if (planId === currentPlan) {
+      return billingStatus?.activeSubscription ? 'Current plan' : 'Included'
+    }
+    if (billingStatus?.activeSubscription) {
+      return 'Plan changes soon'
+    }
+    if (checkoutPlan === planId) {
+      return 'Redirecting...'
+    }
+    return `Choose ${PLAN_DETAILS.find((plan) => plan.id === planId)?.name ?? planId}`
+  }
+
+  function billingFeedbackText() {
+    if (billingFlow === 'success') {
+      return 'Stripe checkout completed. Billing status will refresh as soon as the webhook sync finishes.'
+    }
+    if (billingFlow === 'cancel') {
+      return 'Stripe checkout was canceled. Your current plan has not changed.'
+    }
+    return null
+  }
+
   return (
     <section className="page-stack">
       <article className="panel">
@@ -114,6 +197,106 @@ export function AccountPage() {
         </div>
 
         <div className="account-stack">
+          <section className="section-block account-billing-block">
+            <div className="account-billing-hero">
+              <div>
+                <p className="eyebrow">Billing</p>
+                <h3>Current plan: {PLAN_DETAILS.find((plan) => plan.id === currentPlan)?.name ?? currentPlan}</h3>
+                <p className="account-billing-copy">
+                  {loadingBilling
+                    ? 'Loading your plan details and current entitlements.'
+                    : billingStatus?.adSponsoredEmails
+                    ? 'Your email alerts include a sponsored footer on the free tier.'
+                    : 'Your alert emails are ad-free on the current paid tier.'}
+                </p>
+              </div>
+
+              <div className="account-plan-summary">
+                <span className={`badge ${billingStatus?.activeSubscription ? '' : 'is-muted'}`}>{billingStatusLabel}</span>
+                <strong>
+                  {enabledCriteriaCount}/{maxActiveAlerts} active alerts in use
+                </strong>
+                <span className="muted small">{remainingAlerts} slots remaining before you hit the plan limit.</span>
+              </div>
+            </div>
+
+            {billingFeedbackText() ? (
+              <div className={`billing-feedback ${billingFlow === 'cancel' ? 'is-warning' : 'is-success'}`}>
+                <p>{billingFeedbackText()}</p>
+              </div>
+            ) : null}
+
+            <div className="billing-plan-grid">
+              {PLAN_DETAILS.map((plan) => {
+                const isCurrentPlan = plan.id === currentPlan
+                const disableAction = isCurrentPlan || Boolean(billingStatus?.activeSubscription)
+                return (
+                  <article
+                    key={plan.id}
+                    className={`billing-plan-card${isCurrentPlan ? ' is-current' : ''}${plan.id === 'PRO' ? ' is-emphasized' : ''}`}
+                  >
+                    <div className="billing-plan-header">
+                      <div>
+                        <h4>{plan.name}</h4>
+                        <p className="billing-plan-price">{plan.monthlyPrice}<span>/month</span></p>
+                      </div>
+                      <span className={`badge ${isCurrentPlan ? '' : 'is-muted'}`}>
+                        {isCurrentPlan ? 'Current' : plan.id}
+                      </span>
+                    </div>
+
+                    <div className="billing-plan-body">
+                      <p>{plan.highlight}</p>
+                      <ul className="billing-plan-list">
+                        <li>{plan.activeAlertsLabel}</li>
+                        <li>{plan.emailMode}</li>
+                        <li>Billing shows up in your account before checkout redirect.</li>
+                      </ul>
+                    </div>
+
+                    {plan.id === 'FREE' ? (
+                      <div className="billing-plan-note">
+                        <span className="small muted">
+                          Free users can still create one live alert and receive email notifications.
+                        </span>
+                      </div>
+                    ) : (
+                      <AriaButton
+                        className={plan.id === 'PRO' ? 'primary button-inline' : 'ghost button-inline'}
+                        isDisabled={disableAction || checkoutPlan !== null}
+                        onPress={() => void handleStartCheckout(plan.id)}
+                      >
+                        {planActionLabel(plan.id)}
+                      </AriaButton>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
+
+            <div className="billing-footnote">
+              {billingStatus?.activeSubscription ? (
+                <p className="small muted">
+                  Self-serve plan changes are not wired yet. Once Stripe Customer Portal is added, upgrades and downgrades
+                  will happen here instead of through support.
+                </p>
+              ) : (
+                <p className="small muted">
+                  Need more than one alert right away? Start with Plus, or jump to Pro if you’re monitoring many places.
+                </p>
+              )}
+              {currentPlan === 'FREE' ? (
+                <p className="small muted">
+                  You are at {enabledCriteriaCount}/{maxActiveAlerts} active alerts. Create or edit rules on{' '}
+                  <Link to="/app/rules" className="auth-link">
+                    New Alert
+                  </Link>
+                  .
+                </p>
+              ) : null}
+            </div>
+          </section>
+
           <section className="section-block">
             <h3>Profile</h3>
             <form onSubmit={onSaveProfile} className="grid-form">
@@ -263,4 +446,3 @@ export function AccountPage() {
     </section>
   )
 }
-

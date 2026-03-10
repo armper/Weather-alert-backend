@@ -1,5 +1,6 @@
 package com.weather.alert.application.usecase;
 
+import com.weather.alert.application.service.BillingPlanService;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertDeliveryRecord;
@@ -8,11 +9,13 @@ import com.weather.alert.domain.model.DeliveryFailureType;
 import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.model.NotificationChannel;
+import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.EmailSenderPort;
+import com.weather.alert.domain.port.UserRepositoryPort;
 import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,8 @@ public class ProcessAlertDeliveryTaskUseCase {
     private final EmailSenderPort emailSenderPort;
     private final AlertDeliveryDlqPublisherPort dlqPublisher;
     private final NotificationDeliveryProperties properties;
+    private final UserRepositoryPort userRepository;
+    private final BillingPlanService billingPlanService;
 
     @Transactional
     public void processTask(String deliveryId) {
@@ -85,10 +90,11 @@ public class ProcessAlertDeliveryTaskUseCase {
         }
         Alert alert = alertRepository.findById(delivery.getAlertId()).orElse(null);
         AlertCriteria criteria = findCriteria(alert);
+        User user = findUser(alert);
         EmailMessage message = EmailMessage.builder()
                 .to(delivery.getDestination())
                 .subject(buildSubject(alert, criteria))
-                .body(buildBody(alert, criteria))
+                .body(buildBody(alert, criteria, user))
                 .build();
         return emailSenderPort.send(message);
     }
@@ -158,6 +164,13 @@ public class ProcessAlertDeliveryTaskUseCase {
         return alertCriteriaRepository.findById(alert.getCriteriaId()).orElse(null);
     }
 
+    private User findUser(Alert alert) {
+        if (alert == null || alert.getUserId() == null || alert.getUserId().isBlank()) {
+            return null;
+        }
+        return userRepository.findById(alert.getUserId()).orElse(null);
+    }
+
     private String buildSubject(Alert alert, AlertCriteria criteria) {
         String alertName = displayAlertName(criteria, alert);
         if (alertName != null) {
@@ -172,7 +185,7 @@ public class ProcessAlertDeliveryTaskUseCase {
         return "Weather Alert: New alert triggered";
     }
 
-    private String buildBody(Alert alert, AlertCriteria criteria) {
+    private String buildBody(Alert alert, AlertCriteria criteria, User user) {
         if (alert == null) {
             return """
                     Hi there,
@@ -221,6 +234,10 @@ public class ProcessAlertDeliveryTaskUseCase {
         }
 
         body.append("\nYou can review or update this alert anytime in the app.\n");
+        if (user != null && billingPlanService.resolveEntitlements(user).isAdSponsoredEmails()) {
+            body.append("\nSponsored message:\n");
+            body.append("Upgrade to Weather Alert Plus for ad-free emails and up to 10 active alerts.\n");
+        }
         body.append("\nWeather Alert");
         return body.toString();
     }

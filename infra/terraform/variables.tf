@@ -94,7 +94,19 @@ variable "stripe_enabled" {
 
 variable "stripe_price_id" {
   type        = string
-  description = "Stripe recurring price ID used for checkout."
+  description = "Legacy Stripe recurring price ID. Use the Plus plan price or leave blank if you only set explicit plan IDs."
+  default     = ""
+}
+
+variable "stripe_plus_price_id" {
+  type        = string
+  description = "Stripe recurring price ID used for the Plus plan checkout."
+  default     = ""
+}
+
+variable "stripe_pro_price_id" {
+  type        = string
+  description = "Stripe recurring price ID used for the Pro plan checkout."
   default     = ""
 }
 

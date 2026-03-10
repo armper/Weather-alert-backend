@@ -17,6 +17,8 @@ mail_username                      = "smtp-user"
 mail_from_address                  = "no-reply@example.com"
 stripe_enabled                     = false
 stripe_price_id                    = ""
+stripe_plus_price_id               = ""
+stripe_pro_price_id                = ""
 stripe_success_url                 = ""
 stripe_cancel_url                  = ""
 

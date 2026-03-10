@@ -185,5 +185,7 @@ app:
       secret-key: ${APP_BILLING_STRIPE_SECRET_KEY:}
       webhook-secret: ${APP_BILLING_STRIPE_WEBHOOK_SECRET:}
       price-id: ${APP_BILLING_STRIPE_PRICE_ID:}
+      plus-price-id: ${APP_BILLING_STRIPE_PLUS_PRICE_ID:${APP_BILLING_STRIPE_PRICE_ID:}}
+      pro-price-id: ${APP_BILLING_STRIPE_PRO_PRICE_ID:}
       success-url: ${APP_BILLING_STRIPE_SUCCESS_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/billing/success?session_id={CHECKOUT_SESSION_ID}}
       cancel-url: ${APP_BILLING_STRIPE_CANCEL_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/billing/cancel}
