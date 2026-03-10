@@ -46,7 +46,7 @@ public class AlertEntity {
     @Column(name = "description", length = 5000)
     private String description;
     
-    @Column(name = "location")
+    @Column(name = "location", columnDefinition = "TEXT")
     private String location;
 
     @Column(name = "condition_source", length = 64)

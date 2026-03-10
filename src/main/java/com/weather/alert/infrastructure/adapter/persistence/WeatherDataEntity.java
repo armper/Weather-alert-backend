@@ -22,7 +22,7 @@ public class WeatherDataEntity {
     @Id
     private String id;
 
-    @Column(name = "location", length = 255)
+    @Column(name = "location", columnDefinition = "TEXT")
     private String location;
 
     @Column(name = "latitude")
