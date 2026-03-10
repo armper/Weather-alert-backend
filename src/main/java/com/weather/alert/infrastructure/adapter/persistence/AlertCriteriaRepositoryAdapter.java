@@ -5,6 +5,7 @@ import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
     
     @Override
     public List<AlertCriteria> findByUserId(String userId) {
-        return jpaRepository.findByUserId(userId).stream()
+        return jpaRepository.findByUserIdOrderByCreatedAtAscIdAsc(userId).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
@@ -83,6 +84,7 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
                 .oncePerEvent(criteria.getOncePerEvent())
                 .rearmWindowMinutes(criteria.getRearmWindowMinutes())
                 .enabled(criteria.getEnabled())
+                .createdAt(criteria.getCreatedAt() == null ? Instant.now() : criteria.getCreatedAt())
                 .build();
     }
     
@@ -123,6 +125,7 @@ public class AlertCriteriaRepositoryAdapter implements AlertCriteriaRepositoryPo
                 .oncePerEvent(entity.getOncePerEvent())
                 .rearmWindowMinutes(entity.getRearmWindowMinutes())
                 .enabled(entity.getEnabled())
+                .createdAt(entity.getCreatedAt())
                 .build();
     }
 }

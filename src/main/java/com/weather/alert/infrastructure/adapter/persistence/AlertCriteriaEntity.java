@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "alert_criteria")
 @Data
@@ -127,4 +129,7 @@ public class AlertCriteriaEntity {
     
     @Column(name = "enabled")
     private Boolean enabled;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 }

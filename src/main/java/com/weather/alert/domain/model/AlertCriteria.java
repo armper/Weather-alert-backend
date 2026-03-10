@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 /**
  * Domain model representing user alert criteria
  */
@@ -147,6 +149,9 @@ public class AlertCriteria {
 
     @Schema(example = "true")
     private Boolean enabled;
+
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private Instant createdAt;
     
     public boolean matches(WeatherData weatherData) {
         return AlertCriteriaRuleEvaluator.defaultInstance().matches(this, weatherData);
