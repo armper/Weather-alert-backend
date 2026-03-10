@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Disclosure, DisclosurePanel } from 'react-aria-components'
 import { useLocation } from 'react-router-dom'
 import { apiRequest, toErrorMessage } from '../api'
-import { formatNumber } from '../lib/formatting'
+import { formatFriendlyLocation, formatNumber, formatTemperature, formatWind } from '../lib/formatting'
 import { RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES, defaultThreshold } from '../lib/criteria'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
@@ -10,7 +10,7 @@ import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
 import { useAppState } from '../state/useAppState'
-import { DEFAULT_LAT, DEFAULT_LON, type RuleType } from '../state/types'
+import { DEFAULT_LAT, DEFAULT_LON, initialCriteriaForm, type RuleType } from '../state/types'
 import type { FloodCategory, WeatherCondition } from '../types'
 
 interface RuleFormErrors {
@@ -237,8 +237,17 @@ const RULE_PRESETS: RulePreset[] = [
 ]
 
 export function RulesPage() {
-  const { token, setNotice, criteriaForm, setCriteriaForm, canSubmitCriteria, savingCriteria, handleCreateCriteria } =
-    useAppState()
+  const {
+    token,
+    setNotice,
+    criteria,
+    criteriaForm,
+    currentWeather,
+    setCriteriaForm,
+    canSubmitCriteria,
+    savingCriteria,
+    handleCreateCriteria,
+  } = useAppState()
   const location = useLocation()
 
   const [formErrors, setFormErrors] = useState<RuleFormErrors>({})
@@ -246,6 +255,10 @@ export function RulesPage() {
   const [locationMode, setLocationMode] = useState<LocationMode>('CITY')
   const [useCustomCoordinates, setUseCustomCoordinates] = useState(false)
   const [flashForm, setFlashForm] = useState(false)
+  const [autoNameEnabled, setAutoNameEnabled] = useState(
+    () => !criteriaForm.name.trim() || criteriaForm.name === initialCriteriaForm.name,
+  )
+  const [didSeedPrimaryLocation, setDidSeedPrimaryLocation] = useState(false)
   const [resolvingRiverGauge, setResolvingRiverGauge] = useState(false)
   const [resolvedRiverGauge, setResolvedRiverGauge] = useState<WeatherCondition | null>(null)
 
@@ -262,6 +275,26 @@ export function RulesPage() {
   const mapLongitude = Number(criteriaForm.longitude)
   const resolvedLatitude = Number.isNaN(mapLatitude) ? Number(DEFAULT_LAT) : mapLatitude
   const resolvedLongitude = Number.isNaN(mapLongitude) ? Number(DEFAULT_LON) : mapLongitude
+  const primaryArea = useMemo(() => {
+    const savedArea = criteria[0]
+    if (savedArea?.location?.trim()) {
+      return {
+        location: savedArea.location.trim(),
+        latitude: String(savedArea.latitude ?? criteriaForm.latitude ?? DEFAULT_LAT),
+        longitude: String(savedArea.longitude ?? criteriaForm.longitude ?? DEFAULT_LON),
+      }
+    }
+
+    if (currentWeather?.location?.trim()) {
+      return {
+        location: currentWeather.location.trim(),
+        latitude: criteriaForm.latitude || DEFAULT_LAT,
+        longitude: criteriaForm.longitude || DEFAULT_LON,
+      }
+    }
+
+    return null
+  }, [criteria, criteriaForm.latitude, criteriaForm.longitude, currentWeather])
   const presetGroups = useMemo(
     () =>
       PRESET_CATEGORY_ORDER.map((category) => ({
@@ -312,6 +345,14 @@ export function RulesPage() {
     criteriaForm.riverGaugeId,
     criteriaForm.riverFloodCategoryThreshold,
   ])
+  const suggestedName = useMemo(
+    () => buildSuggestedAlertName(criteriaForm.ruleType, criteriaForm.location, criteriaForm.riverFloodCategoryThreshold),
+    [criteriaForm.location, criteriaForm.riverFloodCategoryThreshold, criteriaForm.ruleType],
+  )
+  const previewLocation = formatFriendlyLocation(criteriaForm.location || primaryArea?.location)
+  const previewChecks = describeMonitoringMode(criteriaForm.monitorCurrent, criteriaForm.monitorForecast)
+  const previewCurrentSnapshot = buildCurrentSnapshotCopy(currentWeather)
+  const showSuggestedNameAction = criteriaForm.name.trim() !== suggestedName
 
   useEffect(() => {
     const targetId = location.hash.replace('#', '').trim()
@@ -365,6 +406,38 @@ export function RulesPage() {
 
     setResolvedRiverGauge(null)
   }, [criteriaForm.riverGaugeId, resolvedRiverGauge])
+
+  useEffect(() => {
+    if (didSeedPrimaryLocation || !primaryArea) {
+      return
+    }
+
+    setCriteriaForm((state) => {
+      const shouldSeedLocation = !state.location.trim() || state.location === initialCriteriaForm.location
+      const shouldSeedLatitude = !state.latitude.trim() || state.latitude === initialCriteriaForm.latitude
+      const shouldSeedLongitude = !state.longitude.trim() || state.longitude === initialCriteriaForm.longitude
+
+      if (!shouldSeedLocation && !shouldSeedLatitude && !shouldSeedLongitude) {
+        return state
+      }
+
+      return {
+        ...state,
+        location: shouldSeedLocation ? primaryArea.location : state.location,
+        latitude: shouldSeedLatitude ? primaryArea.latitude : state.latitude,
+        longitude: shouldSeedLongitude ? primaryArea.longitude : state.longitude,
+      }
+    })
+    setDidSeedPrimaryLocation(true)
+  }, [didSeedPrimaryLocation, primaryArea, setCriteriaForm])
+
+  useEffect(() => {
+    if (!autoNameEnabled || !suggestedName) {
+      return
+    }
+
+    setCriteriaForm((state) => (state.name === suggestedName ? state : { ...state, name: suggestedName }))
+  }, [autoNameEnabled, setCriteriaForm, suggestedName])
 
   function validateRuleForm(): RuleFormErrors {
     const errors: RuleFormErrors = {}
@@ -567,7 +640,28 @@ export function RulesPage() {
     }))
   }
 
+  function applyPrimaryArea() {
+    if (!primaryArea) {
+      return
+    }
+
+    setCriteriaForm((state) => ({
+      ...state,
+      location: primaryArea.location,
+      latitude: primaryArea.latitude,
+      longitude: primaryArea.longitude,
+    }))
+    setFormErrors((state) => ({
+      ...state,
+      location: undefined,
+      latitude: undefined,
+      longitude: undefined,
+    }))
+    setDidSeedPrimaryLocation(true)
+  }
+
   function applyPreset(preset: RulePreset) {
+    setAutoNameEnabled(false)
     setCriteriaForm((state) => ({
       ...state,
       name: preset.title,
@@ -650,52 +744,110 @@ export function RulesPage() {
         className={`panel custom-alert-section${flashForm ? ' field-flash' : ''}`}
       >
         <div className="panel-title-row">
-          <h2>Create Alert</h2>
+          <h2>New Alert</h2>
         </div>
 
         <fieldset className="rules-fieldset-reset" disabled={savingCriteria}>
           <form className="grid-form create-grid" onSubmit={handleCreateAlertSubmit} noValidate>
-          <AriaTextField
-            label="Alert name"
-            inputClassName="aria-input"
-            value={criteriaForm.name}
-            required
-            errorMessage={formErrors.name}
-            onChange={(value) => setCriteriaForm((state) => ({ ...state, name: value }))}
-          />
+            <div className="full-row rules-name-block">
+              <AriaTextField
+                label="Alert name"
+                inputClassName="aria-input"
+                value={criteriaForm.name}
+                required
+                errorMessage={formErrors.name}
+                onChange={(value) => {
+                  setAutoNameEnabled(false)
+                  setCriteriaForm((state) => ({ ...state, name: value }))
+                }}
+              />
+              <div className="name-suggestion-row">
+                <p className="muted small name-suggestion-copy">{`Suggested: ${suggestedName}`}</p>
+                {showSuggestedNameAction ? (
+                  <AriaButton
+                    type="button"
+                    className="ghost button-inline"
+                    isDisabled={savingCriteria}
+                    onPress={() => {
+                      setAutoNameEnabled(true)
+                      setCriteriaForm((state) => ({ ...state, name: suggestedName }))
+                    }}
+                  >
+                    Use suggested name
+                  </AriaButton>
+                ) : null}
+              </div>
+            </div>
 
-          <div id="location-picker" tabIndex={-1} className="full-row location-picker-panel">
-            <LocationPickerMap
-              location={criteriaForm.location}
-              latitude={resolvedLatitude}
-              longitude={resolvedLongitude}
-              onSelect={({ location: selectedLocation, latitude, longitude }) =>
-                setCriteriaForm((state) => ({
-                  ...state,
-                  location: selectedLocation,
-                  latitude: String(latitude),
-                  longitude: String(longitude),
-                }))
-              }
+            <section className="full-row rule-preview-card" aria-live="polite">
+              <div className="rule-preview-header">
+                <div>
+                  <p className="eyebrow">Live Preview</p>
+                  <h3>{criteriaForm.name.trim() || suggestedName}</h3>
+                </div>
+                <span className="badge">{previewChecks}</span>
+              </div>
+              <p className="rule-preview-copy">{thresholdHelp}</p>
+              <div className="rule-preview-pills">
+                <span className="metric-pill">Area {previewLocation}</span>
+                <span className="metric-pill">
+                  {criteriaForm.oncePerEvent ? 'Notifies once per event' : `Repeats every ${criteriaForm.rearmWindowMinutes} min`}
+                </span>
+                <span className="metric-pill">{`Forecast window ${criteriaForm.forecastWindowHours}h`}</span>
+                {previewCurrentSnapshot ? <span className="metric-pill">{previewCurrentSnapshot}</span> : null}
+              </div>
+            </section>
+
+            <div id="location-picker" tabIndex={-1} className="full-row location-picker-panel">
+              <div className="location-picker-toolbar">
+                <div>
+                  <p className="location-picker-label">Alert area</p>
+                  <p className="muted small">
+                    {`${previewLocation} • ${resolvedLatitude.toFixed(4)}, ${resolvedLongitude.toFixed(4)}`}
+                  </p>
+                </div>
+                {primaryArea ? (
+                  <AriaButton
+                    type="button"
+                    className="ghost button-inline"
+                    isDisabled={savingCriteria}
+                    onPress={applyPrimaryArea}
+                  >
+                    Use current area
+                  </AriaButton>
+                ) : null}
+              </div>
+              <LocationPickerMap
+                location={criteriaForm.location}
+                latitude={resolvedLatitude}
+                longitude={resolvedLongitude}
+                onSelect={({ location: selectedLocation, latitude, longitude }) =>
+                  setCriteriaForm((state) => ({
+                    ...state,
+                    location: selectedLocation,
+                    latitude: String(latitude),
+                    longitude: String(longitude),
+                  }))
+                }
+              />
+              {formErrors.location ? <p className="field-error">{formErrors.location}</p> : null}
+            </div>
+
+            <AriaSelect
+              label="Rule type"
+              buttonClassName="aria-select-trigger"
+              popoverClassName="aria-select-popover"
+              listBoxClassName="aria-select-listbox"
+              selectedKey={criteriaForm.ruleType}
+              options={RULE_TYPE_OPTIONS.map((option) => ({ ...option }))}
+              onSelectionChange={handleRuleTypeChange}
             />
-            {formErrors.location ? <p className="field-error">{formErrors.location}</p> : null}
-          </div>
 
-          <AriaSelect
-            label="Rule type"
-            buttonClassName="aria-select-trigger"
-            popoverClassName="aria-select-popover"
-            listBoxClassName="aria-select-listbox"
-            selectedKey={criteriaForm.ruleType}
-            options={RULE_TYPE_OPTIONS.map((option) => ({ ...option }))}
-            onSelectionChange={handleRuleTypeChange}
-          />
-
-          {isGridRule ? (
-            <p className="muted small full-row rule-mode-note">
-              Advanced grid rules come from NOAA forecast grid data. Keep Forecast enabled to use the best signal.
-            </p>
-          ) : null}
+            {isGridRule ? (
+              <p className="muted small full-row rule-mode-note">
+                Advanced grid rules come from NOAA forecast grid data. Keep Forecast enabled to use the best signal.
+              </p>
+            ) : null}
 
           {isRiverRule ? (
             <section className="full-row river-rule-panel">
@@ -857,13 +1009,13 @@ export function RulesPage() {
             />
           </div>
 
-          <AriaButton
-            type="submit"
-            className="primary button-inline full-row"
-            isDisabled={!canSubmitCriteria || savingCriteria}
-          >
-            {savingCriteria ? 'Saving alert...' : 'Create Alert'}
-          </AriaButton>
+            <AriaButton
+              type="submit"
+              className="primary button-inline full-row"
+              isDisabled={!canSubmitCriteria || savingCriteria}
+            >
+              {savingCriteria ? 'Saving alert...' : 'Create alert'}
+            </AriaButton>
 
           <Disclosure
             className="advanced-disclosure full-row"
@@ -1095,6 +1247,69 @@ function formatStage(stage?: number | null, unit?: string | null): string {
     return '--'
   }
   return `${stageLabel} ${unit ?? 'ft'}`
+}
+
+function buildSuggestedAlertName(ruleType: RuleType, location: string, floodCategory: FloodCategory) {
+  const locationLabel = formatFriendlyLocation(location).replace(', FL', '')
+  const locationSuffix = locationLabel === 'Selected area' ? 'for selected area' : `for ${locationLabel}`
+
+  switch (ruleType) {
+    case 'TEMP_BELOW':
+      return `Cold weather ${locationSuffix}`
+    case 'TEMP_ABOVE':
+      return `Heat alert ${locationSuffix}`
+    case 'WIND':
+      return `Wind alert ${locationSuffix}`
+    case 'RAIN':
+      return `Rain watch ${locationSuffix}`
+    case 'HUMIDITY_ABOVE':
+      return `Humidity alert ${locationSuffix}`
+    case 'HUMIDITY_BELOW':
+      return `Dry air alert ${locationSuffix}`
+    case 'DEW_POINT_ABOVE':
+      return `Muggy air alert ${locationSuffix}`
+    case 'DEW_POINT_BELOW':
+      return `Dry dew point alert ${locationSuffix}`
+    case 'WIND_GUST':
+      return `Wind gust alert ${locationSuffix}`
+    case 'SKY_COVER_ABOVE':
+      return `Cloudy sky alert ${locationSuffix}`
+    case 'SKY_COVER_BELOW':
+      return `Clearing sky alert ${locationSuffix}`
+    case 'RIVER_STAGE_ABOVE':
+      return `River rise alert ${locationSuffix}`
+    case 'RIVER_STAGE_BELOW':
+      return `River drop alert ${locationSuffix}`
+    case 'RIVER_FLOOD_CATEGORY':
+      return `${formatFloodCategoryLabel(floodCategory)} alert ${locationSuffix}`
+    default:
+      return `Weather alert ${locationSuffix}`
+  }
+}
+
+function describeMonitoringMode(monitorCurrent: boolean, monitorForecast: boolean) {
+  if (monitorCurrent && monitorForecast) {
+    return 'Current and forecast'
+  }
+  if (monitorCurrent) {
+    return 'Current conditions'
+  }
+  if (monitorForecast) {
+    return 'Forecast only'
+  }
+  return 'Manual review needed'
+}
+
+function buildCurrentSnapshotCopy(currentWeather: WeatherCondition | null) {
+  if (!currentWeather) {
+    return null
+  }
+
+  const parts = [formatTemperature(currentWeather.temperature, 'F')]
+  if (currentWeather.windSpeed != null) {
+    parts.push(`Wind ${formatWind(currentWeather.windSpeed)}`)
+  }
+  return `Now ${parts.join(' • ')}`
 }
 
 function renderPresetIcon(icon: PresetIcon): ReactNode {

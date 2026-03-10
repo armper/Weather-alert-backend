@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { AlertRow } from '../components/features/dashboard/AlertRow'
 import { AriaButton } from '../components/ui/AriaButton'
@@ -55,7 +56,25 @@ export function EventsPage() {
           </div>
         </div>
         {groupedAlerts.length === 0 ? (
-          <p className="muted">No triggered events yet.</p>
+          <div className="empty-state-panel">
+            <h3>No triggered alerts yet</h3>
+            <p className="muted">
+              When a rule fires, this page becomes your recent alert timeline with delivery and acknowledgement status.
+            </p>
+            <div className="button-row empty-state-actions">
+              <Link to="/app/rules#create-custom-alert" className="primary overview-action-link">
+                New alert
+              </Link>
+              <Link to="/app/alerts" className="ghost overview-action-link">
+                Review my alerts
+              </Link>
+            </div>
+            <div className="empty-state-list">
+              <p>Use forecast monitoring for early warnings.</p>
+              <p>Keep one or two broad alerts active for your main area.</p>
+              <p>Return here to acknowledge alerts once weather starts changing.</p>
+            </div>
+          </div>
         ) : (
           <div className="events-list-wrap">
             <div className="alert-list">

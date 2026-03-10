@@ -6,22 +6,45 @@ import { AriaSwitch } from '../../ui/AriaSwitch'
 interface CriteriaCardProps {
   criteria: AlertCriteria
   busy: boolean
+  lastTriggeredLabel?: string
   onDelete: (criteriaId: string) => void
   onToggleEnabled: (criteriaId: string, enabled: boolean) => void
+  severityLabel?: string
+  severityTone?: 'calm' | 'critical' | 'muted' | 'warning'
 }
 
-export function CriteriaCard({ criteria, busy, onDelete, onToggleEnabled }: CriteriaCardProps) {
+export function CriteriaCard({
+  criteria,
+  busy,
+  lastTriggeredLabel,
+  onDelete,
+  onToggleEnabled,
+  severityLabel,
+  severityTone = 'muted',
+}: CriteriaCardProps) {
   const enabled = criteria.enabled !== false
   const ruleName = criteria.name ?? 'custom alert'
   return (
     <article className="criteria-card">
       <header>
-        <h3 className="criteria-name">{criteria.name ?? 'Custom alert'}</h3>
-        <span className="badge">{enabled ? 'Active' : 'Paused'}</span>
+        <div>
+          <h3 className="criteria-name">{criteria.name ?? 'Custom alert'}</h3>
+          <p className="criteria-rule-line">{describeCriteria(criteria)}</p>
+        </div>
+        <div className="criteria-card-statuses">
+          <span className={`badge${enabled ? '' : ' is-paused'}`}>{enabled ? 'Active' : 'Paused'}</span>
+          {severityLabel ? (
+            <span className={`criteria-signal-chip is-${severityTone}`}>{severityLabel}</span>
+          ) : null}
+        </div>
       </header>
-      <p className="criteria-rule-line">{describeCriteria(criteria)}</p>
-      <footer>
+      <div className="criteria-card-meta">
         <span className="muted small">{criteria.location ?? 'No location'}</span>
+        <span className="criteria-meta-note">
+          {lastTriggeredLabel ? `Last triggered ${lastTriggeredLabel}` : 'No triggered events yet'}
+        </span>
+      </div>
+      <footer>
         <div className="criteria-card-actions">
           <AriaSwitch
             compact
