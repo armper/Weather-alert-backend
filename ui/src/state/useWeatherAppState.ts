@@ -10,7 +10,6 @@ import type {
   AuthTokenResponse,
   ChannelVerification,
   MessageResponse,
-  PendingUser,
   RecoveryRequestResponse,
   RegisterUserResponse,
   UserAccount,
@@ -60,7 +59,6 @@ export function useWeatherAppState() {
   const [currentWeather, setCurrentWeather] = useState<WeatherCondition | null>(null)
   const [notificationPreference, setNotificationPreference] = useState<UserNotificationPreference | null>(null)
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
   const [adminUsers, setAdminUsers] = useState<UserAccount[]>([])
 
   const [profileForm, setProfileForm] = useState<ProfileFormState>({ name: '', phoneNumber: '' })
@@ -75,7 +73,6 @@ export function useWeatherAppState() {
   const [checkoutPlan, setCheckoutPlan] = useState<BillingPlan | null>(null)
   const [busyAlertId, setBusyAlertId] = useState<string | null>(null)
   const [busyCriteriaId, setBusyCriteriaId] = useState<string | null>(null)
-  const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null)
   const [busyAdminAction, setBusyAdminAction] = useState<string | null>(null)
   const [usernameRetryAfterSeconds, setUsernameRetryAfterSeconds] = useState<number>(0)
   const [passwordRetryAfterSeconds, setPasswordRetryAfterSeconds] = useState<number>(0)
@@ -133,7 +130,6 @@ export function useWeatherAppState() {
       setCurrentWeather(weather)
       setBillingStatus(billing)
       setAdminUsers(adminAccounts)
-      setPendingUsers(adminAccounts.filter((user) => user.approvalStatus === 'PENDING_APPROVAL'))
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {
@@ -172,7 +168,6 @@ export function useWeatherAppState() {
       setCurrentWeather(null)
       setNotificationPreference(null)
       setBillingStatus(null)
-      setPendingUsers([])
       setAdminUsers([])
       return
     }
@@ -277,7 +272,7 @@ export function useWeatherAppState() {
 
       setNotice({
         kind: 'success',
-        text: `Account ${response.account.id} created. Verify email first, then ask admin approval.`,
+        text: `Account ${response.account.id} created. Verify your email to sign in.`,
       })
       setRegisterState(initialRegister)
     } catch (error) {
@@ -299,7 +294,7 @@ export function useWeatherAppState() {
       })
       setNotice({
         kind: 'success',
-        text: 'Email verification successful. You can now log in after admin approval.',
+        text: 'Email verification successful. You can now log in.',
       })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
@@ -703,30 +698,6 @@ export function useWeatherAppState() {
     }
   }
 
-  async function handleApproveUser(userId: string) {
-    if (!token) {
-      return
-    }
-
-    setBusyApprovalId(userId)
-    setNotice(null)
-
-    try {
-      await apiRequest<UserAccount>(`/api/admin/users/${userId}/approve`, {
-        method: 'POST',
-        token,
-      })
-      setNotice({ kind: 'success', text: `Approved ${userId}.` })
-      if (me) {
-        await refreshData(token, me)
-      }
-    } catch (error) {
-      setNotice({ kind: 'error', text: toErrorMessage(error) })
-    } finally {
-      setBusyApprovalId(null)
-    }
-  }
-
   async function handleAdminAction(userId: string, action: 'suspend' | 'reactivate' | 'force-password-reset') {
     if (!token) {
       return
@@ -795,7 +766,6 @@ export function useWeatherAppState() {
     currentWeather,
     notificationPreference,
     billingStatus,
-    pendingUsers,
     adminUsers,
 
     profileForm,
@@ -813,7 +783,6 @@ export function useWeatherAppState() {
     checkoutPlan,
     busyAlertId,
     busyCriteriaId,
-    busyApprovalId,
     busyAdminAction,
 
     handleLogin,
@@ -833,7 +802,6 @@ export function useWeatherAppState() {
     handleChangePassword,
     handleSaveNotificationPreference,
     handleStartCheckout,
-    handleApproveUser,
     handleAdminAction,
 
     refresh,

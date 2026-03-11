@@ -45,7 +45,7 @@ Content-Type: application/json
     "phoneNumber": "+14075551234",
     "name": "Alice",
     "role": "ROLE_USER",
-    "approvalStatus": "PENDING_APPROVAL",
+    "approvalStatus": "ACTIVE",
     "emailVerified": false
   },
   "emailVerification": {
@@ -81,20 +81,8 @@ Content-Type: application/json
 }
 ```
 
-#### Admin Approval
-```http
-GET /api/admin/users/pending
-Authorization: Bearer <admin-token>
-```
-
-```http
-POST /api/admin/users/{userId}/approve
-Authorization: Bearer <admin-token>
-```
-
 #### Login Gate Rules for Registered Users
 - `emailVerified` must be `true`
-- `approvalStatus` must be `ACTIVE`
 
 If either gate is not met, `POST /api/auth/token` returns `403`.
 
@@ -1044,7 +1032,7 @@ Current version uses JWT bearer authentication for all `/api/**` endpoints excep
 
 Authorization summary:
 - `ROLE_USER` can manage only their own criteria and profile (`/api/users/me`), plus read endpoints.
-- `ROLE_ADMIN` can manage criteria for any user, approve users (`/api/admin/users/**`), and access alert-expire operations.
+- `ROLE_ADMIN` can manage criteria for any user, manage account state (`/api/admin/users/**`), and access alert-expire operations.
 
 ---
 

@@ -3,7 +3,6 @@ package com.weather.alert.application.usecase;
 import com.weather.alert.application.exception.AccountSuspendedException;
 import com.weather.alert.application.exception.EmailVerificationRequiredException;
 import com.weather.alert.application.exception.PasswordResetRequiredException;
-import com.weather.alert.application.exception.UserApprovalRequiredException;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
 import com.weather.alert.domain.port.UserRepositoryPort;
@@ -38,9 +37,6 @@ public class AuthenticateRegisteredUserUseCase {
         }
         if (user.getApprovalStatus() == UserApprovalStatus.SUSPENDED) {
             throw new AccountSuspendedException(user.getId());
-        }
-        if (user.getApprovalStatus() != UserApprovalStatus.ACTIVE) {
-            throw new UserApprovalRequiredException(user.getId());
         }
         if (Boolean.TRUE.equals(user.getPasswordResetRequired())) {
             throw new PasswordResetRequiredException(user.getId());

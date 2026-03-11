@@ -198,5 +198,3 @@ export interface BillingCheckoutSession {
   sessionId: string
   url: string
 }
-
-export type PendingUser = UserAccount

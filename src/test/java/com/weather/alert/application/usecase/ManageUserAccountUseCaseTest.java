@@ -6,7 +6,6 @@ import com.weather.alert.application.dto.RegisterUserRequest;
 import com.weather.alert.application.dto.ResendRegistrationVerificationRequest;
 import com.weather.alert.application.dto.VerifyRegistrationEmailRequest;
 import com.weather.alert.application.exception.InvalidCurrentPasswordException;
-import com.weather.alert.application.exception.InvalidAccountApprovalStateException;
 import com.weather.alert.domain.model.ChannelVerificationStatus;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.User;
@@ -55,7 +54,7 @@ class ManageUserAccountUseCaseTest {
     }
 
     @Test
-    void shouldRegisterPendingAccountAndStartEmailVerification() {
+    void shouldRegisterActiveAccountAndStartEmailVerification() {
         RegisterUserRequest request = new RegisterUserRequest();
         request.setUsername("alice");
         request.setPassword("StrongPass123!");
@@ -79,7 +78,7 @@ class ManageUserAccountUseCaseTest {
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
-        assertEquals(UserApprovalStatus.PENDING_APPROVAL, userCaptor.getValue().getApprovalStatus());
+        assertEquals(UserApprovalStatus.ACTIVE, userCaptor.getValue().getApprovalStatus());
         assertFalse(Boolean.TRUE.equals(userCaptor.getValue().getEmailVerified()));
         assertEquals("alice", response.getAccount().getId());
         assertNotNull(response.getEmailVerification());
@@ -95,7 +94,7 @@ class ManageUserAccountUseCaseTest {
         when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
                 .id("alice")
                 .email("alice@example.com")
-                .approvalStatus(UserApprovalStatus.PENDING_APPROVAL)
+                .approvalStatus(UserApprovalStatus.ACTIVE)
                 .emailVerified(false)
                 .build()));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -108,30 +107,6 @@ class ManageUserAccountUseCaseTest {
     }
 
     @Test
-    void shouldRequireVerifiedEmailBeforeApproval() {
-        when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
-                .id("alice")
-                .email("alice@example.com")
-                .approvalStatus(UserApprovalStatus.PENDING_APPROVAL)
-                .emailVerified(false)
-                .build()));
-
-        assertThrows(InvalidAccountApprovalStateException.class, () -> useCase.approveAccount("alice"));
-    }
-
-    @Test
-    void shouldListOnlyPendingAccounts() {
-        when(userRepository.findAll()).thenReturn(List.of(
-                User.builder().id("pending").approvalStatus(UserApprovalStatus.PENDING_APPROVAL).build(),
-                User.builder().id("active").approvalStatus(UserApprovalStatus.ACTIVE).build()));
-
-        var pending = useCase.listPendingAccounts();
-
-        assertEquals(1, pending.size());
-        assertEquals("pending", pending.get(0).getId());
-    }
-
-    @Test
     void shouldResendRegistrationVerificationToken() {
         ResendRegistrationVerificationRequest request = new ResendRegistrationVerificationRequest();
         request.setUsername("alice");
@@ -139,7 +114,7 @@ class ManageUserAccountUseCaseTest {
         when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
                 .id("alice")
                 .email("alice@example.com")
-                .approvalStatus(UserApprovalStatus.PENDING_APPROVAL)
+                .approvalStatus(UserApprovalStatus.ACTIVE)
                 .emailVerified(false)
                 .build()));
         when(manageChannelVerificationUseCase.startVerification(eq("alice"), any())).thenReturn(ChannelVerificationResponse.builder()

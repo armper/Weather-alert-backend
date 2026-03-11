@@ -6,11 +6,11 @@ import com.weather.alert.application.dto.RegisterUserRequest;
 import com.weather.alert.application.dto.RegisterUserResponse;
 import com.weather.alert.application.dto.ResendRegistrationVerificationRequest;
 import com.weather.alert.application.dto.UpdateMyAccountRequest;
-import com.weather.alert.application.dto.VerifyRegistrationEmailRequest;
 import com.weather.alert.application.dto.UserAccountResponse;
+import com.weather.alert.application.dto.VerifyRegistrationEmailRequest;
 import com.weather.alert.application.exception.EmailAlreadyInUseException;
-import com.weather.alert.application.exception.InvalidAccountApprovalStateException;
 import com.weather.alert.application.exception.InvalidCurrentPasswordException;
+import com.weather.alert.application.exception.InvalidUserAccountStateException;
 import com.weather.alert.application.exception.UserAlreadyExistsException;
 import com.weather.alert.application.exception.UserNotFoundException;
 import com.weather.alert.domain.model.NotificationChannel;
@@ -68,12 +68,13 @@ public class ManageUserAccountUseCase {
                 .name(normalizeName(request.getName(), userId))
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role("ROLE_USER")
-                .approvalStatus(UserApprovalStatus.PENDING_APPROVAL)
+                .approvalStatus(UserApprovalStatus.ACTIVE)
                 .emailVerified(false)
                 .passwordResetRequired(false)
                 .emailEnabled(true)
                 .smsEnabled(request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank())
                 .pushEnabled(false)
+                .approvedAt(now)
                 .createdAt(now)
                 .updatedAt(now)
                 .build());
@@ -114,7 +115,7 @@ public class ManageUserAccountUseCase {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
         if (user.getEmail() == null || user.getEmail().isBlank()) {
-            throw new InvalidAccountApprovalStateException("User does not have a registered email: " + userId);
+            throw new InvalidUserAccountStateException("User does not have a registered email: " + userId);
         }
 
         com.weather.alert.application.dto.StartChannelVerificationRequest start =
@@ -165,36 +166,10 @@ public class ManageUserAccountUseCase {
     }
 
     @Transactional(readOnly = true)
-    public List<UserAccountResponse> listPendingAccounts() {
-        return userRepository.findAll().stream()
-                .filter(user -> user.getApprovalStatus() == UserApprovalStatus.PENDING_APPROVAL)
-                .map(UserAccountResponse::fromDomain)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
     public List<UserAccountResponse> listAllAccounts() {
         return userRepository.findAll().stream()
                 .map(UserAccountResponse::fromDomain)
                 .toList();
-    }
-
-    @Transactional
-    public UserAccountResponse approveAccount(String userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new InvalidAccountApprovalStateException(
-                    "Cannot approve user before email verification: " + userId);
-        }
-        if (user.getApprovalStatus() == UserApprovalStatus.ACTIVE) {
-            return UserAccountResponse.fromDomain(user);
-        }
-        user.setApprovalStatus(UserApprovalStatus.ACTIVE);
-        user.setApprovedAt(Instant.now());
-        user.setUpdatedAt(Instant.now());
-        User saved = userRepository.save(user);
-        log.info("ACCOUNT_APPROVED userId={}", userId);
-        return UserAccountResponse.fromDomain(saved);
     }
 
     @Transactional
