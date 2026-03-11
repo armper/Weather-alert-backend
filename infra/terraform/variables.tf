@@ -143,6 +143,24 @@ variable "mail_from_address" {
   description = "From address for notification emails."
 }
 
+variable "notification_sms_provider" {
+  type        = string
+  description = "Notification SMS provider."
+  default     = "noop"
+}
+
+variable "twilio_sms_from_number" {
+  type        = string
+  description = "Twilio SMS sender number."
+  default     = ""
+}
+
+variable "twilio_sms_messaging_service_sid" {
+  type        = string
+  description = "Optional Twilio messaging service SID."
+  default     = ""
+}
+
 variable "user_username" {
   type        = string
   description = "Built-in USER account username."
@@ -255,6 +273,32 @@ variable "mail_password" {
   type        = string
   description = "Secret value for the SMTP password."
   sensitive   = true
+}
+
+variable "twilio_sms_account_sid" {
+  type        = string
+  description = "Twilio SMS account SID."
+  default     = ""
+}
+
+variable "twilio_sms_auth_token" {
+  type        = string
+  description = "Twilio SMS auth token."
+  sensitive   = true
+  default     = ""
+}
+
+variable "twilio_sms_api_key" {
+  type        = string
+  description = "Twilio SMS API key SID."
+  default     = ""
+}
+
+variable "twilio_sms_api_secret" {
+  type        = string
+  description = "Twilio SMS API secret."
+  sensitive   = true
+  default     = ""
 }
 
 variable "admin_jobs_token" {

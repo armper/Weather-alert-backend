@@ -11,12 +11,15 @@ import com.weather.alert.domain.model.DeliveryFailureType;
 import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.model.NotificationChannel;
+import com.weather.alert.domain.model.SmsMessage;
+import com.weather.alert.domain.model.SmsSendResult;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.EmailSenderPort;
+import com.weather.alert.domain.port.SmsSenderPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
 import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
@@ -57,6 +60,9 @@ class ProcessAlertDeliveryTaskUseCaseTest {
     private EmailSenderPort emailSenderPort;
 
     @Mock
+    private SmsSenderPort smsSenderPort;
+
+    @Mock
     private AlertDeliveryDlqPublisherPort dlqPublisher;
 
     @Mock
@@ -78,6 +84,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
                 alertRepository,
                 alertCriteriaRepository,
                 emailSenderPort,
+                smsSenderPort,
                 dlqPublisher,
                 properties,
                 userRepository,
@@ -209,6 +216,56 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         verify(emailSenderPort).send(emailCaptor.capture());
         assertTrue(emailCaptor.getValue().body().contains("Sponsored message:"));
         assertTrue(emailCaptor.getValue().body().contains("Upgrade to Weather Alert Plus"));
+    }
+
+    @Test
+    void shouldMarkSentWhenSmsDeliverySucceeds() {
+        AlertDeliveryRecord delivery = AlertDeliveryRecord.builder()
+                .id("delivery-sms")
+                .alertId("alert-1")
+                .userId("dev-admin")
+                .channel(NotificationChannel.SMS)
+                .destination("+14075550199")
+                .status(AlertDeliveryStatus.PENDING)
+                .attemptCount(0)
+                .nextAttemptAt(Instant.now().minusSeconds(1))
+                .createdAt(Instant.now().minusSeconds(60))
+                .updatedAt(Instant.now().minusSeconds(60))
+                .build();
+        when(alertDeliveryRepository.findById("delivery-sms")).thenReturn(Optional.of(delivery));
+        when(alertDeliveryRepository.save(any(AlertDeliveryRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.findById("alert-1")).thenReturn(Optional.of(Alert.builder()
+                .id("alert-1")
+                .criteriaId("criteria-1")
+                .location("Orlando")
+                .conditionSource("CURRENT")
+                .conditionTemperatureC(24.4)
+                .reason("Matched CURRENT: Partly Cloudy")
+                .alertTime(Instant.parse("2026-02-26T20:41:23.668488Z"))
+                .build()));
+        when(alertCriteriaRepository.findById("criteria-1")).thenReturn(Optional.of(AlertCriteria.builder()
+                .id("criteria-1")
+                .name("Bring a jacket")
+                .location("Orlando")
+                .temperatureThreshold(80.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .build()));
+        when(smsSenderPort.send(any())).thenReturn(new SmsSendResult("sms-provider-id-1"));
+
+        useCase.processTask("delivery-sms");
+
+        ArgumentCaptor<SmsMessage> smsCaptor = ArgumentCaptor.forClass(SmsMessage.class);
+        verify(smsSenderPort).send(smsCaptor.capture());
+        assertEquals("+14075550199", smsCaptor.getValue().to());
+        assertTrue(smsCaptor.getValue().body().contains("Bring a jacket"));
+        assertTrue(smsCaptor.getValue().body().contains("Orlando"));
+
+        ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
+        verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
+        AlertDeliveryRecord finalState = captor.getValue();
+        assertEquals(AlertDeliveryStatus.SENT, finalState.getStatus());
+        assertEquals("sms-provider-id-1", finalState.getProviderMessageId());
     }
 
     @Test

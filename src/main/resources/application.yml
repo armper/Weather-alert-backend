@@ -146,6 +146,15 @@ app:
       from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:no-reply@weather-alert.local}
       ses:
         region: ${APP_NOTIFICATION_EMAIL_SES_REGION:us-east-1}
+    sms:
+      provider: ${APP_NOTIFICATION_SMS_PROVIDER:noop}
+      from-number: ${APP_NOTIFICATION_SMS_FROM_NUMBER:}
+      messaging-service-sid: ${APP_NOTIFICATION_SMS_MESSAGING_SERVICE_SID:}
+      twilio:
+        account-sid: ${APP_NOTIFICATION_SMS_TWILIO_ACCOUNT_SID:}
+        auth-token: ${APP_NOTIFICATION_SMS_TWILIO_AUTH_TOKEN:}
+        api-key: ${APP_NOTIFICATION_SMS_TWILIO_API_KEY:}
+        api-secret: ${APP_NOTIFICATION_SMS_TWILIO_API_SECRET:}
     verification:
       token-ttl-minutes: ${APP_NOTIFICATION_VERIFICATION_TOKEN_TTL_MINUTES:15}
       expose-raw-token: ${APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN:true}

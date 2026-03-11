@@ -140,6 +140,30 @@ resource "google_secret_manager_secret_version" "mail_password" {
   secret_data = var.mail_password
 }
 
+resource "google_secret_manager_secret" "twilio_sms_auth_token" {
+  secret_id = "${var.service_name}-twilio-sms-auth-token"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "twilio_sms_auth_token" {
+  secret      = google_secret_manager_secret.twilio_sms_auth_token.id
+  secret_data = var.twilio_sms_auth_token
+}
+
+resource "google_secret_manager_secret" "twilio_sms_api_secret" {
+  secret_id = "${var.service_name}-twilio-sms-api-secret"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "twilio_sms_api_secret" {
+  secret      = google_secret_manager_secret.twilio_sms_api_secret.id
+  secret_data = var.twilio_sms_api_secret
+}
+
 resource "google_secret_manager_secret" "admin_jobs_token" {
   secret_id = "${var.service_name}-admin-jobs-token"
   replication {
@@ -269,6 +293,11 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
+        name  = "APP_NOTIFICATION_SMS_PROVIDER"
+        value = var.notification_sms_provider
+      }
+
+      env {
         name  = "SPRING_MAIL_HOST"
         value = var.mail_host
       }
@@ -296,6 +325,26 @@ resource "google_cloud_run_v2_service" "backend" {
       env {
         name  = "APP_NOTIFICATION_EMAIL_FROM_ADDRESS"
         value = var.mail_from_address
+      }
+
+      env {
+        name  = "APP_NOTIFICATION_SMS_FROM_NUMBER"
+        value = var.twilio_sms_from_number
+      }
+
+      env {
+        name  = "APP_NOTIFICATION_SMS_MESSAGING_SERVICE_SID"
+        value = var.twilio_sms_messaging_service_sid
+      }
+
+      env {
+        name  = "APP_NOTIFICATION_SMS_TWILIO_ACCOUNT_SID"
+        value = var.twilio_sms_account_sid
+      }
+
+      env {
+        name  = "APP_NOTIFICATION_SMS_TWILIO_API_KEY"
+        value = var.twilio_sms_api_key
       }
 
       env {
@@ -444,6 +493,26 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
+        name = "APP_NOTIFICATION_SMS_TWILIO_AUTH_TOKEN"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.twilio_sms_auth_token.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "APP_NOTIFICATION_SMS_TWILIO_API_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.twilio_sms_api_secret.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
         name = "APP_BILLING_STRIPE_SECRET_KEY"
         value_source {
           secret_key_ref {
@@ -482,6 +551,8 @@ resource "google_cloud_run_v2_service" "backend" {
     google_secret_manager_secret_version.admin_password,
     google_secret_manager_secret_version.jwt_secret,
     google_secret_manager_secret_version.mail_password,
+    google_secret_manager_secret_version.twilio_sms_auth_token,
+    google_secret_manager_secret_version.twilio_sms_api_secret,
     google_secret_manager_secret_version.admin_jobs_token,
     google_secret_manager_secret_version.stripe_secret_key,
     google_secret_manager_secret_version.stripe_webhook_secret

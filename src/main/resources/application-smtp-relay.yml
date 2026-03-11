@@ -3,7 +3,7 @@ spring:
     activate:
       on-profile: smtp-relay
   mail:
-    host: ${SPRING_MAIL_HOST:smtp.example.com}
+    host: ${SPRING_MAIL_HOST:smtp.sendgrid.net}
     port: ${SPRING_MAIL_PORT:587}
     username: ${SPRING_MAIL_USERNAME:}
     password: ${SPRING_MAIL_PASSWORD:}
@@ -24,6 +24,6 @@ app:
   notification:
     email:
       provider: ${APP_NOTIFICATION_EMAIL_PROVIDER:smtp}
-      from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:${SPRING_MAIL_USERNAME:no-reply@weather-alert.local}}
+      from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:no-reply@weatheralerts.app}
     verification:
       send-email: ${APP_NOTIFICATION_VERIFICATION_SEND_EMAIL:true}

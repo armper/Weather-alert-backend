@@ -67,6 +67,12 @@
             <artifactId>stripe-java</artifactId>
             <version>31.0.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>11.0.3</version>
+        </dependency>
         
         <!-- PostgreSQL -->
         <dependency>
