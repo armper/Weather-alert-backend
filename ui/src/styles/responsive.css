@@ -107,6 +107,10 @@
     grid-template-columns: 1fr;
   }
 
+  .auth-home-proof {
+    grid-template-columns: 1fr;
+  }
+
   .span-2 {
     grid-column: span 1;
   }

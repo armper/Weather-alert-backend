@@ -205,6 +205,93 @@
   font-family: var(--font-heading);
 }
 
+.auth-home-layout {
+  align-items: stretch;
+}
+
+.auth-home-hero,
+.auth-home-signup {
+  min-height: 100%;
+}
+
+.auth-home-copy {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.auth-home-copy h1 {
+  max-width: 12ch;
+  font-size: clamp(2.35rem, 4vw, 3.75rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.auth-home-copy p,
+.auth-home-plan-card p {
+  margin: 0;
+}
+
+.auth-home-value-list {
+  display: grid;
+  gap: 0.65rem;
+  padding-left: 1.1rem;
+}
+
+.auth-home-proof {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-home-proof-card {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg-elevated);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.auth-home-proof-card span {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.auth-home-cta-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.auth-home-primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  text-decoration: none;
+}
+
+.auth-home-plan-glance {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auth-home-plan-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-home-plan-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg);
+}
+
 .feature-list {
   margin: 0;
   padding-left: 1rem;
