@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
+import { BrandLockup } from '../components/common/BrandLockup'
 import { NoticeBanner } from '../components/common/NoticeBanner'
 import { useAppState } from '../state/useAppState'
 
@@ -20,7 +21,7 @@ export function AuthVerifyEmailPage() {
       <main className="auth-single-layout">
         <section className="panel stack">
           <div className="auth-header">
-            <p className="eyebrow">Weather Alerts</p>
+            <BrandLockup />
             <h1>Verify email</h1>
           </div>
 

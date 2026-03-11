@@ -5,6 +5,7 @@ import { AdminPage } from './pages/AdminPage'
 import { AccountPage } from './pages/AccountPage'
 import { AuthForgotPasswordPage } from './pages/AuthForgotPasswordPage'
 import { AuthForgotUsernamePage } from './pages/AuthForgotUsernamePage'
+import { AuthLandingPage } from './pages/AuthLandingPage'
 import { AuthLoginPage } from './pages/AuthLoginPage'
 import { AuthRegisterPage } from './pages/AuthRegisterPage'
 import { AuthVerifyEmailPage } from './pages/AuthVerifyEmailPage'
@@ -29,7 +30,7 @@ function RootRedirect() {
   if (mode === 'username') {
     return <Navigate to={`/auth/forgot-username${location.search}`} replace />
   }
-  return <Navigate to={`/auth/login${location.search}`} replace />
+  return <AuthLandingPage />
 }
 
 function AuthRoute() {
@@ -55,7 +56,7 @@ function AppRoutes() {
       <Route path="/billing/success" element={<BillingRedirect status="success" />} />
       <Route path="/billing/cancel" element={<BillingRedirect status="cancel" />} />
       <Route path="/auth" element={<AuthRoute />}>
-        <Route index element={<Navigate to="login" replace />} />
+        <Route index element={<AuthLandingPage />} />
         <Route path="login" element={<AuthLoginPage />} />
         <Route path="register" element={<AuthRegisterPage />} />
         <Route path="verify-email" element={<AuthVerifyEmailPage />} />

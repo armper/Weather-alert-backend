@@ -30,27 +30,27 @@ const PLAN_DETAILS: Array<{
 }> = [
   {
     id: 'FREE',
-    name: 'Free',
+    name: 'The Basics',
     monthlyPrice: '$0',
     activeAlertsLabel: '1 active alert',
-    emailMode: 'Sponsored email alerts',
-    highlight: 'Best for trying one weather watch before committing.',
+    emailMode: 'Includes a small sponsored link',
+    highlight: 'Perfect for your home or daily commute.',
   },
   {
     id: 'PLUS',
-    name: 'Plus',
+    name: 'The Family Plan',
     monthlyPrice: '$9',
     activeAlertsLabel: '10 active alerts',
-    emailMode: 'Ad-free email alerts',
-    highlight: 'Good fit for a few locations, trips, or seasonal storm watches.',
+    emailMode: 'Ad-free',
+    highlight: 'Keep an eye on home, work, the kids’ school, and weekend sports.',
   },
   {
     id: 'PRO',
-    name: 'Pro',
+    name: 'The Globetrotter',
     monthlyPrice: '$19',
     activeAlertsLabel: '50 active alerts',
-    emailMode: 'Ad-free email alerts',
-    highlight: 'Built for heavy monitoring across many rules and places.',
+    emailMode: 'Ad-free',
+    highlight: 'Ideal for frequent travelers, RVers, or keeping tabs on extended family across the country.',
   },
 ]
 
@@ -265,7 +265,7 @@ export function AccountPage() {
                     {plan.id === 'FREE' ? (
                       <div className="billing-plan-note">
                         <span className="small muted">
-                          Free users can still create one live alert and receive email notifications.
+                          The Basics includes one live alert and full email or SMS delivery.
                         </span>
                       </div>
                     ) : (
@@ -290,7 +290,8 @@ export function AccountPage() {
                 </p>
               ) : (
                 <p className="small muted">
-                  Need more than one alert right away? Start with Plus, or jump to Pro if you’re monitoring many places.
+                  Need more than one alert right away? Start with The Family Plan, or jump to The Globetrotter if
+                  you’re monitoring many places.
                 </p>
               )}
               {currentPlan === 'FREE' ? (

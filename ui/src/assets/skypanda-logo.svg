@@ -1,0 +1,67 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="512">
+<stop offset="0%" stop-color="#9EDCFF"/>
+<stop offset="100%" stop-color="#CBEFFF"/>
+</linearGradient>
+
+<filter id="shadow">
+<feDropShadow dx="0" dy="10" stdDeviation="10" flood-opacity="0.2"/>
+</filter>
+
+</defs>
+
+<!-- background -->
+<rect width="512" height="512" rx="110" fill="url(#sky)"/>
+
+<!-- sun -->
+<g transform="translate(395 95)">
+<circle r="34" fill="#FFD45C"/>
+<g stroke="#FFD45C" stroke-width="6" stroke-linecap="round">
+<line x1="0" y1="-55" x2="0" y2="-40"/>
+<line x1="0" y1="55" x2="0" y2="40"/>
+<line x1="-55" y1="0" x2="-40" y2="0"/>
+<line x1="55" y1="0" x2="40" y2="0"/>
+<line x1="-38" y1="-38" x2="-26" y2="-26"/>
+<line x1="38" y1="38" x2="26" y2="26"/>
+<line x1="38" y1="-38" x2="26" y2="-26"/>
+<line x1="-38" y1="38" x2="-26" y2="26"/>
+</g>
+</g>
+
+<!-- cloud -->
+<g fill="white">
+<ellipse cx="130" cy="120" rx="45" ry="26"/>
+<ellipse cx="170" cy="108" rx="40" ry="28"/>
+<ellipse cx="205" cy="122" rx="32" ry="20"/>
+<rect x="100" y="122" width="120" height="22" rx="11"/>
+</g>
+
+<!-- ears -->
+<circle cx="170" cy="210" r="52" fill="#1F2A44"/>
+<circle cx="342" cy="210" r="52" fill="#1F2A44"/>
+
+<!-- head -->
+<circle cx="256" cy="320" r="170" fill="white" filter="url(#shadow)"/>
+
+<!-- eye patches -->
+<ellipse cx="205" cy="305" rx="42" ry="55"
+transform="rotate(-25 205 305)"
+fill="#1F2A44"/>
+
+<ellipse cx="307" cy="305" rx="42" ry="55"
+transform="rotate(25 307 305)"
+fill="#1F2A44"/>
+
+<!-- eyes looking up -->
+<circle cx="220" cy="295" r="16" fill="white"/>
+<circle cx="292" cy="295" r="16" fill="white"/>
+
+<circle cx="224" cy="288" r="8" fill="#1F2A44"/>
+<circle cx="296" cy="288" r="8" fill="#1F2A44"/>
+
+<!-- nose -->
+<ellipse cx="256" cy="370" rx="22" ry="16" fill="#1F2A44"/>
+
+</svg>

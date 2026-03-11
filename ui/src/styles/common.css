@@ -97,6 +97,37 @@
   font-size: 0.86rem;
 }
 
+.brand-lockup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.brand-lockup-logo {
+  display: block;
+  width: min(12.75rem, 100%);
+  height: auto;
+}
+
+.brand-lockup-subtitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: clamp(1.3rem, 2.9vw, 1.95rem);
+  line-height: 1.05;
+}
+
+.brand-lockup.is-compact {
+  gap: 0.24rem;
+}
+
+.brand-lockup.is-compact .brand-lockup-logo {
+  width: clamp(6.4rem, 13.5vw, 8.25rem);
+}
+
+.brand-lockup.is-compact .brand-lockup-subtitle {
+  font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -172,6 +203,142 @@
   line-height: 1.02;
   font-size: clamp(2.2rem, 4.3vw, 4rem);
   font-family: var(--font-heading);
+}
+
+.auth-home-layout {
+  align-items: stretch;
+}
+
+.auth-home-hero,
+.auth-home-signup {
+  min-height: 100%;
+}
+
+.auth-home-copy {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.auth-home-copy h1 {
+  max-width: 12ch;
+  font-size: clamp(2.35rem, 4vw, 3.75rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.auth-home-copy p,
+.auth-home-plan-card p {
+  margin: 0;
+}
+
+.auth-home-copy p {
+  line-height: 1.4;
+}
+
+.auth-home-value-list {
+  display: grid;
+  gap: 0.65rem;
+  padding-left: 1.1rem;
+}
+
+.auth-home-proof {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-home-proof-card {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg-elevated);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.auth-home-proof-card span {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.auth-home-cta-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.auth-home-signup-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.auth-home-email-field {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.auth-home-form-note {
+  margin: 0;
+}
+
+.auth-home-primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  text-decoration: none;
+}
+
+.auth-home-plan-glance {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.auth-home-example-card {
+  display: grid;
+  gap: 0.32rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background:
+    var(--card-bg-highlight),
+    var(--card-highlight-glow);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.auth-home-example-card strong {
+  font-size: 1.02rem;
+  font-family: var(--font-heading);
+}
+
+.auth-home-example-card p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.auth-home-plan-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-home-plan-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg);
+}
+
+.auth-home-plan-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
 }
 
 .feature-list {
