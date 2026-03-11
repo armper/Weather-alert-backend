@@ -278,6 +278,28 @@
   gap: 0.75rem;
 }
 
+.auth-home-example-card {
+  display: grid;
+  gap: 0.32rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background:
+    var(--card-bg-highlight),
+    var(--card-highlight-glow);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.auth-home-example-card strong {
+  font-size: 1.02rem;
+  font-family: var(--font-heading);
+}
+
+.auth-home-example-card p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
 .auth-home-plan-list {
   display: grid;
   gap: 0.65rem;
@@ -290,6 +312,13 @@
   border-radius: 0.95rem;
   border: 1px solid var(--panel-border);
   background: var(--card-bg);
+}
+
+.auth-home-plan-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
 }
 
 .feature-list {
