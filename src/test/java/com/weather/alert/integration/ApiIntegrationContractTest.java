@@ -532,7 +532,7 @@ class ApiIntegrationContractTest {
     }
 
     @Test
-    void shouldRegisterVerifyApproveAndCreateCriteriaHappyPath() {
+    void shouldRegisterVerifyAndCreateCriteriaHappyPath() {
         String unique = UUID.randomUUID().toString().substring(0, 8);
         String username = "user" + unique;
         String email = username + "@example.com";
@@ -551,7 +551,7 @@ class ApiIntegrationContractTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("account.id", equalTo(username))
-                .body("account.approvalStatus", equalTo("PENDING_APPROVAL"))
+                .body("account.approvalStatus", equalTo("ACTIVE"))
                 .body("account.emailVerified", equalTo(false))
                 .body("emailVerification.id", notNullValue())
                 .body("emailVerification.verificationToken", notNullValue())
@@ -590,17 +590,6 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("id", equalTo(username))
                 .body("emailVerified", equalTo(true));
-
-        String adminToken = issueAdminToken();
-        given()
-                .header("Authorization", "Bearer " + adminToken)
-                .filter(openApiValidationFilter)
-                .when()
-                .post("/api/admin/users/{userId}/approve", username)
-                .then()
-                .statusCode(HttpStatus.OK.value())
-                .body("id", equalTo(username))
-                .body("approvalStatus", equalTo("ACTIVE"));
 
         String userToken = given()
                 .contentType(JSON)
@@ -688,16 +677,6 @@ class ApiIntegrationContractTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("emailVerified", equalTo(true));
-
-        String adminToken = issueAdminToken();
-        given()
-                .header("Authorization", "Bearer " + adminToken)
-                .filter(openApiValidationFilter)
-                .when()
-                .post("/api/admin/users/{userId}/approve", username)
-                .then()
-                .statusCode(HttpStatus.OK.value())
-                .body("approvalStatus", equalTo("ACTIVE"));
 
         io.restassured.response.ExtractableResponse<io.restassured.response.Response> usernameRecoveryRequest = given()
                 .contentType(JSON)

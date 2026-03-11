@@ -3,7 +3,6 @@ package com.weather.alert.application.usecase;
 import com.weather.alert.application.exception.EmailVerificationRequiredException;
 import com.weather.alert.application.exception.PasswordResetRequiredException;
 import com.weather.alert.application.exception.AccountSuspendedException;
-import com.weather.alert.application.exception.UserApprovalRequiredException;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.model.UserApprovalStatus;
 import com.weather.alert.domain.port.UserRepositoryPort;
@@ -76,7 +75,7 @@ class AuthenticateRegisteredUserUseCaseTest {
     }
 
     @Test
-    void shouldRejectPendingUser() {
+    void shouldAuthenticateVerifiedUserWithoutExtraApprovalGate() {
         when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder()
                 .id("alice")
                 .passwordHash("hash")
@@ -85,7 +84,10 @@ class AuthenticateRegisteredUserUseCaseTest {
                 .build()));
         when(passwordEncoder.matches("StrongPass123!", "hash")).thenReturn(true);
 
-        assertThrows(UserApprovalRequiredException.class, () -> useCase.authenticate("alice", "StrongPass123!"));
+        Optional<Authentication> authentication = useCase.authenticate("alice", "StrongPass123!");
+
+        assertTrue(authentication.isPresent());
+        assertEquals("alice", authentication.get().getName());
     }
 
     @Test

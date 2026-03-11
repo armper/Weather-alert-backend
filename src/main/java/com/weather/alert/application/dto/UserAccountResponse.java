@@ -10,7 +10,7 @@ import java.time.Instant;
 
 @Data
 @Builder
-@Schema(description = "User account profile and approval state")
+@Schema(description = "User account profile and account state")
 public class UserAccountResponse {
 
     @Schema(example = "alice")
@@ -28,7 +28,7 @@ public class UserAccountResponse {
     @Schema(example = "ROLE_USER")
     private String role;
 
-    @Schema(example = "PENDING_APPROVAL")
+    @Schema(example = "ACTIVE")
     private UserApprovalStatus approvalStatus;
 
     @Schema(example = "true")

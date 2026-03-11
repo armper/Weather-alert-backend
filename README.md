@@ -49,10 +49,10 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Automatic Data Retention Cleanup**: Scheduled pruning of old alerts, criteria state, and indexed weather data
 - ✅ **RESTful API**: Comprehensive REST endpoints for all operations
 - ✅ **JWT Authentication**: Secure API access with bearer tokens and role-based authorization
-- ✅ **Account Onboarding Flow**: Self-service registration, email verification, admin approval, and profile updates (including phone number)
+- ✅ **Account Onboarding Flow**: Self-service registration, email verification, and profile updates (including phone number)
 - ✅ **Account Recovery Flow**: Forgot username and forgot password with one-time recovery codes via email
 - ✅ **Account Security Controls**: Auth throttling, login lockouts, recovery request throttling, and recovery confirm lockouts
-- ✅ **Account Admin Controls**: Approve, suspend/reactivate, and force-password-reset by admin
+- ✅ **Account Admin Controls**: Suspend/reactivate and force-password-reset by admin
 - ✅ **Self-Service Password Change**: Authenticated users can rotate their password from `/api/users/me/change-password`
 - ✅ **Stripe Billing Foundations**: Authenticated billing status, Checkout session creation, and webhook-based subscription sync
 - ✅ **Simple Activity Refresh**: Triggered alerts are available through authenticated API reads
@@ -177,7 +177,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - alert criteria create/list/delete
   - triggered alerts list + acknowledge
   - account profile updates (`/api/users/me`)
-  - admin pending approvals (`/api/admin/users/pending`, approve endpoint)
+  - admin account state actions (`/api/admin/users`, suspend/reactivate/reset endpoints)
 - Added Vite dev proxy configuration for backend integration without CORS setup (`/api`, `/actuator`, `/swagger-ui`, `/v3`).
 - Added UI docs and run instructions in `ui/README.md` and root README.
 
@@ -228,7 +228,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Added criteria-deleted confirmation emails (configurable) when users delete alert criteria.
 - Improved trigger notification emails to be user-friendly and criteria-aware (alert name, rule summary, area, matched reading, source, and humanized reason text without internal IDs).
 
-### 2026-02-26 (Account Registration + Approval Workflow)
+### 2026-02-26 (Account Registration + Email Verification)
 
 - Added Flyway migration `V7__add_user_registration_and_approval.sql`:
   - `users.password_hash`
@@ -243,14 +243,10 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - Added account profile endpoints:
   - `GET /api/users/me`
   - `PUT /api/users/me` (name + phone number updates)
-- Added admin approval endpoints:
-  - `GET /api/admin/users/pending`
-  - `POST /api/admin/users/{userId}/approve`
 - Added login gating for registered users:
   - email must be verified
-  - admin approval status must be `ACTIVE`
 - Closed onboarding gap for expired verification tokens with resend support.
-- Added use-case and integration tests for register -> verify -> approve -> login -> criteria happy path.
+- Added use-case and integration tests for register -> verify -> login -> criteria happy path.
 
 ### 2026-02-26 (Data Retention + Cleanup)
 
@@ -651,7 +647,7 @@ All `/api/**` endpoints require JWT Bearer authentication except onboarding/auth
 The four `/api/auth/recovery/**` endpoints are intentionally unauthenticated.
 
 - **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own profile (`/api/users/me`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
-- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, review/approve pending users (`/api/admin/users/**`), trigger operational jobs (`/api/admin/jobs/**`), and access `/api/alerts/pending` and alert-expire endpoint
+- **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, manage account state (`/api/admin/users/**`), trigger operational jobs (`/api/admin/jobs/**`), and access `/api/alerts/pending` and alert-expire endpoint
 
 Credentials must be configured via environment variables:
 
@@ -697,17 +693,14 @@ POST /api/auth/register/resend-verification
   "username": "alice"
 }
 
-# 3) Admin approves account
-POST /api/admin/users/alice/approve
-
-# 4) User logs in and receives JWT
+# 3) User logs in and receives JWT
 POST /api/auth/token
 {
   "username": "alice",
   "password": "StrongPass123!"
 }
 
-# 5) User updates account profile (optional)
+# 4) User updates account profile (optional)
 PUT /api/users/me
 {
   "name": "Alice B",
