@@ -1,13 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import {
-  Dialog,
-  Menu,
-  MenuItem,
-  MenuTrigger,
-  Modal,
-  ModalOverlay,
-  Popover,
-} from 'react-aria-components'
+import { useMemo, type ReactNode } from 'react'
+import { Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { formatFriendlyLocation } from '../../lib/formatting'
 import { useAppState } from '../../state/useAppState'
@@ -24,15 +16,43 @@ const PRIMARY_NAV_ITEMS = [
   { key: 'events', label: 'Triggered Alerts', to: '/app/events' },
 ]
 
+function NavIcon({ itemKey }: { itemKey: string }) {
+  switch (itemKey) {
+    case 'overview':
+      return (
+        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+          <path d="M3.75 10.25 10 4.75l6.25 5.5v5a1 1 0 0 1-1 1h-2.75v-4h-5v4H4.75a1 1 0 0 1-1-1v-5Z" />
+        </svg>
+      )
+    case 'rules':
+      return (
+        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+          <path d="M10 4.5v11M4.5 10h11" />
+        </svg>
+      )
+    case 'alerts':
+      return (
+        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+          <path d="M10 3.75a4 4 0 0 0-4 4v2.4c0 .6-.2 1.18-.58 1.63L4.5 12.9v1.35h11v-1.35l-.92-1.12A2.5 2.5 0 0 1 14 10.15v-2.4a4 4 0 0 0-4-4Z" />
+          <path d="M8.25 15.25a1.75 1.75 0 0 0 3.5 0" />
+        </svg>
+      )
+    case 'events':
+      return (
+        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+          <path d="M4.5 11.75h2.25l1.5-4 3.25 7 1.75-4h2.25" />
+          <path d="M4.5 5.75h11" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 export function AppShell({ children }: AppShellProps) {
   const { me, criteria, logout } = useAppState()
   const location = useLocation()
   const navigate = useNavigate()
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
-  useEffect(() => {
-    setIsDrawerOpen(false)
-  }, [location.pathname, location.hash])
 
   const locationLabel = useMemo(() => {
     const primaryLocation = criteria[0]?.location?.trim()
@@ -56,14 +76,6 @@ export function AppShell({ children }: AppShellProps) {
     <div className="app-shell">
       <header className="shell-header panel">
         <div className="shell-header-left">
-          <AriaButton
-            className="ghost icon-button shell-menu-toggle"
-            aria-label="Open navigation menu"
-            onPress={() => setIsDrawerOpen(true)}
-          >
-            ☰
-          </AriaButton>
-
           <div>
             <p className="eyebrow">Weather Alerts</p>
             <h1>Alert Center</h1>
@@ -90,6 +102,7 @@ export function AppShell({ children }: AppShellProps) {
               <span className="shell-avatar" aria-hidden>
                 {avatarInitial}
               </span>
+              <span className="shell-user-mobile-label">Account</span>
               <span className="shell-user-id">{me?.id ?? 'Account'}</span>
               <span aria-hidden>▾</span>
             </AriaButton>
@@ -120,31 +133,19 @@ export function AppShell({ children }: AppShellProps) {
         <main className="shell-content">{children}</main>
       </div>
 
-      <ModalOverlay className="shell-drawer-overlay" isOpen={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <Modal className="shell-drawer-modal">
-          <Dialog className="shell-drawer-dialog">
-            <div className="shell-drawer-top">
-              <p className="eyebrow">Navigation</p>
-              <AriaButton className="ghost icon-button" slot="close" aria-label="Close navigation menu">
-                ✕
-              </AriaButton>
-            </div>
-
-            <nav className="shell-drawer-nav" aria-label="Mobile primary navigation">
-              {PRIMARY_NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.key}
-                  to={item.to}
-                  onClick={() => setIsDrawerOpen(false)}
-                  className={({ isActive }) => `shell-nav-link shell-drawer-link${isActive ? ' active' : ''}`}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-          </Dialog>
-        </Modal>
-      </ModalOverlay>
+      <nav className="shell-mobile-nav" aria-label="Mobile primary navigation">
+        {PRIMARY_NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.key}
+            to={item.to}
+            className={({ isActive }) => `shell-mobile-nav-link${isActive ? ' active' : ''}`}
+            aria-current={location.pathname === item.to ? 'page' : undefined}
+          >
+            <NavIcon itemKey={item.key} />
+            <span className="shell-mobile-nav-label">{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   )
 }

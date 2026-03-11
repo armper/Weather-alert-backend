@@ -627,10 +627,6 @@ button:disabled {
   flex-wrap: wrap;
 }
 
-.shell-menu-toggle {
-  display: none;
-}
-
 .shell-location-chip {
   display: inline-flex;
   align-items: center;
@@ -663,7 +659,14 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
+  min-height: 2.65rem;
   padding: 0.34rem 0.56rem;
+}
+
+.shell-user-mobile-label {
+  display: none;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .shell-avatar {
@@ -759,46 +762,6 @@ button:disabled {
   min-width: 0;
 }
 
-.shell-drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--backdrop-strong);
-  display: flex;
-  justify-content: flex-start;
-  z-index: 30;
-}
-
-.shell-drawer-modal {
-  width: min(20.5rem, calc(100vw - 2rem));
-  height: 100%;
-  outline: none;
-}
-
-.shell-drawer-dialog {
-  height: 100%;
-  border-right: 1px solid var(--panel-border);
-  background: var(--panel-bg-popover);
-  padding: 0.85rem;
-  box-shadow: 0 20px 35px var(--shadow-strong);
-}
-
-.shell-drawer-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.8rem;
-}
-
-.shell-drawer-nav {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.shell-drawer-link {
-  font-size: 1rem;
-  padding: 0.62rem 0.75rem;
-}
-
 .app-main {
   width: 100%;
   max-width: 1300px;
@@ -874,6 +837,54 @@ button:disabled {
   gap: 1rem;
   width: 100%;
   min-width: 0;
+}
+
+.shell-mobile-nav {
+  display: none;
+}
+
+.shell-mobile-nav-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.62rem 0.4rem;
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+.shell-mobile-nav-link:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--panel-border);
+  color: var(--text-primary);
+}
+
+.shell-mobile-nav-link.active {
+  background: var(--chip-bg-active);
+  border-color: var(--chip-border-active);
+  color: var(--accent-700);
+}
+
+.shell-mobile-nav-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.shell-mobile-nav-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .rules-page-stack {

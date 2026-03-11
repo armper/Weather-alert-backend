@@ -29,15 +29,11 @@
 
 @media (max-width: 860px) {
   .app-shell {
-    padding: 1rem;
+    padding: 1rem 1rem calc(6.4rem + env(safe-area-inset-bottom));
   }
 
   .shell-header {
     padding: 0.68rem;
-  }
-
-  .shell-menu-toggle {
-    display: inline-flex;
   }
 
   .shell-body {
@@ -50,6 +46,14 @@
 
   .shell-header-right {
     width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .shell-header-left {
+    width: 100%;
     justify-content: space-between;
   }
 
@@ -57,12 +61,45 @@
     display: none;
   }
 
+  .shell-user-mobile-label {
+    display: inline;
+  }
+
   .shell-create-link {
-    order: 1;
+    display: none;
   }
 
   .shell-location-chip {
     order: 2;
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .shell-user-trigger {
+    order: 1;
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.72rem;
+  }
+
+  .shell-mobile-nav {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    bottom: max(0.8rem, env(safe-area-inset-bottom));
+    z-index: 35;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.42rem;
+    padding: 0.5rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 1.3rem;
+    background: color-mix(in srgb, var(--panel-bg-popover) 88%, transparent);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(16px);
   }
 
   .auth-layout,
