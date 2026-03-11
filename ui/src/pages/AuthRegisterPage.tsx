@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 import { NoticeBanner } from '../components/common/NoticeBanner'
@@ -8,6 +8,15 @@ import { useAppState } from '../state/useAppState'
 export function AuthRegisterPage() {
   const { notice, loadingAuth, registerState, setRegisterState, handleRegister } = useAppState()
   const [showPassword, setShowPassword] = useState(false)
+  const [searchParams] = useSearchParams()
+  const initialEmail = searchParams.get('email')?.trim() ?? ''
+
+  useEffect(() => {
+    if (!initialEmail || registerState.email) {
+      return
+    }
+    setRegisterState((state) => (state.email ? state : { ...state, email: initialEmail }))
+  }, [initialEmail, registerState.email, setRegisterState])
 
   return (
     <div className="app-shell">

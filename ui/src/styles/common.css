@@ -264,6 +264,22 @@
   gap: 0.55rem;
 }
 
+.auth-home-signup-form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.auth-home-email-field {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.auth-home-form-note {
+  margin: 0;
+}
+
 .auth-home-primary-link {
   display: inline-flex;
   align-items: center;

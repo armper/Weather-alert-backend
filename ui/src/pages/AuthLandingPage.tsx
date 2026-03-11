@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 
@@ -15,6 +17,16 @@ const PLAN_GLANCE = [
 ]
 
 export function AuthLandingPage() {
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+
+  function handleGetStarted(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedEmail = email.trim()
+    const query = trimmedEmail ? `?email=${encodeURIComponent(trimmedEmail)}` : ''
+    navigate(`/auth/register${query}`)
+  }
+
   return (
     <div className="app-shell">
       <BackgroundArtwork />
@@ -24,8 +36,8 @@ export function AuthLandingPage() {
           <div className="auth-home-copy">
             <h1>Weather alerts that actually matter to you.</h1>
             <p className="muted">
-              SkyPanda turns noisy weather data into clear alerts you can act on. Watch the places that matter to you,
-              tune each alert to a specific location, and only upgrade when your monitoring gets serious.
+              SkyPanda turns noisy weather data into clear alerts. Monitor the exact locations you care about, and
+              only upgrade when your needs grow.
             </p>
           </div>
 
@@ -62,9 +74,24 @@ export function AuthLandingPage() {
           </div>
 
           <div className="auth-home-cta-stack">
-            <Link className="primary auth-home-primary-link" to="/auth/register">
-              Create a free account
-            </Link>
+            <form className="auth-home-signup-form" onSubmit={handleGetStarted}>
+              <label className="auth-home-email-field">
+                Email address
+                <input
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </label>
+              <p className="small muted auth-home-form-note">Start with your email. Finish the rest in the next step.</p>
+              <button className="primary auth-home-primary-link" type="submit">
+                Create a free account
+              </button>
+            </form>
             <p className="small muted">No credit card required.</p>
             <p className="small muted">
               Already using SkyPanda?{' '}
@@ -91,15 +118,6 @@ export function AuthLandingPage() {
               ))}
             </div>
           </section>
-
-          <div className="auth-link-row">
-            <Link className="auth-link" to="/auth/verify-email">
-              Verify email
-            </Link>
-            <Link className="auth-link" to="/auth/forgot-password">
-              Reset password
-            </Link>
-          </div>
         </section>
       </main>
     </div>
