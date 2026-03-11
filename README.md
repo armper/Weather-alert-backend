@@ -223,7 +223,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - `APP_NOTIFICATION_VERIFICATION_EMAIL_SUBJECT` (subject line for verification emails)
 - Kept token-in-response behavior configurable with `APP_NOTIFICATION_VERIFICATION_EXPOSE_RAW_TOKEN` for environments that still want auto-token flow.
 - Added use-case tests for successful verification-email send and delivery-failure handling.
-- Added generic external SMTP relay mode via Spring profile `smtp-relay` (`application-smtp-relay.yml`) and `.env.smtp.example` to support real delivery to any recipient address.
+- Added generic external SMTP relay mode via Spring profile `smtp-relay` (`application-smtp-relay.yml`) and `.env.smtp.example` to support real delivery through providers like Twilio SendGrid SMTP.
 - Added criteria-created confirmation emails (configurable) when users create new alert criteria.
 - Added criteria-deleted confirmation emails (configurable) when users delete alert criteria.
 - Improved trigger notification emails to be user-friendly and criteria-aware (alert name, rule summary, area, matched reading, source, and humanized reason text without internal IDs).
@@ -302,7 +302,7 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 ### 2026-02-26 (Email Delivery Adapter - Chunk 4)
 
 - Added `EmailSenderPort` with provider adapters:
-  - SMTP adapter for local/dev (`app.notification.email.provider=smtp`)
+  - SMTP adapter for local/dev or Twilio SendGrid SMTP (`app.notification.email.provider=smtp`)
   - AWS SES adapter for production (`app.notification.email.provider=ses`)
 - Added provider error mapping to `RETRYABLE` vs `NON_RETRYABLE` via `EmailDeliveryException`.
 - Added MailHog service to `docker-compose.yml`:
@@ -310,6 +310,17 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
   - UI: `http://localhost:8025`
 - Updated the original async alert email path (superseded by chunk 5 worker pipeline).
 - Added adapter tests for SMTP/SES success + failure classification.
+
+### 2026-03-11 (SMS Provider Boundary + Twilio Adapter)
+
+- Added `SmsSenderPort` and SMS delivery models alongside the existing email delivery boundary.
+- Added a Twilio SMS adapter path:
+  - `app.notification.sms.provider=twilio`
+  - `APP_NOTIFICATION_SMS_TWILIO_ACCOUNT_SID`
+  - either `APP_NOTIFICATION_SMS_TWILIO_AUTH_TOKEN` or `APP_NOTIFICATION_SMS_TWILIO_API_KEY` + `APP_NOTIFICATION_SMS_TWILIO_API_SECRET`
+  - either `APP_NOTIFICATION_SMS_FROM_NUMBER` or `APP_NOTIFICATION_SMS_MESSAGING_SERVICE_SID`
+- Added `noop` SMS provider mode as the default so SMS support can be deployed safely before credentials are configured.
+- Updated the delivery worker so `NotificationChannel.SMS` can now send through the configured `SmsSenderPort`.
 
 ### 2026-02-26 (Delivery Worker + Retry - Chunk 5)
 
@@ -438,10 +449,10 @@ Retention tuning values in `.env`:
 
 Notification verification tuning values in `.env`:
 
-- `APP_NOTIFICATION_EMAIL_PROVIDER` (`smtp` for local/MailHog, `ses` for AWS SES)
+- `APP_NOTIFICATION_EMAIL_PROVIDER` (`smtp` for local/MailHog or Twilio SendGrid SMTP, `ses` for AWS SES)
 - `APP_NOTIFICATION_EMAIL_FROM_ADDRESS` (default sender address)
 - `APP_NOTIFICATION_EMAIL_SES_REGION` (AWS region for SES, default `us-east-1`)
-- `SPRING_PROFILES_ACTIVE` (set `smtp-relay` to enable external SMTP relay defaults)
+- `SPRING_PROFILES_ACTIVE` (set `smtp-relay` to enable external SMTP relay defaults like Twilio SendGrid SMTP)
 - `SPRING_MAIL_HOST` / `SPRING_MAIL_PORT` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` (SMTP credentials)
 - `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE` / `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` (TLS mode)
 - `SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_TRUST` (provider host for SSL trust pinning when needed)
@@ -824,7 +835,7 @@ POST /api/notifications/verifications/{verificationId}/confirm
 
 When `APP_NOTIFICATION_VERIFICATION_SEND_EMAIL=true`, the same token is also sent as an email.
 In local Docker dev, inspect verification emails in MailHog at `http://localhost:8025`.
-With `SPRING_PROFILES_ACTIVE=smtp-relay` plus valid SMTP credentials, the same flow sends to real inboxes (any recipient address supported by your SMTP relay policy).
+With `SPRING_PROFILES_ACTIVE=smtp-relay` plus valid Twilio SendGrid SMTP credentials, the same flow sends to real inboxes supported by your sender identity and provider policy.
 
 ### Notification Preferences
 

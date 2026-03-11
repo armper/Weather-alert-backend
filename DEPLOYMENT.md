@@ -203,7 +203,17 @@ Required values include:
 - `APP_SECURITY_*` usernames/passwords
 - `APP_SECURITY_JWT_SECRET` with at least 32 UTF-8 bytes
 - `APP_ADMIN_JOBS_TOKEN` if Cloud Scheduler will call `/api/admin/jobs/**`
-- SMTP settings if email delivery is enabled
+- Twilio SendGrid SMTP settings if email delivery is enabled:
+  - `SPRING_MAIL_HOST=smtp.sendgrid.net`
+  - `SPRING_MAIL_PORT=587`
+  - `SPRING_MAIL_USERNAME=apikey`
+  - `SPRING_MAIL_PASSWORD=<sendgrid-api-key>`
+  - `APP_NOTIFICATION_EMAIL_FROM_ADDRESS=<verified-sender>`
+- SMS settings if Twilio SMS delivery is enabled:
+  - `APP_NOTIFICATION_SMS_PROVIDER=twilio`
+  - `APP_NOTIFICATION_SMS_TWILIO_ACCOUNT_SID`
+  - either `APP_NOTIFICATION_SMS_TWILIO_AUTH_TOKEN` or `APP_NOTIFICATION_SMS_TWILIO_API_KEY` + `APP_NOTIFICATION_SMS_TWILIO_API_SECRET`
+  - either `APP_NOTIFICATION_SMS_FROM_NUMBER` or `APP_NOTIFICATION_SMS_MESSAGING_SERVICE_SID`
 - Stripe settings if subscription billing is enabled:
   - `APP_BILLING_STRIPE_ENABLED=true`
   - `APP_BILLING_STRIPE_SECRET_KEY`

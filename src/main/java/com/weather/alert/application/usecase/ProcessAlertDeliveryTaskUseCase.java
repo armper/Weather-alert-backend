@@ -7,16 +7,18 @@ import com.weather.alert.domain.model.AlertDeliveryRecord;
 import com.weather.alert.domain.model.AlertDeliveryStatus;
 import com.weather.alert.domain.model.DeliveryFailureType;
 import com.weather.alert.domain.model.EmailMessage;
-import com.weather.alert.domain.model.EmailSendResult;
 import com.weather.alert.domain.model.NotificationChannel;
+import com.weather.alert.domain.model.SmsMessage;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.EmailSenderPort;
+import com.weather.alert.domain.port.SmsSenderPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
 import com.weather.alert.domain.service.notification.EmailDeliveryException;
+import com.weather.alert.domain.service.notification.SmsDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,7 @@ public class ProcessAlertDeliveryTaskUseCase {
     private final AlertRepositoryPort alertRepository;
     private final AlertCriteriaRepositoryPort alertCriteriaRepository;
     private final EmailSenderPort emailSenderPort;
+    private final SmsSenderPort smsSenderPort;
     private final AlertDeliveryDlqPublisherPort dlqPublisher;
     private final NotificationDeliveryProperties properties;
     private final UserRepositoryPort userRepository;
@@ -64,10 +67,10 @@ public class ProcessAlertDeliveryTaskUseCase {
 
         int attempt = normalizeAttempts(delivery) + 1;
         try {
-            EmailSendResult result = sendForChannel(delivery);
+            String providerMessageId = sendForChannel(delivery);
             delivery.setAttemptCount(attempt);
             delivery.setStatus(AlertDeliveryStatus.SENT);
-            delivery.setProviderMessageId(result == null ? null : result.providerMessageId());
+            delivery.setProviderMessageId(providerMessageId);
             delivery.setSentAt(now);
             delivery.setLastError(null);
             delivery.setNextAttemptAt(null);
@@ -76,27 +79,36 @@ public class ProcessAlertDeliveryTaskUseCase {
             alertRepository.markAsSent(delivery.getAlertId(), now);
         } catch (EmailDeliveryException ex) {
             handleFailure(delivery, attempt, ex.getFailureType(), ex.getMessage(), now, ex);
+        } catch (SmsDeliveryException ex) {
+            handleFailure(delivery, attempt, ex.getFailureType(), ex.getMessage(), now, ex);
         } catch (Exception ex) {
             handleFailure(delivery, attempt, DeliveryFailureType.RETRYABLE, ex.getMessage(), now, ex);
         }
     }
 
-    private EmailSendResult sendForChannel(AlertDeliveryRecord delivery) {
-        if (delivery.getChannel() != NotificationChannel.EMAIL) {
-            throw new EmailDeliveryException(
-                    DeliveryFailureType.NON_RETRYABLE,
-                    "Channel " + delivery.getChannel() + " is not yet supported by delivery worker",
-                    null);
-        }
+    private String sendForChannel(AlertDeliveryRecord delivery) {
         Alert alert = alertRepository.findById(delivery.getAlertId()).orElse(null);
         AlertCriteria criteria = findCriteria(alert);
         User user = findUser(alert);
-        EmailMessage message = EmailMessage.builder()
-                .to(delivery.getDestination())
-                .subject(buildSubject(alert, criteria))
-                .body(buildBody(alert, criteria, user))
-                .build();
-        return emailSenderPort.send(message);
+        if (delivery.getChannel() == NotificationChannel.EMAIL) {
+            EmailMessage message = EmailMessage.builder()
+                    .to(delivery.getDestination())
+                    .subject(buildSubject(alert, criteria))
+                    .body(buildBody(alert, criteria, user))
+                    .build();
+            return emailSenderPort.send(message).providerMessageId();
+        }
+        if (delivery.getChannel() == NotificationChannel.SMS) {
+            SmsMessage message = SmsMessage.builder()
+                    .to(delivery.getDestination())
+                    .body(buildSmsBody(alert, criteria))
+                    .build();
+            return smsSenderPort.send(message).providerMessageId();
+        }
+        throw new EmailDeliveryException(
+                DeliveryFailureType.NON_RETRYABLE,
+                "Channel " + delivery.getChannel() + " is not yet supported by delivery worker",
+                null);
     }
 
     private void handleFailure(
@@ -240,6 +252,29 @@ public class ProcessAlertDeliveryTaskUseCase {
         }
         body.append("\nWeather Alert");
         return body.toString();
+    }
+
+    private String buildSmsBody(Alert alert, AlertCriteria criteria) {
+        List<String> parts = new ArrayList<>();
+        parts.add(displayAlertName(criteria, alert));
+
+        String area = describeArea(alert, criteria);
+        if (area != null && !area.isBlank()) {
+            parts.add(area);
+        }
+
+        String matchedReading = describeMatchedReading(alert, criteria);
+        if (matchedReading != null) {
+            parts.add(matchedReading);
+        }
+
+        String humanizedReason = humanizeReason(alert == null ? null : alert.getReason());
+        if (humanizedReason != null) {
+            parts.add(humanizedReason);
+        }
+
+        String message = String.join(" | ", parts);
+        return truncate(message, 320);
     }
 
     private String displayAlertName(AlertCriteria criteria, Alert alert) {
