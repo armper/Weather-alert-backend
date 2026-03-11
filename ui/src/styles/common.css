@@ -97,6 +97,37 @@
   font-size: 0.86rem;
 }
 
+.brand-lockup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.brand-lockup-logo {
+  display: block;
+  width: min(12.75rem, 100%);
+  height: auto;
+}
+
+.brand-lockup-subtitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: clamp(1.3rem, 2.9vw, 1.95rem);
+  line-height: 1.05;
+}
+
+.brand-lockup.is-compact {
+  gap: 0.24rem;
+}
+
+.brand-lockup.is-compact .brand-lockup-logo {
+  width: clamp(6.4rem, 13.5vw, 8.25rem);
+}
+
+.brand-lockup.is-compact .brand-lockup-subtitle {
+  font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.14em;

@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { BrandLockup } from '../common/BrandLockup'
 import { formatFriendlyLocation } from '../../lib/formatting'
 import { useAppState } from '../../state/useAppState'
 import { AriaButton } from '../ui/AriaButton'
@@ -77,8 +78,7 @@ export function AppShell({ children }: AppShellProps) {
       <header className="shell-header panel">
         <div className="shell-header-left">
           <div>
-            <p className="eyebrow">Weather Alerts</p>
-            <h1>Alert Center</h1>
+            <BrandLockup compact subtitle="SkyPanda" />
           </div>
         </div>
 
