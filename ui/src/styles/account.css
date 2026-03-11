@@ -1,0 +1,223 @@
+.account-stack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.account-billing-block {
+  display: grid;
+  gap: 1rem;
+  background:
+    var(--card-bg-elevated),
+    var(--card-highlight-glow);
+}
+
+.account-billing-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.account-billing-hero h3 {
+  margin: 0.18rem 0 0;
+  font-size: 1.18rem;
+}
+
+.account-billing-copy {
+  max-width: 42rem;
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+}
+
+.account-plan-summary {
+  min-width: 16rem;
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  border-radius: 0.9rem;
+  background: var(--card-bg-elevated);
+}
+
+.billing-feedback {
+  border-radius: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid transparent;
+}
+
+.billing-feedback p {
+  margin: 0;
+}
+
+.billing-feedback.is-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.billing-feedback.is-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.billing-plan-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.billing-plan-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.billing-plan-card.is-current {
+  border-color: rgba(var(--accent-rgb), 0.34);
+  box-shadow:
+    0 14px 28px rgba(12, 31, 46, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.billing-plan-card.is-emphasized {
+  background: var(--card-bg-highlight);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+.billing-plan-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.billing-plan-header h4 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+}
+
+.billing-plan-price {
+  margin: 0.18rem 0 0;
+  font-size: 1.9rem;
+  line-height: 1;
+  font-family: var(--font-heading);
+  color: #1b4965;
+}
+
+.billing-plan-price span {
+  margin-left: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.billing-plan-body {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.billing-plan-body p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.billing-plan-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.38rem;
+  color: var(--text-secondary);
+}
+
+.billing-plan-note {
+  margin-top: auto;
+}
+
+.billing-footnote {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.billing-footnote p {
+  margin: 0;
+}
+
+.section-block {
+  border: 1px solid var(--panel-border);
+  border-radius: 0.95rem;
+  padding: 0.75rem;
+  background: var(--panel-bg);
+}
+
+.section-block h3 {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+}
+
+.theme-settings-block {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.theme-settings-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.theme-settings-option {
+  display: grid;
+  gap: 0.28rem;
+  text-align: left;
+  padding: 0.8rem 0.85rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg-muted);
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+.theme-settings-option:hover {
+  border-color: var(--panel-border-strong);
+  background: var(--card-bg-hover);
+}
+
+.theme-settings-option.is-active {
+  border-color: rgba(var(--accent-rgb), 0.34);
+  background: var(--card-bg-highlight);
+  box-shadow: 0 10px 18px rgba(var(--accent-deep-rgb), 0.08);
+}
+
+.theme-settings-option-title {
+  font-weight: 800;
+  font-family: var(--font-heading);
+}
+
+.theme-settings-option-copy {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+[data-theme='dark'] .billing-plan-card,
+[data-theme='dark'] .theme-settings-option {
+  box-shadow:
+    var(--card-shadow-soft),
+    inset 0 1px 0 rgba(var(--accent-soft-rgb), 0.06);
+}
+
+[data-theme='dark'] .billing-plan-card.is-current,
+[data-theme='dark'] .theme-settings-option.is-active {
+  box-shadow:
+    var(--card-shadow-raised),
+    inset 0 1px 0 rgba(var(--accent-soft-rgb), 0.1);
+}

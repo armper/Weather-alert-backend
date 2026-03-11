@@ -6,6 +6,7 @@ import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
+import { useThemePreference, type ThemePreference } from '../theme'
 import type { BillingPlan } from '../types'
 
 const CHANNEL_OPTIONS = [
@@ -72,6 +73,7 @@ export function AccountPage() {
     handleStartCheckout,
     refresh,
   } = useAppState()
+  const { theme, themePreference, setThemePreference } = useThemePreference()
   const location = useLocation()
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -187,6 +189,12 @@ export function AccountPage() {
     }
     return null
   }
+
+  const THEME_OPTIONS: Array<{ id: ThemePreference; label: string; detail: string }> = [
+    { id: 'system', label: 'System', detail: 'Follow your device preference automatically.' },
+    { id: 'light', label: 'Light', detail: 'Use the bright daytime palette.' },
+    { id: 'dark', label: 'Dark', detail: 'Use the twilight palette all the time.' },
+  ]
 
   return (
     <section className="page-stack">
@@ -379,6 +387,31 @@ export function AccountPage() {
               </AriaButton>
               {passwordSaved ? <p className="inline-success">Password updated.</p> : null}
             </form>
+          </section>
+
+          <section className="section-block">
+            <h3>Appearance</h3>
+            <div className="theme-settings-block">
+              <p className="muted small">
+                Current appearance: <strong>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</strong>
+              </p>
+              <div className="theme-settings-grid">
+                {THEME_OPTIONS.map((option) => {
+                  const isActive = themePreference === option.id
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`theme-settings-option${isActive ? ' is-active' : ''}`}
+                      onClick={() => setThemePreference(option.id)}
+                    >
+                      <span className="theme-settings-option-title">{option.label}</span>
+                      <span className="theme-settings-option-copy">{option.detail}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </section>
 
           <section className="section-block">

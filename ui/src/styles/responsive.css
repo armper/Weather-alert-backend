@@ -1,0 +1,152 @@
+@media (max-width: 1120px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .billing-plan-grid,
+  .theme-settings-grid,
+  .create-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .easy-alert-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .river-gauge-grid,
+  .river-threshold-row {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-preview-header,
+  .location-picker-toolbar,
+  .manage-alerts-toolbar,
+  .criteria-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    padding: 1rem;
+  }
+
+  .shell-header {
+    padding: 0.68rem;
+  }
+
+  .shell-menu-toggle {
+    display: inline-flex;
+  }
+
+  .shell-body {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-sidebar {
+    display: none;
+  }
+
+  .shell-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .shell-user-id {
+    display: none;
+  }
+
+  .shell-create-link {
+    order: 1;
+  }
+
+  .shell-location-chip {
+    order: 2;
+  }
+
+  .auth-layout,
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
+
+  .two-col,
+  .create-grid,
+  .billing-plan-grid,
+  .theme-settings-grid,
+  .recovery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .easy-alert-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topbar-actions {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .app-nav {
+    gap: 0.45rem;
+  }
+
+  .app-nav-link {
+    flex: 1 1 calc(50% - 0.45rem);
+  }
+
+  .page-grid,
+  .two-column-page {
+    grid-template-columns: 1fr;
+  }
+
+  .threshold-row,
+  .advanced-delivery-grid,
+  .advanced-coordinate-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .river-rule-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .river-helper-button {
+    width: 100%;
+  }
+
+  .location-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .criteria-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  .account-plan-summary {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .alert-row {
+    align-items: flex-start;
+  }
+
+  .alert-row-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

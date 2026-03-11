@@ -1,0 +1,22 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, var(--bg-gradient-top), transparent 55%),
+    radial-gradient(1000px 420px at 100% 0%, var(--bg-gradient-right), transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-gradient-bottom) 100%);
+  transition: background 180ms ease, color 180ms ease;
+}
+
+body {
+  color: var(--text-primary);
+}
+
+a {
+  color: inherit;
+}
