@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-heading: 'Manrope', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --bg: #caf0f8;
+  --bg-gradient-top: rgba(144, 224, 239, 0.4);
+  --bg-gradient-right: rgba(0, 180, 216, 0.22);
+  --bg-gradient-bottom: #f3fdff;
+
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-soft: rgba(240, 252, 255, 0.84);
+  --surface-soft-hover: rgba(230, 247, 252, 0.96);
+  --surface-popover: #ffffff;
+  --surface-border-strong: rgba(0, 119, 182, 0.3);
+  --surface-border: rgba(3, 4, 94, 0.16);
+  --field-bg: #ffffff;
+  --field-border: rgba(0, 119, 182, 0.22);
+  --hover-surface: rgba(234, 249, 253, 0.94);
+  --avatar-bg: rgba(222, 246, 251, 0.88);
+  --backdrop-soft: rgba(214, 240, 247, 0.76);
+  --backdrop-strong: rgba(6, 14, 23, 0.4);
+  --shadow-soft: rgba(7, 16, 25, 0.08);
+  --shadow-strong: rgba(7, 16, 25, 0.16);
+
+  --text-primary: #03045e;
+  --text-secondary: #005f8f;
+  --text-muted: #4f7d96;
+
+  --accent-500: #0077b6;
+  --accent-700: #03045e;
+  --accent-rgb: 0, 119, 182;
+  --accent-bright-rgb: 0, 180, 216;
+  --accent-soft-rgb: 144, 224, 239;
+  --accent-deep-rgb: 3, 4, 94;
+
+  --panel-bg: var(--surface);
+  --panel-bg-muted: var(--surface-soft);
+  --panel-bg-hover: var(--surface-soft-hover);
+  --panel-bg-popover: var(--surface-popover);
+  --panel-border: var(--surface-border);
+  --panel-border-strong: var(--surface-border-strong);
+  --panel-shadow: 0 20px 35px var(--shadow-soft);
+
+  --card-bg: var(--surface);
+  --card-bg-muted: var(--surface-soft);
+  --card-bg-hover: var(--surface-soft-hover);
+  --card-bg-elevated: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  --card-bg-highlight: linear-gradient(180deg, var(--surface) 0%, rgba(var(--accent-bright-rgb), 0.14) 100%);
+  --card-highlight-glow: radial-gradient(circle at top right, rgba(var(--accent-soft-rgb), 0.16) 0%, transparent 48%);
+  --card-shadow-soft: 0 10px 18px rgba(var(--accent-deep-rgb), 0.08);
+  --card-shadow-raised: 0 14px 28px rgba(var(--accent-deep-rgb), 0.12);
+
+  --control-bg: var(--field-bg);
+  --control-bg-muted: var(--surface-soft);
+  --control-bg-hover: var(--surface-soft-hover);
+  --control-border: var(--field-border);
+  --control-switch-track: rgba(var(--accent-deep-rgb), 0.12);
+  --control-switch-border: rgba(var(--accent-rgb), 0.14);
+  --control-switch-thumb: var(--surface-popover);
+
+  --chip-bg: rgba(var(--accent-bright-rgb), 0.2);
+  --chip-bg-active: rgba(var(--accent-rgb), 0.12);
+  --chip-border: rgba(var(--accent-rgb), 0.24);
+  --chip-border-active: rgba(var(--accent-rgb), 0.28);
+
+  --focus-ring: rgba(var(--accent-rgb), 0.22);
+  --focus-ring-strong: rgba(var(--accent-rgb), 0.3);
+
+  --accent-gradient: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+  --button-primary-gradient: linear-gradient(145deg, #0077b6 0%, #00b4d8 52%, #90e0ef 100%);
+  --button-primary-border: rgba(var(--accent-deep-rgb), 0.2);
+  --button-primary-shadow: 0 6px 14px rgba(var(--accent-deep-rgb), 0.18);
+  --button-primary-shadow-hover: 0 10px 18px rgba(var(--accent-deep-rgb), 0.22);
+
+  --hero-blob-a: radial-gradient(circle at 30% 30%, #caf0f8 0%, #90e0ef 42%, #00b4d8 100%);
+  --hero-blob-b: radial-gradient(circle at 50% 30%, #90e0ef 0%, #00b4d8 54%, #0077b6 100%);
+  --hero-blob-c: radial-gradient(circle at 50% 50%, #f8feff 0%, #caf0f8 60%, #90e0ef 100%);
+
+  font-family: var(--font-body);
+  line-height: 1.45;
+  font-weight: 500;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme='dark'] {
+  --bg: #03045e;
+  --bg-gradient-top: rgba(0, 180, 216, 0.18);
+  --bg-gradient-right: rgba(144, 224, 239, 0.16);
+  --bg-gradient-bottom: #01033f;
+
+  --surface: rgba(5, 12, 86, 0.82);
+  --surface-soft: rgba(8, 23, 110, 0.76);
+  --surface-soft-hover: rgba(11, 33, 128, 0.88);
+  --surface-popover: #07125e;
+  --surface-border: rgba(144, 224, 239, 0.2);
+  --surface-border-strong: rgba(0, 180, 216, 0.38);
+  --field-bg: rgba(5, 13, 95, 0.94);
+  --field-border: rgba(144, 224, 239, 0.24);
+  --hover-surface: rgba(10, 28, 116, 0.92);
+  --avatar-bg: rgba(8, 25, 110, 0.9);
+  --backdrop-soft: rgba(3, 8, 66, 0.8);
+  --backdrop-strong: rgba(3, 8, 12, 0.7);
+  --shadow-soft: rgba(0, 0, 0, 0.28);
+  --shadow-strong: rgba(0, 0, 0, 0.45);
+
+  --text-primary: #caf0f8;
+  --text-secondary: #90e0ef;
+  --text-muted: #6fbccb;
+
+  --accent-500: #00b4d8;
+  --accent-700: #caf0f8;
+  --accent-rgb: 0, 180, 216;
+  --accent-bright-rgb: 144, 224, 239;
+  --accent-soft-rgb: 202, 240, 248;
+  --accent-deep-rgb: 3, 4, 94;
+
+  --panel-bg: rgba(7, 18, 96, 0.9);
+  --panel-bg-muted: rgba(9, 26, 118, 0.9);
+  --panel-bg-hover: rgba(12, 33, 136, 0.94);
+  --panel-bg-popover: #07125e;
+  --panel-shadow: 0 20px 35px var(--shadow-strong);
+
+  --card-bg: rgba(7, 18, 96, 0.9);
+  --card-bg-muted: rgba(9, 26, 118, 0.88);
+  --card-bg-hover: rgba(12, 33, 136, 0.94);
+  --card-bg-elevated: linear-gradient(180deg, rgba(7, 18, 96, 0.92) 0%, rgba(9, 26, 118, 0.88) 100%);
+  --card-bg-highlight: linear-gradient(180deg, rgba(7, 18, 96, 0.94) 0%, rgba(0, 180, 216, 0.14) 100%);
+  --card-highlight-glow: radial-gradient(circle at top right, rgba(202, 240, 248, 0.12) 0%, transparent 48%);
+  --card-shadow-soft: 0 12px 24px rgba(0, 0, 0, 0.18);
+  --card-shadow-raised: 0 14px 28px rgba(0, 0, 0, 0.24);
+
+  --control-bg: var(--field-bg);
+  --control-bg-muted: rgba(9, 26, 118, 0.9);
+  --control-bg-hover: rgba(12, 33, 136, 0.94);
+  --control-border: rgba(144, 224, 239, 0.18);
+  --control-switch-track: rgba(202, 240, 248, 0.12);
+  --control-switch-border: rgba(144, 224, 239, 0.18);
+  --control-switch-thumb: #f3fdff;
+
+  --chip-bg: rgba(var(--accent-rgb), 0.18);
+  --chip-bg-active: rgba(var(--accent-rgb), 0.2);
+  --chip-border: rgba(var(--accent-rgb), 0.26);
+  --chip-border-active: rgba(var(--accent-rgb), 0.42);
+
+  --hero-blob-a: radial-gradient(circle at 30% 30%, rgba(202, 240, 248, 0.7) 0%, rgba(0, 180, 216, 0.4) 58%, rgba(3, 4, 94, 0.2) 100%);
+  --hero-blob-b: radial-gradient(circle at 50% 30%, rgba(144, 224, 239, 0.6) 0%, rgba(0, 180, 216, 0.34) 54%, rgba(3, 4, 94, 0.14) 100%);
+  --hero-blob-c: radial-gradient(circle at 50% 50%, rgba(202, 240, 248, 0.42) 0%, rgba(144, 224, 239, 0.18) 60%, rgba(3, 4, 94, 0.08) 100%);
+}

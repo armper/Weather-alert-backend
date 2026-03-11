@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
-import './App.css'
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout'
 import { RequireAuth } from './components/layout/RequireAuth'
 import { AdminPage } from './pages/AdminPage'
@@ -16,23 +14,6 @@ import { OverviewPage } from './pages/OverviewPage'
 import { RulesPage } from './pages/RulesPage'
 import { AppStateProvider } from './state/AppStateContext'
 import { useAppState } from './state/useAppState'
-
-const THEME_STORAGE_KEY = 'weather-alert-theme'
-
-type Theme = 'light' | 'dark'
-type ThemePreference = Theme | 'system'
-
-function resolveTheme(themePreference: ThemePreference): Theme {
-  if (themePreference !== 'system') {
-    return themePreference
-  }
-
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark'
-  }
-
-  return 'light'
-}
 
 function RootRedirect() {
   const { token } = useAppState()
@@ -105,64 +86,8 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
-    if (typeof window === 'undefined') {
-      return 'system'
-    }
-
-    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
-    if (storedTheme === 'light' || storedTheme === 'dark') {
-      return storedTheme
-    }
-
-    return 'system'
-  })
-  const [theme, setTheme] = useState<Theme>(() => resolveTheme(themePreference))
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    document.documentElement.style.colorScheme = theme
-  }, [theme])
-
-  useEffect(() => {
-    if (themePreference === 'system') {
-      window.localStorage.removeItem(THEME_STORAGE_KEY)
-    } else {
-      window.localStorage.setItem(THEME_STORAGE_KEY, themePreference)
-    }
-  }, [themePreference])
-
-  useEffect(() => {
-    setTheme(resolveTheme(themePreference))
-
-    if (themePreference !== 'system') {
-      return undefined
-    }
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-    function handleChange(event: MediaQueryListEvent) {
-      setTheme(event.matches ? 'dark' : 'light')
-    }
-
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [themePreference])
-
   return (
     <AppStateProvider>
-      <button
-        type="button"
-        className="theme-toggle ghost"
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        onClick={() => setThemePreference((currentTheme) => (resolveTheme(currentTheme) === 'dark' ? 'light' : 'dark'))}
-      >
-        <span className="theme-toggle-icon" aria-hidden>
-          {theme === 'dark' ? '☾' : '☀'}
-        </span>
-        <span>{theme === 'dark' ? 'Dark' : 'Light'} mode</span>
-      </button>
-
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
