@@ -11,9 +11,19 @@ const VALUE_POINTS = [
 ]
 
 const PLAN_GLANCE = [
-  { name: 'Free', detail: '1 active alert, email and SMS delivery, sponsored email footer' },
-  { name: 'Plus', detail: '10 active alerts, ad-free email and SMS delivery', badge: 'Most Popular' },
-  { name: 'Pro', detail: '50 active alerts, best fit for multi-location monitoring and broader coverage' },
+  {
+    name: 'The Basics',
+    detail: '1 active alert. Perfect for your home or daily commute. Includes a small sponsored link.',
+  },
+  {
+    name: 'The Family Plan',
+    detail: 'Up to 10 alerts. Keep an eye on home, work, the kids’ school, and weekend sports. Ad-free.',
+    badge: 'Most Popular',
+  },
+  {
+    name: 'The Globetrotter',
+    detail: 'Up to 50 alerts. Ideal for frequent travelers, RVers, or keeping tabs on extended family across the country.',
+  },
 ]
 
 export function AuthLandingPage() {
