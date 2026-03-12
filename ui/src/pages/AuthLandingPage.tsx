@@ -128,6 +128,15 @@ export function AuthLandingPage() {
               ))}
             </div>
           </section>
+
+          <div className="auth-link-row auth-home-legal-links">
+            <Link className="auth-link" to="/sms-consent">
+              SMS consent
+            </Link>
+            <Link className="auth-link" to="/privacy-policy">
+              Privacy policy
+            </Link>
+          </div>
         </section>
       </main>
     </div>

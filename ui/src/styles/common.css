@@ -328,6 +328,10 @@
   gap: 0.75rem;
 }
 
+.auth-home-legal-links {
+  padding-top: 0.25rem;
+}
+
 .auth-home-example-card {
   display: grid;
   gap: 0.32rem;
@@ -369,6 +373,87 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
+}
+
+.public-info-layout {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.public-info-panel {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.public-info-header {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.public-info-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-family: var(--font-heading);
+}
+
+.public-info-summary {
+  margin: 0;
+  max-width: 68ch;
+}
+
+.public-info-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.public-info-section {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.public-info-section h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.public-info-section p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.public-info-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.public-info-list-ordered {
+  padding-left: 1.3rem;
+}
+
+.public-info-callout {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--panel-border-strong);
+  background: var(--card-bg-highlight);
+}
+
+.public-info-callout strong {
+  font-family: var(--font-heading);
+}
+
+.public-info-links {
+  justify-content: space-between;
 }
 
 .feature-list {

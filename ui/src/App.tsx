@@ -7,12 +7,14 @@ import { AuthForgotPasswordPage } from './pages/AuthForgotPasswordPage'
 import { AuthForgotUsernamePage } from './pages/AuthForgotUsernamePage'
 import { AuthLandingPage } from './pages/AuthLandingPage'
 import { AuthLoginPage } from './pages/AuthLoginPage'
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage'
 import { AuthRegisterPage } from './pages/AuthRegisterPage'
 import { AuthVerifyEmailPage } from './pages/AuthVerifyEmailPage'
 import { EventsPage } from './pages/EventsPage'
 import { ManageAlertsPage } from './pages/ManageAlertsPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { RulesPage } from './pages/RulesPage'
+import { SmsConsentPage } from './pages/SmsConsentPage'
 import { AppStateProvider } from './state/AppStateContext'
 import { useAppState } from './state/useAppState'
 
@@ -55,6 +57,8 @@ function AppRoutes() {
       <Route path="/" element={<RootRedirect />} />
       <Route path="/billing/success" element={<BillingRedirect status="success" />} />
       <Route path="/billing/cancel" element={<BillingRedirect status="cancel" />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/sms-consent" element={<SmsConsentPage />} />
       <Route path="/auth" element={<AuthRoute />}>
         <Route index element={<AuthLandingPage />} />
         <Route path="login" element={<AuthLoginPage />} />
