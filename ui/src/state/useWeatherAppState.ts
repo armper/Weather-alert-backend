@@ -267,12 +267,12 @@ export function useWeatherAppState() {
       setVerifyState({
         userId: response.account.id,
         verificationId: verification?.id ?? '',
-        token: verification?.verificationToken ?? '',
+        token: '',
       })
 
       setNotice({
         kind: 'success',
-        text: `Account ${response.account.id} created. Verify your email to sign in.`,
+        text: `Account ${response.account.id} created. Check your email for your verification code.`,
       })
       setRegisterState(initialRegister)
     } catch (error) {
@@ -321,10 +321,11 @@ export function useWeatherAppState() {
       setLatestVerification(verification)
       setVerifyState((current) => ({
         ...current,
+        userId: username,
         verificationId: verification.id,
-        token: verification.verificationToken ?? current.token,
+        token: '',
       }))
-      setNotice({ kind: 'success', text: `Verification resent for ${username}.` })
+      setNotice({ kind: 'success', text: `A fresh verification code was sent for ${username}.` })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {

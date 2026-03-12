@@ -59,6 +59,7 @@ import static org.mockito.Mockito.when;
         "app.security.admin.password=test-admin-password",
         "app.security.jwt.secret=test-jwt-signing-secret-with-minimum-length-123",
         "app.admin.jobs.token=test-admin-jobs-token",
+        "app.notification.verification.expose-raw-token=true",
         "spring.task.scheduling.enabled=false",
         "management.tracing.enabled=false"
 })
