@@ -1,5 +1,7 @@
 package com.weather.alert.infrastructure.adapter.persistence;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,7 +16,9 @@ import java.util.Optional;
 @Repository
 public interface JpaAlertRepository extends JpaRepository<AlertEntity, String> {
     List<AlertEntity> findByUserId(String userId);
+    Page<AlertEntity> findByUserIdOrderByAlertTimeDesc(String userId, Pageable pageable);
     List<AlertEntity> findByCriteriaIdOrderByAlertTimeDesc(String criteriaId);
+    Page<AlertEntity> findByCriteriaIdOrderByAlertTimeDesc(String criteriaId, Pageable pageable);
     Optional<AlertEntity> findByCriteriaIdAndEventKey(String criteriaId, String eventKey);
     List<AlertEntity> findByStatus(String status);
 

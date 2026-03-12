@@ -7,6 +7,13 @@ spring:
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${APP_DB_HIKARI_MAX_POOL_SIZE:20}
+      minimum-idle: ${APP_DB_HIKARI_MIN_IDLE:5}
+      idle-timeout: ${APP_DB_HIKARI_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${APP_DB_HIKARI_MAX_LIFETIME_MS:1800000}
+      connection-timeout: ${APP_DB_HIKARI_CONNECTION_TIMEOUT_MS:20000}
+      leak-detection-threshold: ${APP_DB_HIKARI_LEAK_DETECTION_MS:60000}
     
   jpa:
     open-in-view: false
@@ -17,6 +24,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
 
   flyway:
     enabled: true

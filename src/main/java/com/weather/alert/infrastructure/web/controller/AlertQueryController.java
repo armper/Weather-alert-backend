@@ -1,13 +1,18 @@
 package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.AlertResponse;
+import com.weather.alert.application.dto.PagedResponse;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.model.PagedResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +24,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/alerts")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Alerts", description = "Query generated user alerts")
 public class AlertQueryController {
     
@@ -26,13 +32,12 @@ public class AlertQueryController {
     
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get alerts by user ID")
-    public ResponseEntity<List<AlertResponse>> getAlertsByUserId(
-            @Parameter(example = "user-123") @PathVariable String userId) {
-        List<Alert> alerts = queryAlertsUseCase.getAlertsByUserId(userId);
-        List<AlertResponse> response = alerts.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<PagedResponse<AlertResponse>> getAlertsByUserId(
+            @Parameter(example = "user-123") @PathVariable String userId,
+            @Parameter(description = "Zero-based page index", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        PagedResult<Alert> alerts = queryAlertsUseCase.getAlertsByUserIdPaged(userId, page, size);
+        return ResponseEntity.ok(toPagedResponse(alerts));
     }
     
     @GetMapping("/{alertId}")
@@ -45,13 +50,12 @@ public class AlertQueryController {
 
     @GetMapping("/criteria/{criteriaId}/history")
     @Operation(summary = "Get alert history by criteria ID")
-    public ResponseEntity<List<AlertResponse>> getAlertHistoryByCriteriaId(
-            @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId) {
-        List<Alert> alerts = queryAlertsUseCase.getAlertHistoryByCriteriaId(criteriaId);
-        List<AlertResponse> response = alerts.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<PagedResponse<AlertResponse>> getAlertHistoryByCriteriaId(
+            @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId,
+            @Parameter(description = "Zero-based page index", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+        PagedResult<Alert> alerts = queryAlertsUseCase.getAlertHistoryByCriteriaIdPaged(criteriaId, page, size);
+        return ResponseEntity.ok(toPagedResponse(alerts));
     }
     
     @GetMapping("/pending")
@@ -115,6 +119,18 @@ public class AlertQueryController {
                 .sentAt(alert.getSentAt())
                 .acknowledgedAt(alert.getAcknowledgedAt())
                 .expiredAt(alert.getExpiredAt())
+                .build();
+    }
+
+    private PagedResponse<AlertResponse> toPagedResponse(PagedResult<Alert> paged) {
+        return PagedResponse.<AlertResponse>builder()
+                .items(paged.getItems().stream().map(this::toResponse).collect(Collectors.toList()))
+                .page(paged.getPage())
+                .size(paged.getSize())
+                .totalElements(paged.getTotalElements())
+                .totalPages(paged.getTotalPages())
+                .hasNext(paged.isHasNext())
+                .hasPrevious(paged.isHasPrevious())
                 .build();
     }
 }

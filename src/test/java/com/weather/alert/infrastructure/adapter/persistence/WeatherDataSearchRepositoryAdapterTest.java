@@ -37,11 +37,27 @@ class WeatherDataSearchRepositoryAdapterTest {
         adapter.indexWeatherData(sample("weather-1", "Orlando", "Flood Warning", "Moderate", Instant.parse("2026-03-07T11:00:00Z")));
         adapter.indexWeatherData(sample("weather-2", "Albany", "Heat Advisory", "Minor", Instant.parse("2026-03-07T12:00:00Z")));
 
-        List<WeatherData> locationResults = adapter.searchByLocation("orlan");
-        List<WeatherData> eventResults = adapter.searchByEventType("flood");
+        List<WeatherData> locationResults = adapter.searchByLocation("orlan", 50);
+        List<WeatherData> eventResults = adapter.searchByEventType("flood", 50);
 
         assertThat(locationResults).extracting(WeatherData::getId).containsExactly("weather-1");
         assertThat(eventResults).extracting(WeatherData::getId).containsExactly("weather-1");
+    }
+
+    @Test
+    void shouldRespectSearchLimit() {
+        for (int i = 1; i <= 5; i++) {
+            adapter.indexWeatherData(sample("weather-limit-" + i, "Seattle", "Flood Warning", "Moderate",
+                    Instant.parse("2026-03-07T10:00:0" + i + "Z")));
+        }
+
+        List<WeatherData> locationResults = adapter.searchByLocation("Seattle", 3);
+        List<WeatherData> eventResults = adapter.searchByEventType("Flood", 2);
+        List<WeatherData> severityResults = adapter.searchBySeverity("Moderate", 1);
+
+        assertThat(locationResults).hasSize(3);
+        assertThat(eventResults).hasSize(2);
+        assertThat(severityResults).hasSize(1);
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.application.exception.InvalidAlertTransitionException;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,10 @@ public class QueryAlertsUseCase {
     public List<Alert> getAlertsByUserId(String userId) {
         return alertRepository.findByUserId(userId);
     }
+
+    public PagedResult<Alert> getAlertsByUserIdPaged(String userId, int page, int size) {
+        return alertRepository.findByUserIdPaged(userId, page, size);
+    }
     
     public Alert getAlertById(String alertId) {
         return alertRepository.findById(alertId)
@@ -35,6 +40,10 @@ public class QueryAlertsUseCase {
 
     public List<Alert> getAlertHistoryByCriteriaId(String criteriaId) {
         return alertRepository.findHistoryByCriteriaId(criteriaId);
+    }
+
+    public PagedResult<Alert> getAlertHistoryByCriteriaIdPaged(String criteriaId, int page, int size) {
+        return alertRepository.findHistoryByCriteriaIdPaged(criteriaId, page, size);
     }
     
     public List<AlertCriteria> getCriteriaByUserId(String userId) {

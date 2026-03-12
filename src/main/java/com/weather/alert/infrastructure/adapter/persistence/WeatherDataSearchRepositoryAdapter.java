@@ -46,22 +46,25 @@ public class WeatherDataSearchRepositoryAdapter implements WeatherDataSearchPort
     }
 
     @Override
-    public List<WeatherData> searchByLocation(String location) {
-        return jpaRepository.findByLocationContainingIgnoreCaseOrderByRecordedAtDesc(location).stream()
+    public List<WeatherData> searchByLocation(String location, int limit) {
+        return jpaRepository.findByLocationContainingIgnoreCaseOrderByRecordedAtDesc(
+                        location, PageRequest.of(0, limit)).stream()
                 .map(this::toDomain)
                 .toList();
     }
 
     @Override
-    public List<WeatherData> searchByEventType(String eventType) {
-        return jpaRepository.findByEventTypeContainingIgnoreCaseOrderByRecordedAtDesc(eventType).stream()
+    public List<WeatherData> searchByEventType(String eventType, int limit) {
+        return jpaRepository.findByEventTypeContainingIgnoreCaseOrderByRecordedAtDesc(
+                        eventType, PageRequest.of(0, limit)).stream()
                 .map(this::toDomain)
                 .toList();
     }
 
     @Override
-    public List<WeatherData> searchBySeverity(String severity) {
-        return jpaRepository.findBySeverityOrderByRecordedAtDesc(severity).stream()
+    public List<WeatherData> searchBySeverity(String severity, int limit) {
+        return jpaRepository.findBySeverityOrderByRecordedAtDesc(
+                        severity, PageRequest.of(0, limit)).stream()
                 .map(this::toDomain)
                 .toList();
     }

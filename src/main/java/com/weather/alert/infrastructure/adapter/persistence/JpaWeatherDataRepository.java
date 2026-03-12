@@ -11,11 +11,11 @@ public interface JpaWeatherDataRepository extends JpaRepository<WeatherDataEntit
 
     Page<WeatherDataEntity> findAllByOrderByRecordedAtDesc(Pageable pageable);
 
-    List<WeatherDataEntity> findByLocationContainingIgnoreCaseOrderByRecordedAtDesc(String location);
+    List<WeatherDataEntity> findByLocationContainingIgnoreCaseOrderByRecordedAtDesc(String location, Pageable pageable);
 
-    List<WeatherDataEntity> findByEventTypeContainingIgnoreCaseOrderByRecordedAtDesc(String eventType);
+    List<WeatherDataEntity> findByEventTypeContainingIgnoreCaseOrderByRecordedAtDesc(String eventType, Pageable pageable);
 
-    List<WeatherDataEntity> findBySeverityOrderByRecordedAtDesc(String severity);
+    List<WeatherDataEntity> findBySeverityOrderByRecordedAtDesc(String severity, Pageable pageable);
 
     long deleteByRecordedAtBefore(Instant cutoff);
 }
