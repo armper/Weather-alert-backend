@@ -17,6 +17,7 @@ import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryTaskPublisherPort;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.NotificationPort;
+import com.weather.alert.domain.port.SmsSenderPort;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.domain.service.AlertProcessingService;
@@ -80,6 +81,9 @@ class ApiIntegrationContractTest {
 
     @MockBean
     private NotificationPort notificationPort;
+
+    @MockBean
+    private SmsSenderPort smsSenderPort;
 
     @MockBean
     private AlertDeliveryTaskPublisherPort alertDeliveryTaskPublisherPort;

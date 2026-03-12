@@ -46,6 +46,7 @@ export function buildCriteriaPayload(criteriaForm: CriteriaFormState, userId: st
     location: criteriaForm.location.trim(),
     latitude: Number(criteriaForm.latitude),
     longitude: Number(criteriaForm.longitude),
+    radiusKm: Number(criteriaForm.gaugeSearchRadiusKm),
     riverGaugeId: criteriaForm.riverGaugeId.trim() || undefined,
     monitorCurrent: criteriaForm.monitorCurrent,
     monitorForecast: criteriaForm.monitorForecast,
