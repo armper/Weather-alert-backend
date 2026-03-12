@@ -9,6 +9,7 @@ import type {
   BillingStatus,
   AuthTokenResponse,
   ChannelVerification,
+  JobRunResponse,
   MessageResponse,
   RecoveryRequestResponse,
   RegisterUserResponse,
@@ -43,6 +44,8 @@ import {
 } from './types'
 
 export function useWeatherAppState() {
+  type AdminJobKey = 'weather-processing' | 'alert-delivery-retries' | 'data-retention'
+
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY))
   const [notice, setNotice] = useState<NoticeState | null>(null)
 
@@ -83,6 +86,8 @@ export function useWeatherAppState() {
   const [busyAlertId, setBusyAlertId] = useState<string | null>(null)
   const [busyCriteriaId, setBusyCriteriaId] = useState<string | null>(null)
   const [busyAdminAction, setBusyAdminAction] = useState<string | null>(null)
+  const [busyAdminJob, setBusyAdminJob] = useState<AdminJobKey | null>(null)
+  const [adminJobResults, setAdminJobResults] = useState<Partial<Record<AdminJobKey, JobRunResponse>>>({})
   const [usernameRetryAfterSeconds, setUsernameRetryAfterSeconds] = useState<number>(0)
   const [passwordRetryAfterSeconds, setPasswordRetryAfterSeconds] = useState<number>(0)
 
@@ -918,6 +923,36 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleAdminJobRun(job: AdminJobKey): Promise<boolean> {
+    if (!token) {
+      return false
+    }
+
+    setBusyAdminJob(job)
+    setNotice(null)
+
+    try {
+      const response = await apiRequest<JobRunResponse>(`/api/admin/jobs/${job}`, {
+        method: 'POST',
+        token,
+      })
+      setAdminJobResults((current) => ({ ...current, [job]: response }))
+      setNotice({
+        kind: 'success',
+        text: response.message || `${response.jobName || job} completed successfully.`,
+      })
+      if (me) {
+        await refreshData(token, me)
+      }
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setBusyAdminJob(null)
+    }
+  }
+
   const refresh = useCallback(async () => {
     if (!token || !me) {
       return
@@ -959,6 +994,7 @@ export function useWeatherAppState() {
     notificationPreference,
     billingStatus,
     adminUsers,
+    adminJobResults,
 
     profileForm,
     setProfileForm,
@@ -980,6 +1016,7 @@ export function useWeatherAppState() {
     busyAlertId,
     busyCriteriaId,
     busyAdminAction,
+    busyAdminJob,
 
     handleLogin,
     handleMagicLinkRequest,
@@ -1004,6 +1041,7 @@ export function useWeatherAppState() {
     handleOpenBillingPortal,
     handleDeleteAccount,
     handleAdminAction,
+    handleAdminJobRun,
 
     refresh,
     logout,

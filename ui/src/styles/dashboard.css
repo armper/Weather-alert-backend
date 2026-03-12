@@ -1172,3 +1172,124 @@
 .criteria-section-header p {
   margin: 0;
 }
+
+.admin-control-panel {
+  display: grid;
+  gap: 1rem;
+  background:
+    linear-gradient(135deg, rgba(var(--accent-dark-rgb), 0.08), rgba(var(--accent-bright-rgb), 0.14)),
+    var(--card-bg-elevated);
+}
+
+.admin-panel-intro {
+  margin: -0.35rem 0 0;
+  max-width: 74ch;
+}
+
+.admin-summary-grid,
+.admin-job-grid,
+.admin-console-link-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.admin-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-summary-card,
+.admin-job-card,
+.admin-console-link {
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.admin-summary-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.95rem 1rem;
+}
+
+.admin-summary-card strong {
+  font-size: 1.15rem;
+  font-family: var(--font-heading);
+}
+
+.admin-summary-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-job-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-job-card {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+}
+
+.admin-job-card .ghost {
+  justify-self: start;
+}
+
+.admin-job-result {
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.admin-job-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.admin-console-link-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-console-link {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.95rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.admin-console-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(var(--accent-rgb), 0.26);
+  box-shadow: var(--card-shadow-raised);
+}
+
+.admin-console-link span {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 1120px) {
+  .admin-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-job-grid,
+  .admin-console-link-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

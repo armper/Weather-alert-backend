@@ -45,15 +45,29 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
           <path d="M4.5 5.75h11" />
         </svg>
       )
+    case 'admin':
+      return (
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
+          <path d="M10 2.75 15.75 5v4.25c0 3.7-2.16 6.53-5.75 8-3.59-1.47-5.75-4.3-5.75-8V5L10 2.75Z" />
+          <path d="M10 7.25v4.5M7.75 9.5h4.5" />
+        </svg>
+      )
     default:
       return null
   }
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { me, criteria, logout } = useAppState()
+  const { me, criteria, logout, isAdmin } = useAppState()
   const location = useLocation()
   const navigate = useNavigate()
+  const desktopNavItems = useMemo(
+    () =>
+      isAdmin
+        ? [...PRIMARY_NAV_ITEMS, { key: 'admin', label: 'Admin', to: '/app/admin' as const }]
+        : PRIMARY_NAV_ITEMS,
+    [isAdmin],
+  )
 
   const locationLabel = useMemo(() => {
     const primaryLocation = criteria[0]?.location?.trim()
@@ -64,6 +78,10 @@ export function AppShell({ children }: AppShellProps) {
   const avatarInitial = userLabel.charAt(0).toUpperCase()
 
   function handleUserMenuAction(key: React.Key) {
+    if (key === 'admin') {
+      navigate('/app/admin')
+      return
+    }
     if (key === 'account') {
       navigate('/app/account')
       return
@@ -109,6 +127,11 @@ export function AppShell({ children }: AppShellProps) {
 
             <Popover placement="bottom end" className="shell-user-popover">
               <Menu className="shell-user-menu" onAction={handleUserMenuAction} aria-label="User menu">
+                {isAdmin ? (
+                  <MenuItem id="admin" className="shell-user-menu-item">
+                    Admin panel
+                  </MenuItem>
+                ) : null}
                 <MenuItem id="account" className="shell-user-menu-item">
                   Account
                 </MenuItem>
@@ -123,7 +146,7 @@ export function AppShell({ children }: AppShellProps) {
 
       <div className="shell-body">
         <nav className="shell-sidebar panel" aria-label="Primary navigation">
-          {PRIMARY_NAV_ITEMS.map((item) => (
+          {desktopNavItems.map((item) => (
             <NavLink key={item.key} to={item.to} className={({ isActive }) => `shell-nav-link${isActive ? ' active' : ''}`}>
               <NavIcon itemKey={item.key} className="shell-nav-icon" />
               {item.label}

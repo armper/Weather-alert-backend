@@ -73,6 +73,16 @@ export interface MessageResponse {
   message: string
 }
 
+export interface JobRunResponse {
+  jobName: string
+  status: string
+  startedAt?: string
+  finishedAt?: string
+  durationMillis?: number
+  message?: string
+  metrics?: Record<string, number>
+}
+
 export interface AlertCriteria {
   id: string
   name?: string
