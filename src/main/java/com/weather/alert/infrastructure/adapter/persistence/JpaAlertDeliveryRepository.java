@@ -1,8 +1,12 @@
 package com.weather.alert.infrastructure.adapter.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -17,4 +21,9 @@ public interface JpaAlertDeliveryRepository extends JpaRepository<AlertDeliveryE
             List<String> statuses,
             Instant nextAttemptAt,
             Pageable pageable);
+
+    @Transactional
+    @Modifying
+    @Query("delete from AlertDeliveryEntity d where d.createdAt < :cutoff")
+    int deleteByCreatedAtBefore(@Param("cutoff") Instant cutoff);
 }

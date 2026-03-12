@@ -45,6 +45,11 @@ public class AlertDeliveryRepositoryAdapter implements AlertDeliveryRepositoryPo
         return entities.stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public int deleteByCreatedAtBefore(Instant cutoff) {
+        return jpaRepository.deleteByCreatedAtBefore(cutoff);
+    }
+
     private AlertDeliveryEntity toEntity(AlertDeliveryRecord deliveryRecord) {
         return AlertDeliveryEntity.builder()
                 .id(deliveryRecord.getId())

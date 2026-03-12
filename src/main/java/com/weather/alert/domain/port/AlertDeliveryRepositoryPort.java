@@ -16,4 +16,6 @@ public interface AlertDeliveryRepositoryPort {
     Optional<AlertDeliveryRecord> findByAlertIdAndChannel(String alertId, NotificationChannel channel);
 
     List<AlertDeliveryRecord> findDueForDelivery(Instant now, int limit);
+
+    int deleteByCreatedAtBefore(Instant cutoff);
 }
