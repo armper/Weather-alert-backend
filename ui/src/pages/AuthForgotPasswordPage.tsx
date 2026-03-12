@@ -19,6 +19,7 @@ export function AuthForgotPasswordPage() {
   const [manualCodeEntry, setManualCodeEntry] = useState(false)
   const hasRecoveryLink = forgotPasswordState.recoveryId.trim() !== '' && forgotPasswordState.code.trim() !== ''
   const hideRecoveryInternals = hasRecoveryLink && !manualCodeEntry
+  const showPasswordResetForm = hasRecoveryLink || manualCodeEntry
 
   return (
     <div className="app-shell">
@@ -28,6 +29,9 @@ export function AuthForgotPasswordPage() {
           <div className="auth-header">
             <BrandLockup />
             <h1>Reset password</h1>
+            <p className="muted">
+              We’ll email you a secure reset link. Open it to choose a new password without dealing with recovery codes.
+            </p>
           </div>
 
           <form onSubmit={handleForgotPasswordRequest} className="grid-form recovery-card">
@@ -46,79 +50,89 @@ export function AuthForgotPasswordPage() {
               />
             </label>
             <button type="submit" className="primary" disabled={loadingAuth || passwordRetryAfterSeconds > 0}>
-              {passwordRetryAfterSeconds > 0 ? `Retry in ${passwordRetryAfterSeconds}s` : 'Send reset code'}
+              {passwordRetryAfterSeconds > 0 ? `Retry in ${passwordRetryAfterSeconds}s` : 'Email me a reset link'}
             </button>
           </form>
 
-          <form onSubmit={handleForgotPasswordConfirm} className="grid-form recovery-card">
-            {hideRecoveryInternals ? (
-              <>
-                <p className="recovery-inline-note">
-                  You opened a secure reset link from your email. Choose a new password to finish.
-                </p>
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => setManualCodeEntry(true)}
-                >
-                  Enter code manually instead
-                </button>
-              </>
-            ) : (
-              <>
-                <label>
-                  Recovery ID
+          {showPasswordResetForm ? (
+            <form onSubmit={handleForgotPasswordConfirm} className="grid-form recovery-card">
+              {hideRecoveryInternals ? (
+                <>
+                  <p className="recovery-inline-note">
+                    You opened a secure reset link from your email. Choose a new password to finish.
+                  </p>
+                  <button type="button" className="link-button" onClick={() => setManualCodeEntry(true)}>
+                    Having trouble with the link? Enter code manually
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="recovery-inline-note">
+                    Enter the backup details from your reset email only if the link did not open correctly.
+                  </p>
+                  <label>
+                    Recovery ID
+                    <input
+                      type="text"
+                      required
+                      value={forgotPasswordState.recoveryId}
+                      onChange={(event) =>
+                        setForgotPasswordState((state) => ({
+                          ...state,
+                          recoveryId: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Reset code
+                    <input
+                      type="text"
+                      required
+                      value={forgotPasswordState.code}
+                      onChange={(event) =>
+                        setForgotPasswordState((state) => ({ ...state, code: event.target.value.toUpperCase() }))
+                      }
+                    />
+                  </label>
+                </>
+              )}
+              <label>
+                New password
+                <div className="input-with-action">
                   <input
-                    type="text"
+                    type={showPassword ? 'text' : 'password'}
+                    minLength={8}
                     required
-                    value={forgotPasswordState.recoveryId}
+                    value={forgotPasswordState.newPassword}
                     onChange={(event) =>
                       setForgotPasswordState((state) => ({
                         ...state,
-                        recoveryId: event.target.value,
+                        newPassword: event.target.value,
                       }))
                     }
                   />
-                </label>
-                <label>
-                  Code
-                  <input
-                    type="text"
-                    required
-                    value={forgotPasswordState.code}
-                    onChange={(event) => setForgotPasswordState((state) => ({ ...state, code: event.target.value }))}
-                  />
-                </label>
-              </>
-            )}
-            <label>
-              New password
-              <div className="input-with-action">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  minLength={8}
-                  required
-                  value={forgotPasswordState.newPassword}
-                  onChange={(event) =>
-                    setForgotPasswordState((state) => ({
-                      ...state,
-                      newPassword: event.target.value,
-                    }))
-                  }
-                />
-                <button
-                  type="button"
-                  className="input-inline-action"
-                  onClick={() => setShowPassword((value) => !value)}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </label>
-            <button type="submit" className="ghost" disabled={loadingAuth}>
-              Update password
-            </button>
-          </form>
+                  <button
+                    type="button"
+                    className="input-inline-action"
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </label>
+              <button type="submit" className="ghost" disabled={loadingAuth}>
+                Update password
+              </button>
+            </form>
+          ) : (
+            <section className="recovery-card recovery-awaiting-link">
+              <strong>Next step</strong>
+              <p className="muted">
+                Check your inbox for the SkyPanda reset email. The link will take you straight to the new-password step.
+              </p>
+            </section>
+          )}
 
           <div className="auth-link-row">
             <Link className="auth-link" to="/auth/login">

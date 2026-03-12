@@ -481,8 +481,13 @@ export function useWeatherAppState() {
         body: { usernameOrEmail: forgotPasswordState.usernameOrEmail },
       })
       setPasswordRecoveryMeta(response)
+      setForgotPasswordState((state) => ({
+        ...state,
+        recoveryId: response.recoveryId ?? state.recoveryId,
+        code: '',
+      }))
       setPasswordRetryAfterSeconds(response.retryAfterSeconds ?? 0)
-      setNotice({ kind: 'success', text: response.message })
+      setNotice({ kind: 'success', text: 'Check your email for a secure SkyPanda reset link.' })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {

@@ -415,30 +415,28 @@ public class ManageAccountRecoveryUseCase {
 
         String link = buildRecoveryLandingLink("password", issued.token().getId(), issued.rawCode());
         String expiryText = recoveryExpiryText();
-        String linkInstruction = link == null
-                ? "Open the Weather Alert app and enter the code in Forgot Password."
-                : "Use this secure link:\n%s".formatted(link);
 
         String body = """
                 Hi %s,
 
-                We received a request to reset your password.
+                We received a request to reset your SkyPanda password.
 
-                Use this recovery code:
+                Use this secure reset link:
                 %s
 
+                If the link does not open on the same device, you can use this backup code:
                 %s
 
                 This code expires in %s.
 
                 If you did not request this, you can ignore this email.
 
-                - Weather Alert Team
+                - SkyPanda
                 """
                 .formatted(
                         displayName(user),
+                        link == null ? "Open SkyPanda and request a new reset link." : link,
                         issued.rawCode(),
-                        linkInstruction,
                         expiryText);
 
         sendRecoveryEmail(user.getEmail(), passwordRecoveryEmailSubject, body);
