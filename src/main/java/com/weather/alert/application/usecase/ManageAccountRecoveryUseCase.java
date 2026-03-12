@@ -4,9 +4,11 @@ import com.weather.alert.application.dto.ConfirmPasswordResetRequest;
 import com.weather.alert.application.dto.ConfirmUsernameRecoveryRequest;
 import com.weather.alert.application.dto.ForgotPasswordRequest;
 import com.weather.alert.application.dto.ForgotUsernameRequest;
+import com.weather.alert.application.dto.MagicLinkRequest;
 import com.weather.alert.application.dto.MessageResponse;
 import com.weather.alert.application.dto.RecoveryRequestResponse;
 import com.weather.alert.application.dto.UsernameRecoveryResponse;
+import com.weather.alert.application.dto.ConfirmMagicLinkRequest;
 import com.weather.alert.application.exception.InvalidRecoveryCodeException;
 import com.weather.alert.application.service.AuthSecurityGuardService;
 import com.weather.alert.domain.model.AccountRecoveryPurpose;
@@ -19,6 +21,7 @@ import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -49,6 +52,7 @@ public class ManageAccountRecoveryUseCase {
     private final EmailSenderPort emailSenderPort;
     private final PasswordEncoder passwordEncoder;
     private final AuthSecurityGuardService authSecurityGuardService;
+    private final AuthenticateRegisteredUserUseCase authenticateRegisteredUserUseCase;
 
     @Value("${app.auth.recovery.token-ttl-minutes:15}")
     private long tokenTtlMinutes;
@@ -71,6 +75,9 @@ public class ManageAccountRecoveryUseCase {
     @Value("${app.auth.recovery.password-email-subject:Reset your Weather Alert password}")
     private String passwordRecoveryEmailSubject;
 
+    @Value("${app.auth.recovery.magic-link-email-subject:Your SkyPanda sign-in link}")
+    private String magicLinkEmailSubject;
+
     @Transactional
     public RecoveryRequestResponse requestUsernameReminder(ForgotUsernameRequest request) {
         return requestUsernameReminder(request, "unknown");
@@ -84,7 +91,7 @@ public class ManageAccountRecoveryUseCase {
         Optional<User> userOptional = userRepository.findByEmail(email);
         if (userOptional.isEmpty()) {
             log.info("AUTH_RECOVERY_USERNAME_REQUEST user=unknown ip={}", valueOrUnknown(clientIp));
-            return buildSyntheticRequestResponse();
+            return buildSyntheticRequestResponse("If an account exists, recovery instructions were sent.");
         }
 
         User user = userOptional.get();
@@ -151,7 +158,7 @@ public class ManageAccountRecoveryUseCase {
         Optional<User> userOptional = resolveUser(request.getUsernameOrEmail());
         if (userOptional.isEmpty()) {
             log.info("AUTH_RECOVERY_PASSWORD_REQUEST user=unknown ip={}", valueOrUnknown(clientIp));
-            return buildSyntheticRequestResponse();
+            return buildSyntheticRequestResponse("If an account exists, recovery instructions were sent.");
         }
 
         User user = userOptional.get();
@@ -206,6 +213,70 @@ public class ManageAccountRecoveryUseCase {
         return MessageResponse.builder()
                 .message("Password updated successfully.")
                 .build();
+    }
+
+    @Transactional
+    public RecoveryRequestResponse requestMagicLogin(MagicLinkRequest request) {
+        return requestMagicLogin(request, "unknown");
+    }
+
+    @Transactional
+    public RecoveryRequestResponse requestMagicLogin(MagicLinkRequest request, String clientIp) {
+        String userKey = normalize(request.getUsernameOrEmail());
+        authSecurityGuardService.consumeRecoveryRequestQuota(AccountRecoveryPurpose.MAGIC_LOGIN, userKey, clientIp);
+
+        Optional<User> userOptional = resolveUser(request.getUsernameOrEmail());
+        if (userOptional.isEmpty()) {
+            log.info("AUTH_MAGIC_LINK_REQUEST user=unknown ip={}", valueOrUnknown(clientIp));
+            return buildSyntheticRequestResponse("If an account exists, a sign-in link was sent.");
+        }
+
+        User user = userOptional.get();
+        RecoveryRequestResponse cooldown = recoveryCooldownResponse(user, AccountRecoveryPurpose.MAGIC_LOGIN);
+        if (cooldown != null) {
+            log.info("AUTH_MAGIC_LINK_REQUEST_THROTTLED userId={} ip={}", user.getId(), valueOrUnknown(clientIp));
+            return cooldown;
+        }
+
+        RecoveryIssue issued = issueRecovery(user, AccountRecoveryPurpose.MAGIC_LOGIN);
+        sendMagicLinkEmail(user, issued);
+
+        log.info("AUTH_MAGIC_LINK_REQUEST userId={} ip={}", user.getId(), valueOrUnknown(clientIp));
+        return RecoveryRequestResponse.builder()
+                .message("If an account exists, a sign-in link was sent.")
+                .recoveryId(issued.token().getId())
+                .codeExpiresAt(issued.token().getExpiresAt())
+                .recoveryCode(exposeRawCode ? issued.rawCode() : null)
+                .build();
+    }
+
+    @Transactional
+    public Authentication confirmMagicLogin(ConfirmMagicLinkRequest request) {
+        return confirmMagicLogin(request, "unknown");
+    }
+
+    @Transactional
+    public Authentication confirmMagicLogin(ConfirmMagicLinkRequest request, String clientIp) {
+        authSecurityGuardService.assertRecoveryConfirmAllowed(request.getRecoveryId(), clientIp);
+
+        AccountRecoveryToken token;
+        try {
+            token = validateCode(
+                    request.getRecoveryId(),
+                    request.getCode(),
+                    AccountRecoveryPurpose.MAGIC_LOGIN);
+        } catch (InvalidRecoveryCodeException ex) {
+            authSecurityGuardService.recordRecoveryConfirmFailure(request.getRecoveryId(), clientIp);
+            log.warn("AUTH_MAGIC_LINK_CONFIRM_FAILURE recoveryId={} ip={}", request.getRecoveryId(), valueOrUnknown(clientIp));
+            throw ex;
+        }
+
+        User user = userRepository.findById(token.getUserId()).orElseThrow(InvalidRecoveryCodeException::new);
+        Authentication authentication = authenticateRegisteredUserUseCase.toAuthentication(user);
+        markUsed(token);
+        authSecurityGuardService.clearRecoveryConfirmFailures(request.getRecoveryId(), clientIp);
+        log.info("AUTH_MAGIC_LINK_CONFIRM_SUCCESS userId={} ip={}", user.getId(), valueOrUnknown(clientIp));
+        return authentication;
     }
 
     private RecoveryRequestResponse recoveryCooldownResponse(User user, AccountRecoveryPurpose purpose) {
@@ -277,10 +348,10 @@ public class ManageAccountRecoveryUseCase {
         accountRecoveryTokenRepository.save(token);
     }
 
-    private RecoveryRequestResponse buildSyntheticRequestResponse() {
+    private RecoveryRequestResponse buildSyntheticRequestResponse(String message) {
         Instant expiresAt = Instant.now().plus(tokenTtlMinutes, ChronoUnit.MINUTES);
         return RecoveryRequestResponse.builder()
-                .message("If an account exists, recovery instructions were sent.")
+                .message(message)
                 .recoveryId(UUID.randomUUID().toString())
                 .codeExpiresAt(expiresAt)
                 .recoveryCode(exposeRawCode ? generateCode(8) : null)
@@ -373,6 +444,38 @@ public class ManageAccountRecoveryUseCase {
         sendRecoveryEmail(user.getEmail(), passwordRecoveryEmailSubject, body);
     }
 
+    private void sendMagicLinkEmail(User user, RecoveryIssue issued) {
+        if (!sendRecoveryEmails) {
+            return;
+        }
+
+        String link = buildMagicLink(issued.token().getId(), issued.rawCode());
+        String expiryText = recoveryExpiryText();
+
+        String body = """
+                Hi %s,
+
+                Use this secure link to sign in to SkyPanda:
+                %s
+
+                If you requested the link on the same device and need the backup code, enter:
+                %s
+
+                This sign-in link expires in %s and can only be used once.
+
+                If you did not request this, you can ignore this email.
+
+                - SkyPanda
+                """
+                .formatted(
+                        displayName(user),
+                        link == null ? "Open the SkyPanda sign-in page and request a new magic link." : link,
+                        issued.rawCode(),
+                        expiryText);
+
+        sendRecoveryEmail(user.getEmail(), magicLinkEmailSubject, body);
+    }
+
     private String recoveryExpiryText() {
         long ttl = Math.max(tokenTtlMinutes, 1);
         return ttl == 1 ? "about 1 minute" : "about %d minutes".formatted(ttl);
@@ -387,6 +490,19 @@ public class ManageAccountRecoveryUseCase {
         String normalizedBase = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         return normalizedBase
                 + "/?recoveryMode=" + encode(mode)
+                + "&recoveryId=" + encode(recoveryId)
+                + "&recoveryCode=" + encode(recoveryCode);
+    }
+
+    private String buildMagicLink(String recoveryId, String recoveryCode) {
+        String base = normalize(recoveryFrontendBaseUrl);
+        if (base == null) {
+            return null;
+        }
+
+        String normalizedBase = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        return normalizedBase
+                + "/auth/login?authMode=magic-link"
                 + "&recoveryId=" + encode(recoveryId)
                 + "&recoveryCode=" + encode(recoveryCode);
     }

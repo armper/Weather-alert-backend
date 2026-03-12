@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiRequest, toErrorMessage } from '../api'
+import { ApiError, apiRequest, toErrorMessage } from '../api'
 import type {
   AlertCriteria,
   AlertEvent,
@@ -25,6 +25,7 @@ import {
   initialForgotPassword,
   initialForgotUsername,
   initialLogin,
+  initialMagicLink,
   initialPasswordForm,
   initialRegister,
   initialVerify,
@@ -33,6 +34,7 @@ import {
   type ForgotPasswordState,
   type ForgotUsernameState,
   type LoginState,
+  type MagicLinkState,
   type NoticeState,
   type PasswordFormState,
   type ProfileFormState,
@@ -45,6 +47,7 @@ export function useWeatherAppState() {
   const [notice, setNotice] = useState<NoticeState | null>(null)
 
   const [loginState, setLoginState] = useState<LoginState>(initialLogin)
+  const [magicLinkState, setMagicLinkState] = useState<MagicLinkState>(initialMagicLink)
   const [registerState, setRegisterState] = useState<RegisterState>(initialRegister)
   const [verifyState, setVerifyState] = useState<VerifyState>(initialVerify)
   const [latestVerification, setLatestVerification] = useState<ChannelVerification | null>(null)
@@ -52,6 +55,8 @@ export function useWeatherAppState() {
   const [forgotPasswordState, setForgotPasswordState] = useState<ForgotPasswordState>(initialForgotPassword)
   const [usernameRecoveryMeta, setUsernameRecoveryMeta] = useState<RecoveryRequestResponse | null>(null)
   const [passwordRecoveryMeta, setPasswordRecoveryMeta] = useState<RecoveryRequestResponse | null>(null)
+  const [magicLinkMeta, setMagicLinkMeta] = useState<RecoveryRequestResponse | null>(null)
+  const [pendingMagicLinkToken, setPendingMagicLinkToken] = useState<{ recoveryId: string; code: string } | null>(null)
 
   const [me, setMe] = useState<UserAccount | null>(null)
   const [criteria, setCriteria] = useState<AlertCriteria[]>([])
@@ -66,6 +71,7 @@ export function useWeatherAppState() {
   const [criteriaForm, setCriteriaForm] = useState<CriteriaFormState>(initialCriteriaForm)
 
   const [loadingAuth, setLoadingAuth] = useState(false)
+  const [confirmingMagicLink, setConfirmingMagicLink] = useState(false)
   const [loadingData, setLoadingData] = useState(false)
   const [savingCriteria, setSavingCriteria] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
@@ -184,6 +190,7 @@ export function useWeatherAppState() {
 
     const params = new URLSearchParams(window.location.search)
     const mode = params.get('recoveryMode')
+    const authMode = params.get('authMode')
     const recoveryId = params.get('recoveryId') ?? ''
     const recoveryCode = params.get('recoveryCode') ?? ''
     const hasRecoveryQuery = recoveryId !== '' || recoveryCode !== ''
@@ -206,6 +213,9 @@ export function useWeatherAppState() {
       if (hasRecoveryQuery) {
         window.history.replaceState(null, '', '/auth/forgot-password')
       }
+    } else if (authMode === 'magic-link' && recoveryId && recoveryCode) {
+      setPendingMagicLinkToken({ recoveryId, code: recoveryCode })
+      window.history.replaceState(null, '', '/auth/login')
     }
   }, [token])
 
@@ -225,10 +235,10 @@ export function useWeatherAppState() {
     return () => window.clearTimeout(id)
   }, [passwordRetryAfterSeconds])
 
-  function persistToken(accessToken: string) {
+  const persistToken = useCallback((accessToken: string) => {
     localStorage.setItem(STORAGE_KEY, accessToken)
     setToken(accessToken)
-  }
+  }, [])
 
   function logout() {
     localStorage.removeItem(STORAGE_KEY)
@@ -251,6 +261,87 @@ export function useWeatherAppState() {
     } finally {
       setLoadingAuth(false)
     }
+  }
+
+  const confirmMagicLinkToken = useCallback(async (recoveryId: string, code: string, successText: string) => {
+    setConfirmingMagicLink(true)
+    setNotice(null)
+
+    try {
+      const response = await apiRequest<AuthTokenResponse>('/api/auth/magic-link/confirm', {
+        method: 'POST',
+        body: {
+          recoveryId,
+          code,
+        },
+      })
+      persistToken(response.accessToken)
+      setMagicLinkState(initialMagicLink)
+      setMagicLinkMeta(null)
+      setNotice({ kind: 'success', text: successText })
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setConfirmingMagicLink(false)
+    }
+  }, [persistToken])
+
+  useEffect(() => {
+    if (token || !pendingMagicLinkToken) {
+      return
+    }
+
+    void confirmMagicLinkToken(
+      pendingMagicLinkToken.recoveryId,
+      pendingMagicLinkToken.code,
+      'Signed in from your SkyPanda email link.',
+    ).finally(() => {
+      setPendingMagicLinkToken(null)
+    })
+  }, [token, pendingMagicLinkToken, confirmMagicLinkToken])
+
+  async function handleMagicLinkRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setLoadingAuth(true)
+    setNotice(null)
+
+    try {
+      const response = await apiRequest<RecoveryRequestResponse>('/api/auth/magic-link/request', {
+        method: 'POST',
+        body: {
+          usernameOrEmail: magicLinkState.usernameOrEmail,
+        },
+      })
+      setMagicLinkMeta(response)
+      setMagicLinkState((state) => ({
+        ...state,
+        recoveryId: response.recoveryId ?? state.recoveryId,
+        code: '',
+      }))
+      setNotice({
+        kind: 'success',
+        text: 'Check your email for a secure SkyPanda sign-in link.',
+      })
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+    } finally {
+      setLoadingAuth(false)
+    }
+  }
+
+  async function handleMagicLinkConfirm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!magicLinkState.recoveryId.trim()) {
+      setNotice({ kind: 'error', text: 'Request a sign-in link first or open the link from your email.' })
+      return
+    }
+    await confirmMagicLinkToken(
+      magicLinkState.recoveryId,
+      magicLinkState.code,
+      'Signed in from your SkyPanda email link.',
+    )
   }
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
@@ -433,7 +524,7 @@ export function useWeatherAppState() {
   async function handleCreateCriteria(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!token || !me) {
-      return
+      return { ok: false as const, reason: 'unauthorized' as const }
     }
 
     setSavingCriteria(true)
@@ -448,8 +539,17 @@ export function useWeatherAppState() {
       })
       setNotice({ kind: 'success', text: `Created alert "${String(payload.name ?? criteriaForm.name ?? 'New alert')}".` })
       await refreshData(token, me)
+      return { ok: true as const }
     } catch (error) {
+      if (error instanceof ApiError && error.problem?.errorCode === 'BILLING_STATE_ERROR') {
+        return {
+          ok: false as const,
+          reason: 'billing_limit' as const,
+          message: toErrorMessage(error),
+        }
+      }
       setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return { ok: false as const, reason: 'error' as const, message: toErrorMessage(error) }
     } finally {
       setSavingCriteria(false)
     }
@@ -830,6 +930,8 @@ export function useWeatherAppState() {
 
     loginState,
     setLoginState,
+    magicLinkState,
+    setMagicLinkState,
     registerState,
     setRegisterState,
     verifyState,
@@ -842,6 +944,7 @@ export function useWeatherAppState() {
     setForgotPasswordState,
     usernameRecoveryMeta,
     passwordRecoveryMeta,
+    magicLinkMeta,
     usernameRetryAfterSeconds,
     passwordRetryAfterSeconds,
 
@@ -860,6 +963,7 @@ export function useWeatherAppState() {
     setCriteriaForm,
 
     loadingAuth,
+    confirmingMagicLink,
     loadingData,
     savingCriteria,
     savingProfile,
@@ -873,6 +977,8 @@ export function useWeatherAppState() {
     busyAdminAction,
 
     handleLogin,
+    handleMagicLinkRequest,
+    handleMagicLinkConfirm,
     handleRegister,
     handleVerifyEmail,
     handleResendVerification,

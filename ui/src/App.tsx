@@ -26,11 +26,15 @@ function RootRedirect() {
   }
   const params = new URLSearchParams(location.search)
   const mode = params.get('recoveryMode')
+  const authMode = params.get('authMode')
   if (mode === 'password') {
     return <Navigate to={`/auth/forgot-password${location.search}`} replace />
   }
   if (mode === 'username') {
     return <Navigate to={`/auth/forgot-username${location.search}`} replace />
+  }
+  if (authMode === 'magic-link') {
+    return <Navigate to={`/auth/login${location.search}`} replace />
   }
   return <AuthLandingPage />
 }

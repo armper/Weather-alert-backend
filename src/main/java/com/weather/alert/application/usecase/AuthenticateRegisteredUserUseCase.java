@@ -32,24 +32,10 @@ public class AuthenticateRegisteredUserUseCase {
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             return Optional.empty();
         }
-        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new EmailVerificationRequiredException(user.getId());
-        }
-        if (user.getApprovalStatus() == UserApprovalStatus.SUSPENDED) {
-            throw new AccountSuspendedException(user.getId());
-        }
-        if (Boolean.TRUE.equals(user.getPasswordResetRequired())) {
-            throw new PasswordResetRequiredException(user.getId());
-        }
-
-        String role = user.getRole() == null || user.getRole().isBlank() ? "ROLE_USER" : user.getRole();
-        return Optional.of(new UsernamePasswordAuthenticationToken(
-                user.getId(),
-                "n/a",
-                List.of(new SimpleGrantedAuthority(role))));
+        return Optional.of(toAuthentication(user));
     }
 
-    private Optional<User> resolveUser(String usernameOrEmail) {
+    public Optional<User> resolveUser(String usernameOrEmail) {
         String normalizedInput = normalize(usernameOrEmail);
         if (normalizedInput == null) {
             return Optional.empty();
@@ -61,6 +47,24 @@ public class AuthenticateRegisteredUserUseCase {
         }
 
         return userRepository.findByEmail(normalizedInput.toLowerCase(Locale.ROOT));
+    }
+
+    public Authentication toAuthentication(User user) {
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailVerificationRequiredException(user.getId());
+        }
+        if (user.getApprovalStatus() == UserApprovalStatus.SUSPENDED) {
+            throw new AccountSuspendedException(user.getId());
+        }
+        if (Boolean.TRUE.equals(user.getPasswordResetRequired())) {
+            throw new PasswordResetRequiredException(user.getId());
+        }
+
+        String role = user.getRole() == null || user.getRole().isBlank() ? "ROLE_USER" : user.getRole();
+        return new UsernamePasswordAuthenticationToken(
+                user.getId(),
+                "n/a",
+                List.of(new SimpleGrantedAuthority(role)));
     }
 
     private String normalize(String value) {

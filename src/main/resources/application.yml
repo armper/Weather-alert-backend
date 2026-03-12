@@ -172,11 +172,12 @@ app:
     recovery:
       token-ttl-minutes: ${APP_AUTH_RECOVERY_TOKEN_TTL_MINUTES:15}
       request-cooldown-seconds: ${APP_AUTH_RECOVERY_REQUEST_COOLDOWN_SECONDS:60}
-      expose-raw-code: ${APP_AUTH_RECOVERY_EXPOSE_RAW_CODE:true}
+      expose-raw-code: ${APP_AUTH_RECOVERY_EXPOSE_RAW_CODE:false}
       send-email: ${APP_AUTH_RECOVERY_SEND_EMAIL:false}
       frontend-base-url: ${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}
-      username-email-subject: ${APP_AUTH_RECOVERY_USERNAME_EMAIL_SUBJECT:Your Weather Alert username}
-      password-email-subject: ${APP_AUTH_RECOVERY_PASSWORD_EMAIL_SUBJECT:Reset your Weather Alert password}
+      username-email-subject: ${APP_AUTH_RECOVERY_USERNAME_EMAIL_SUBJECT:Your SkyPanda username}
+      password-email-subject: ${APP_AUTH_RECOVERY_PASSWORD_EMAIL_SUBJECT:Reset your SkyPanda password}
+      magic-link-email-subject: ${APP_AUTH_RECOVERY_MAGIC_LINK_EMAIL_SUBJECT:Your SkyPanda sign-in link}
     security:
       login:
         max-failures: ${APP_AUTH_SECURITY_LOGIN_MAX_FAILURES:6}

@@ -286,6 +286,50 @@ class SecurityConfigTest {
     }
 
     @Test
+    void shouldAllowMagicLinkRequestWithoutAuthentication() throws Exception {
+        when(manageAccountRecoveryUseCase.requestMagicLogin(any(), any()))
+                .thenReturn(com.weather.alert.application.dto.RecoveryRequestResponse.builder()
+                        .message("If an account exists, a sign-in link was sent.")
+                        .recoveryId("magic-link-1")
+                        .build());
+
+        mockMvc.perform(post("/api/auth/magic-link/request")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "usernameOrEmail": "user@example.com"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recoveryId").value("magic-link-1"));
+    }
+
+    @Test
+    void shouldAllowMagicLinkConfirmWithoutAuthentication() throws Exception {
+        when(manageAccountRecoveryUseCase.confirmMagicLogin(any(), any()))
+                .thenReturn(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        "user-1", "n/a", List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        when(jwtEncoder.encode(any(JwtEncoderParameters.class))).thenReturn(new Jwt(
+                "jwt-token-value",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Map.of("alg", "HS256"),
+                Map.of("sub", "user-1", "scope", "ROLE_USER")));
+
+        mockMvc.perform(post("/api/auth/magic-link/confirm")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "recoveryId": "magic-link-1",
+                                  "code": "A2B3C4D5"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("jwt-token-value"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
     void shouldAllowPasswordRecoveryRequestWithoutAuthentication() throws Exception {
         when(manageAccountRecoveryUseCase.requestPasswordReset(any(), any()))
                 .thenReturn(com.weather.alert.application.dto.RecoveryRequestResponse.builder()

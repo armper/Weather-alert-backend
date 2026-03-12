@@ -2,8 +2,10 @@ package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.ConfirmPasswordResetRequest;
 import com.weather.alert.application.dto.ConfirmUsernameRecoveryRequest;
+import com.weather.alert.application.dto.ConfirmMagicLinkRequest;
 import com.weather.alert.application.dto.ForgotPasswordRequest;
 import com.weather.alert.application.dto.ForgotUsernameRequest;
+import com.weather.alert.application.dto.MagicLinkRequest;
 import com.weather.alert.application.exception.InvalidRecoveryCodeException;
 import com.weather.alert.application.service.AuthSecurityGuardService;
 import com.weather.alert.domain.model.AccountRecoveryPurpose;
@@ -20,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -58,6 +61,9 @@ class ManageAccountRecoveryUseCaseTest {
     @Mock
     private AuthSecurityGuardService authSecurityGuardService;
 
+    @Mock
+    private AuthenticateRegisteredUserUseCase authenticateRegisteredUserUseCase;
+
     private ManageAccountRecoveryUseCase useCase;
 
     @BeforeEach
@@ -67,14 +73,16 @@ class ManageAccountRecoveryUseCaseTest {
                 accountRecoveryTokenRepository,
                 emailSenderPort,
                 passwordEncoder,
-                authSecurityGuardService);
+                authSecurityGuardService,
+                authenticateRegisteredUserUseCase);
         ReflectionTestUtils.setField(useCase, "tokenTtlMinutes", 15L);
         ReflectionTestUtils.setField(useCase, "requestCooldownSeconds", 60L);
         ReflectionTestUtils.setField(useCase, "exposeRawCode", true);
         ReflectionTestUtils.setField(useCase, "sendRecoveryEmails", false);
         ReflectionTestUtils.setField(useCase, "recoveryFrontendBaseUrl", "http://localhost:5174");
-        ReflectionTestUtils.setField(useCase, "usernameRecoveryEmailSubject", "Your Weather Alert username");
-        ReflectionTestUtils.setField(useCase, "passwordRecoveryEmailSubject", "Reset your Weather Alert password");
+        ReflectionTestUtils.setField(useCase, "usernameRecoveryEmailSubject", "Your SkyPanda username");
+        ReflectionTestUtils.setField(useCase, "passwordRecoveryEmailSubject", "Reset your SkyPanda password");
+        ReflectionTestUtils.setField(useCase, "magicLinkEmailSubject", "Your SkyPanda sign-in link");
     }
 
     @Test
@@ -130,7 +138,7 @@ class ManageAccountRecoveryUseCaseTest {
 
         EmailMessage email = emailCaptor.getValue();
         assertEquals("alice@example.com", email.to());
-        assertEquals("Your Weather Alert username", email.subject());
+        assertEquals("Your SkyPanda username", email.subject());
         assertTrue(email.body().contains(response.getRecoveryCode()));
         assertTrue(email.body().contains("This code expires in about 15 minutes."));
         assertTrue(email.body().contains("recoveryMode=username"));
@@ -241,12 +249,71 @@ class ManageAccountRecoveryUseCaseTest {
 
         EmailMessage email = emailCaptor.getValue();
         assertEquals("alice@example.com", email.to());
-        assertEquals("Reset your Weather Alert password", email.subject());
+        assertEquals("Reset your SkyPanda password", email.subject());
         assertTrue(email.body().contains(response.getRecoveryCode()));
         assertTrue(email.body().contains("This code expires in about 15 minutes."));
         assertTrue(email.body().contains("recoveryMode=password"));
         assertFalse(email.body().contains("Recovery ID:"));
         assertFalse(email.body().contains("POST /api/"));
+    }
+
+    @Test
+    void shouldSendMagicLinkEmailWithSignInLink() {
+        ReflectionTestUtils.setField(useCase, "sendRecoveryEmails", true);
+
+        MagicLinkRequest request = new MagicLinkRequest();
+        request.setUsernameOrEmail("alice@example.com");
+
+        when(userRepository.findById("alice@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(User.builder()
+                .id("alice")
+                .email("alice@example.com")
+                .name("Alice")
+                .build()));
+        when(accountRecoveryTokenRepository.findLatestByUserIdAndPurpose("alice", AccountRecoveryPurpose.MAGIC_LOGIN))
+                .thenReturn(Optional.empty());
+        when(accountRecoveryTokenRepository.save(any(AccountRecoveryToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.requestMagicLogin(request);
+
+        ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSenderPort).send(emailCaptor.capture());
+
+        EmailMessage email = emailCaptor.getValue();
+        assertEquals("alice@example.com", email.to());
+        assertEquals("Your SkyPanda sign-in link", email.subject());
+        assertTrue(email.body().contains("/auth/login?authMode=magic-link"));
+        assertTrue(email.body().contains(response.getRecoveryCode()));
+        assertTrue(email.body().contains("can only be used once"));
+    }
+
+    @Test
+    void shouldConfirmMagicLinkAndReturnAuthentication() {
+        ConfirmMagicLinkRequest request = new ConfirmMagicLinkRequest();
+        request.setRecoveryId("magic-1");
+        request.setCode("A2B3C4D5");
+
+        AccountRecoveryToken token = AccountRecoveryToken.builder()
+                .id("magic-1")
+                .userId("alice")
+                .purpose(AccountRecoveryPurpose.MAGIC_LOGIN)
+                .tokenHash(hash("A2B3C4D5"))
+                .expiresAt(Instant.now().plusSeconds(300))
+                .build();
+
+        Authentication authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                "alice",
+                "n/a");
+
+        when(accountRecoveryTokenRepository.findById("magic-1")).thenReturn(Optional.of(token));
+        when(accountRecoveryTokenRepository.save(any(AccountRecoveryToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findById("alice")).thenReturn(Optional.of(User.builder().id("alice").emailVerified(true).build()));
+        when(authenticateRegisteredUserUseCase.toAuthentication(any(User.class))).thenReturn(authentication);
+
+        Authentication response = useCase.confirmMagicLogin(request);
+
+        assertEquals("alice", response.getName());
+        verify(accountRecoveryTokenRepository).save(any(AccountRecoveryToken.class));
     }
 
     @Test

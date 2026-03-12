@@ -62,6 +62,7 @@ import static org.mockito.Mockito.when;
         "app.security.jwt.secret=test-jwt-signing-secret-with-minimum-length-123",
         "app.admin.jobs.token=test-admin-jobs-token",
         "app.notification.verification.expose-raw-token=true",
+        "app.auth.recovery.expose-raw-code=true",
         "spring.task.scheduling.enabled=false",
         "management.tracing.enabled=false"
 })
@@ -791,6 +792,70 @@ class ApiIntegrationContractTest {
                 .then()
                 .statusCode(HttpStatus.OK.value())
                 .body("accessToken", notNullValue());
+    }
+
+    @Test
+    void shouldIssueJwtViaMagicLinkFlow() {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        String username = "magic" + unique;
+        String email = username + "@example.com";
+        String password = "StrongPass123!";
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> registerResponse = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", password,
+                        "email", email,
+                        "name", "Magic Link User"))
+                .when()
+                .post("/api/auth/register")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract();
+
+        String verificationId = registerResponse.path("emailVerification.id");
+        String verificationToken = registerResponse.path("emailVerification.verificationToken");
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "userId", username,
+                        "verificationId", verificationId,
+                        "token", verificationToken))
+                .when()
+                .post("/api/auth/register/verify-email")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("emailVerified", equalTo(true));
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> magicRequest = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of("usernameOrEmail", email))
+                .when()
+                .post("/api/auth/magic-link/request")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("message", notNullValue())
+                .body("recoveryId", notNullValue())
+                .body("recoveryCode", notNullValue())
+                .extract();
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "recoveryId", magicRequest.path("recoveryId"),
+                        "code", magicRequest.path("recoveryCode")))
+                .when()
+                .post("/api/auth/magic-link/confirm")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("accessToken", notNullValue())
+                .body("tokenType", equalTo("Bearer"));
     }
 
     @Test

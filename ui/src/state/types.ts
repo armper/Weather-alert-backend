@@ -29,6 +29,12 @@ export interface LoginState {
   password: string
 }
 
+export interface MagicLinkState {
+  usernameOrEmail: string
+  recoveryId: string
+  code: string
+}
+
 export interface RegisterState {
   username: string
   password: string
@@ -88,6 +94,12 @@ export interface PasswordFormState {
 export const initialLogin: LoginState = {
   username: '',
   password: '',
+}
+
+export const initialMagicLink: MagicLinkState = {
+  usernameOrEmail: '',
+  recoveryId: '',
+  code: '',
 }
 
 export const initialRegister: RegisterState = {

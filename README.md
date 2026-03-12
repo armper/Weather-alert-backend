@@ -648,6 +648,8 @@ docker compose down -v
 
 All `/api/**` endpoints require JWT Bearer authentication except onboarding/auth bootstrap routes:
 - `POST /api/auth/token`
+- `POST /api/auth/magic-link/request`
+- `POST /api/auth/magic-link/confirm`
 - `POST /api/auth/register`
 - `POST /api/auth/register/verify-email`
 - `POST /api/auth/register/resend-verification`
@@ -656,7 +658,7 @@ All `/api/**` endpoints require JWT Bearer authentication except onboarding/auth
 - `POST /api/auth/recovery/password/request`
 - `POST /api/auth/recovery/password/confirm`
 
-The four `/api/auth/recovery/**` endpoints are intentionally unauthenticated.
+The six `/api/auth/recovery/**` and `/api/auth/magic-link/**` endpoints are intentionally unauthenticated.
 
 - **USER role**: can manage only their own criteria (`POST/PUT/DELETE /api/criteria/**`), their own profile (`/api/users/me`), their own notification preferences (`/api/users/me/notification-preferences`), read weather/alerts/criteria, and acknowledge alerts
 - **ADMIN role**: can manage criteria (and criteria-level overrides) for any user, manage account state (`/api/admin/users/**`), trigger operational jobs (`/api/admin/jobs/**`), and access `/api/alerts/pending` and alert-expire endpoint
@@ -710,6 +712,18 @@ POST /api/auth/token
 {
   "username": "alice",
   "password": "StrongPass123!"
+}
+
+# 3b) Or request an email sign-in link
+POST /api/auth/magic-link/request
+{
+  "usernameOrEmail": "alice@example.com"
+}
+
+POST /api/auth/magic-link/confirm
+{
+  "recoveryId": "<recovery-id>",
+  "code": "<magic-link-code>"
 }
 
 # 4) User updates account profile (optional)

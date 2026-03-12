@@ -21,6 +21,8 @@ Unauthenticated onboarding/auth endpoints:
 - `POST /api/auth/register/verify-email`
 - `POST /api/auth/register/resend-verification`
 - `POST /api/auth/token`
+- `POST /api/auth/magic-link/request`
+- `POST /api/auth/magic-link/confirm`
 
 #### Register Account
 ```http
@@ -84,7 +86,28 @@ Content-Type: application/json
 #### Login Gate Rules for Registered Users
 - `emailVerified` must be `true`
 
-If either gate is not met, `POST /api/auth/token` returns `403`.
+If either gate is not met, `POST /api/auth/token` and `POST /api/auth/magic-link/confirm` return `403`.
+
+#### Request Magic Link
+```http
+POST /api/auth/magic-link/request
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "alice@example.com"
+}
+```
+
+#### Confirm Magic Link
+```http
+POST /api/auth/magic-link/confirm
+Content-Type: application/json
+
+{
+  "recoveryId": "4f5f913d-baa8-4d20-8f72-e894712b8b23",
+  "code": "A2B3C4D5"
+}
+```
 
 #### My Account Profile
 ```http

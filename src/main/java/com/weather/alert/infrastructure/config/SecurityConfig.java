@@ -57,6 +57,8 @@ public class SecurityConfig {
                                 "/webjars/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/token").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/magic-link/request").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/magic-link/confirm").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register/verify-email").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register/resend-verification").permitAll()
