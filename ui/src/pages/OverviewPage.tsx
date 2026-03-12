@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
+import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import {
   formatFriendlyLocation,
   formatPercentOrNA,
@@ -8,11 +9,13 @@ import {
   formatWind,
 } from '../lib/formatting'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
+import { buildRuleDashboardSummary } from '../lib/ruleDashboard'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
   const { currentWeather, criteria, alerts } = useAppState()
   const summary = buildAlertConsoleSummary(criteria, alerts, currentWeather)
+  const ruleSummary = buildRuleDashboardSummary(criteria, alerts, currentWeather)
   const activeRules = criteria.filter((item) => item.enabled !== false).length
   const defaultAlertLocation = criteria[0]?.location?.trim() ?? ''
   const resolvedConditionLocation = formatFriendlyLocation(currentWeather?.location ?? defaultAlertLocation)
@@ -44,12 +47,23 @@ export function OverviewPage() {
                 {!summary.allClear ? <span>{`${summary.activeCount} active alert${summary.activeCount === 1 ? '' : 's'}`}</span> : null}
               </div>
               <Link to="/app/rules#location-picker" className="weather-map-link" aria-label="Open location picker map">
-                <StaticLocationMap
-                  latitude={defaultLatitude}
-                  longitude={defaultLongitude}
-                  radiusKm={defaultRadiusKm}
-                  className="weather-map-preview"
-                />
+                {ruleSummary.locationGroups.length > 0 ? (
+                  <MonitoringRulesMap
+                    groups={ruleSummary.locationGroups}
+                    selectedGroupId={ruleSummary.locationGroups.find((item) => item.statusTone === 'critical')?.id ?? null}
+                    compact
+                    interactive={false}
+                    className="weather-map-preview"
+                    ariaLabel="Monitored locations overview"
+                  />
+                ) : (
+                  <StaticLocationMap
+                    latitude={defaultLatitude}
+                    longitude={defaultLongitude}
+                    radiusKm={defaultRadiusKm}
+                    className="weather-map-preview"
+                  />
+                )}
               </Link>
               <p className="weather-temp weather-temp-hero">{formatTemperature(currentWeather.temperature, 'F')}</p>
               <p className="overview-headline">{currentHeadline}</p>
@@ -108,9 +122,9 @@ export function OverviewPage() {
           ) : (
             <div className="stats-grid overview-stats-grid">
               <Link to="/app/alerts" className="stat-card-link overview-nav-card">
-                <p className="muted small">My Alerts</p>
+                <p className="muted small">Monitoring Rules</p>
                 <p className="weather-temp stat-number">{activeRules}</p>
-                <p className="muted small stat-caption">active alerts</p>
+                <p className="muted small stat-caption">live rules</p>
               </Link>
               <div className="overview-stats-divider" aria-hidden />
               <Link to="/app/events" className="stat-card-link overview-nav-card">

@@ -1,101 +1,199 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
+import { RuleHeartbeatStrip } from '../components/features/dashboard/RuleHeartbeatStrip'
+import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import { AriaSelect } from '../components/ui/AriaSelect'
-import { formatRelativeTime } from '../lib/formatting'
+import {
+  buildRuleDashboardSummary,
+  compareRuleViewModel,
+  type RuleSortMode,
+  type RuleViewModel,
+} from '../lib/ruleDashboard'
 import { useAppState } from '../state/useAppState'
-import type { AlertCriteria, AlertEvent, WeatherCondition } from '../types'
-
-type SortMode = 'attention' | 'lastTriggered' | 'location' | 'name'
 
 const SORT_OPTIONS = [
   { id: 'attention', label: 'Attention first' },
-  { id: 'lastTriggered', label: 'Latest triggered' },
+  { id: 'recentlyTriggered', label: 'Recently triggered' },
+  { id: 'alphabetical', label: 'Alphabetical' },
   { id: 'location', label: 'Location' },
-  { id: 'name', label: 'Alert name' },
 ] as const
 
 export function ManageAlertsPage() {
   const { alerts, busyCriteriaId, criteria, currentWeather, handleDeleteCriteria, handleToggleCriteriaEnabled } =
     useAppState()
-  const [sortMode, setSortMode] = useState<SortMode>('attention')
-  const activeCount = criteria.filter((item) => item.enabled !== false).length
-  const pausedCount = criteria.length - activeCount
+  const [sortMode, setSortMode] = useState<RuleSortMode>('attention')
+  const [pinnedGroupId, setPinnedGroupId] = useState<string | null>(null)
+  const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null)
+  const cardRefs = useRef(new Map<string, HTMLElement>())
 
-  const latestAlertByCriteria = useMemo(() => {
-    const latest = new Map<string, AlertEvent>()
-    for (const alert of alerts) {
-      if (!alert.criteriaId) {
-        continue
-      }
+  const summary = useMemo(
+    () => buildRuleDashboardSummary(criteria, alerts, currentWeather),
+    [criteria, alerts, currentWeather],
+  )
 
-      const existing = latest.get(alert.criteriaId)
-      if (!existing) {
-        latest.set(alert.criteriaId, alert)
-        continue
-      }
+  const activeFocusedGroupId =
+    hoveredGroupId ??
+    pinnedGroupId ??
+    summary.locationGroups.find((item) => item.statusTone === 'critical')?.id ??
+    summary.locationGroups[0]?.id ??
+    null
 
-      const existingTime = new Date(existing.alertTime ?? 0).getTime()
-      const nextTime = new Date(alert.alertTime ?? 0).getTime()
-      if (nextTime >= existingTime) {
-        latest.set(alert.criteriaId, alert)
-      }
+  const activeFocusedRuleIds = useMemo(
+    () => new Set(summary.locationGroups.find((item) => item.id === activeFocusedGroupId)?.rules.map((item) => item.criteriaId) ?? []),
+    [activeFocusedGroupId, summary.locationGroups],
+  )
+
+  const sortedActiveRules = useMemo(
+    () => [...summary.activeRules].sort((left, right) => compareRuleViewModel(left, right, sortMode)),
+    [summary.activeRules, sortMode],
+  )
+
+  const sortedPausedRules = useMemo(
+    () => [...summary.pausedRules].sort((left, right) => compareRuleViewModel(left, right, sortMode)),
+    [summary.pausedRules, sortMode],
+  )
+
+  const focusedGroup = useMemo(
+    () => summary.locationGroups.find((item) => item.id === activeFocusedGroupId) ?? null,
+    [activeFocusedGroupId, summary.locationGroups],
+  )
+
+  function registerCardRef(criteriaId: string, element: HTMLElement | null) {
+    if (element) {
+      cardRefs.current.set(criteriaId, element)
+      return
     }
-    return latest
-  }, [alerts])
+    cardRefs.current.delete(criteriaId)
+  }
 
-  const groupedCriteria = useMemo(() => {
-    const enriched = criteria.map((item) => buildCriteriaViewModel(item, latestAlertByCriteria.get(item.id), currentWeather))
-    return [
-      {
-        key: 'active',
-        title: 'Active Now',
-        description: 'Rules currently watching for changing conditions.',
-        items: enriched
-          .filter((item) => item.criteria.enabled !== false)
-          .sort((left, right) => compareCriteriaViewModel(left, right, sortMode)),
-      },
-      {
-        key: 'paused',
-        title: 'Paused',
-        description: 'Rules saved for later but not currently monitoring.',
-        items: enriched
-          .filter((item) => item.criteria.enabled === false)
-          .sort((left, right) => compareCriteriaViewModel(left, right, sortMode)),
-      },
-    ].filter((group) => group.items.length > 0)
-  }, [criteria, currentWeather, latestAlertByCriteria, sortMode])
+  function focusGroup(groupId: string | null, shouldScroll = false) {
+    if (!groupId) {
+      setPinnedGroupId(null)
+      return
+    }
+    setPinnedGroupId(groupId)
+    if (!shouldScroll) {
+      return
+    }
+    const firstCriteriaId = summary.locationGroups.find((item) => item.id === groupId)?.rules[0]?.criteriaId
+    const target = firstCriteriaId ? cardRefs.current.get(firstCriteriaId) : undefined
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function renderCriteriaCard(item: RuleViewModel) {
+    return (
+      <CriteriaCard
+        key={item.criteria.id}
+        criteria={item.criteria}
+        busy={busyCriteriaId === item.criteria.id}
+        triggerCondition={item.triggerCondition}
+        locationLabel={item.locationLabel}
+        monitoringState={item.statusLabel}
+        monitoringTone={item.statusTone}
+        monitoringDetail={item.statusDetail}
+        historyLabel={item.lastAlertLabel}
+        emphasis={item.emphasis}
+        selected={item.locationGroupId != null && activeFocusedRuleIds.has(item.criteria.id)}
+        onDelete={(criteriaId) => void handleDeleteCriteria(criteriaId)}
+        onToggleEnabled={(criteriaId, enabled) => void handleToggleCriteriaEnabled(criteriaId, enabled)}
+        onPointerEnter={() => setHoveredGroupId(item.locationGroupId ?? null)}
+        onPointerLeave={() => setHoveredGroupId(null)}
+        onSelect={() => focusGroup(item.locationGroupId ?? null)}
+        cardRef={(element) => registerCardRef(item.criteria.id, element)}
+      />
+    )
+  }
 
   return (
     <section className="page-stack">
       <article className="panel">
         <div className="panel-title-row">
-          <h2>My Alerts</h2>
+          <h2>Monitoring Rules</h2>
           <span className="badge">{criteria.length} total</span>
         </div>
+
+        <RuleHeartbeatStrip summary={summary.heartbeat} />
+
+        {summary.locationGroups.length > 0 ? (
+          <section className="rule-monitoring-map-panel">
+            <div className="panel-title-row rule-monitoring-map-header">
+              <div>
+                <p className="eyebrow">Monitoring Map</p>
+                <h3>Watched places</h3>
+              </div>
+              <span className={`badge ${summary.heartbeat.allClear ? '' : 'is-live'}`}>
+                {summary.locationGroups.length} location{summary.locationGroups.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <p className="muted small rule-monitoring-map-copy">
+              Click a rule or marker to jump between the list and the places SkyPanda is actively watching.
+            </p>
+            <div className="rule-monitoring-layout">
+              <MonitoringRulesMap
+                groups={summary.locationGroups}
+                selectedGroupId={activeFocusedGroupId}
+                onMarkerSelect={(groupId) => focusGroup(groupId, true)}
+                onMarkerHover={setHoveredGroupId}
+                className="rule-monitoring-map"
+              />
+              <div className="rule-monitoring-context">
+                <div>
+                  <p className="eyebrow">Selected Watch Area</p>
+                  <h3>{focusedGroup?.locationLabel ?? 'Monitoring overview'}</h3>
+                  <p className="muted small">
+                    {focusedGroup
+                      ? `${focusedGroup.statusLabel}. ${focusedGroup.ruleCount} rule${focusedGroup.ruleCount === 1 ? '' : 's'} linked here.`
+                      : 'Select a marker to inspect the rules protecting that location.'}
+                  </p>
+                </div>
+                {focusedGroup ? (
+                  <div className="monitoring-watch-chips rule-monitoring-context-chips">
+                    {focusedGroup.rules.map((rule) => (
+                      <button
+                        key={rule.criteriaId}
+                        type="button"
+                        className={`metric-pill rule-monitoring-context-chip is-${rule.monitoringTone}`}
+                        onClick={() => {
+                          setPinnedGroupId(focusedGroup.id)
+                          cardRefs.current.get(rule.criteriaId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }}
+                      >
+                        <span aria-hidden>{rule.icon}</span>
+                        <span>{rule.ruleName}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <div className="manage-alerts-toolbar">
           <div className="manage-alerts-badges">
-            <span className="badge">{activeCount} active</span>
-            <span className="badge">{pausedCount} paused</span>
-            <span className="badge">{latestAlertByCriteria.size} triggered before</span>
+            <span className="badge">{summary.heartbeat.activeRules} monitoring</span>
+            <span className="badge">{summary.heartbeat.pausedRules} paused</span>
+            <span className="badge">{summary.heartbeat.recentRules} recently alerted</span>
           </div>
           {criteria.length > 1 ? (
             <AriaSelect
-              label="Sort alerts"
+              label="Sort rules"
               buttonClassName="aria-select-trigger"
               popoverClassName="aria-select-popover"
               listBoxClassName="aria-select-listbox"
               selectedKey={sortMode}
               options={SORT_OPTIONS.map((option) => ({ ...option }))}
-              onSelectionChange={(value) => setSortMode(value as SortMode)}
+              onSelectionChange={(value) => setSortMode(value as RuleSortMode)}
             />
           ) : null}
         </div>
+
         {criteria.length === 0 ? (
           <div className="empty-state-panel">
-            <h3>No alerts yet</h3>
+            <h3>No monitoring rules yet</h3>
             <p className="muted">
-              Create your first rule and it will show up here with status, recent activity, and trigger proximity.
+              Create your first rule and it will show up here with live monitoring status, location context, and quick controls.
             </p>
             <div className="button-row empty-state-actions">
               <Link to="/app/rules#create-custom-alert" className="primary overview-action-link">
@@ -105,215 +203,38 @@ export function ManageAlertsPage() {
           </div>
         ) : (
           <div className="stack">
-            {groupedCriteria.map((group) => (
-              <section key={group.key} className="criteria-section">
+            <section className="criteria-section">
+              <div className="criteria-section-header">
+                <div>
+                  <h3>Monitoring now</h3>
+                  <p className="muted small">These rules are actively watching your saved locations.</p>
+                </div>
+                <span className={`badge ${summary.heartbeat.allClear ? '' : 'is-live'}`}>
+                  {summary.heartbeat.allClear ? 'All clear' : `${summary.heartbeat.triggeredRules} triggered`}
+                </span>
+              </div>
+              <div className="criteria-grid">
+                {sortedActiveRules.map((item) => renderCriteriaCard(item))}
+              </div>
+            </section>
+
+            {sortedPausedRules.length > 0 ? (
+              <section className="criteria-section">
                 <div className="criteria-section-header">
                   <div>
-                    <h3>{group.title}</h3>
-                    <p className="muted small">{group.description}</p>
+                    <h3>Paused rules</h3>
+                    <p className="muted small">Saved rules that are not currently monitoring.</p>
                   </div>
-                  <span className="badge">{group.items.length}</span>
+                  <span className="badge is-muted">{sortedPausedRules.length}</span>
                 </div>
                 <div className="criteria-grid">
-                  {group.items.map((item) => (
-                    <CriteriaCard
-                      key={item.criteria.id}
-                      criteria={item.criteria}
-                      busy={busyCriteriaId === item.criteria.id}
-                      lastTriggeredLabel={item.lastTriggeredLabel}
-                      onDelete={(criteriaId) => void handleDeleteCriteria(criteriaId)}
-                      onToggleEnabled={(criteriaId, enabled) => void handleToggleCriteriaEnabled(criteriaId, enabled)}
-                      severityLabel={item.severityLabel}
-                      severityTone={item.severityTone}
-                    />
-                  ))}
+                  {sortedPausedRules.map((item) => renderCriteriaCard(item))}
                 </div>
               </section>
-            ))}
+            ) : null}
           </div>
         )}
       </article>
     </section>
   )
-}
-
-interface CriteriaViewModel {
-  criteria: AlertCriteria
-  lastTriggeredLabel?: string
-  lastTriggeredTime: number
-  severityLabel: string
-  severityPriority: number
-  severityTone: 'calm' | 'critical' | 'muted' | 'warning'
-}
-
-function buildCriteriaViewModel(
-  criteria: AlertCriteria,
-  latestAlert: AlertEvent | undefined,
-  currentWeather: WeatherCondition | null,
-): CriteriaViewModel {
-  const currentSignal = describeCurrentSignal(criteria, currentWeather)
-  return {
-    criteria,
-    lastTriggeredLabel: latestAlert?.alertTime ? formatRelativeTime(latestAlert.alertTime) : undefined,
-    lastTriggeredTime: latestAlert?.alertTime ? new Date(latestAlert.alertTime).getTime() : 0,
-    severityLabel: currentSignal.label,
-    severityPriority: currentSignal.priority,
-    severityTone: currentSignal.tone,
-  }
-}
-
-function compareCriteriaViewModel(left: CriteriaViewModel, right: CriteriaViewModel, sortMode: SortMode) {
-  switch (sortMode) {
-    case 'lastTriggered':
-      return right.lastTriggeredTime - left.lastTriggeredTime || compareByName(left.criteria, right.criteria)
-    case 'location':
-      return compareByLocation(left.criteria, right.criteria) || compareByName(left.criteria, right.criteria)
-    case 'name':
-      return compareByName(left.criteria, right.criteria)
-    case 'attention':
-    default:
-      return (
-        right.severityPriority - left.severityPriority ||
-        right.lastTriggeredTime - left.lastTriggeredTime ||
-        compareByName(left.criteria, right.criteria)
-      )
-  }
-}
-
-function compareByLocation(left: AlertCriteria, right: AlertCriteria) {
-  return (left.location ?? '').localeCompare(right.location ?? '', undefined, { sensitivity: 'base' })
-}
-
-function compareByName(left: AlertCriteria, right: AlertCriteria) {
-  return (left.name ?? '').localeCompare(right.name ?? '', undefined, { sensitivity: 'base' })
-}
-
-function describeCurrentSignal(criteria: AlertCriteria, currentWeather: WeatherCondition | null) {
-  const gap = resolveAlertGap(criteria, currentWeather)
-  if (gap === null) {
-    return { label: 'Monitoring', priority: 1, tone: 'muted' as const }
-  }
-  if (gap >= 0) {
-    return { label: 'Triggering now', priority: 4, tone: 'critical' as const }
-  }
-  if (gap >= -resolveNearTriggerDistance(criteria)) {
-    return { label: 'Close to trigger', priority: 3, tone: 'warning' as const }
-  }
-  return { label: 'Stable', priority: 2, tone: 'calm' as const }
-}
-
-function resolveAlertGap(criteria: AlertCriteria, currentWeather: WeatherCondition | null) {
-  if (!currentWeather) {
-    return null
-  }
-
-  if (criteria.temperatureThreshold != null && criteria.temperatureDirection) {
-    const currentTemperature = convertTemperatureForRule(currentWeather.temperature, criteria.temperatureUnit ?? 'F')
-    return currentTemperature == null
-      ? null
-      : criteria.temperatureDirection === 'ABOVE'
-        ? currentTemperature - criteria.temperatureThreshold
-        : criteria.temperatureThreshold - currentTemperature
-  }
-
-  if (criteria.maxWindSpeed != null) {
-    return currentWeather.windSpeed == null ? null : currentWeather.windSpeed - criteria.maxWindSpeed
-  }
-
-  if (criteria.rainThreshold != null) {
-    return currentWeather.precipitationProbability == null ? null : currentWeather.precipitationProbability - criteria.rainThreshold
-  }
-
-  if (criteria.humidityThreshold != null && criteria.humidityDirection) {
-    return currentWeather.humidity == null
-      ? null
-      : criteria.humidityDirection === 'ABOVE'
-        ? currentWeather.humidity - criteria.humidityThreshold
-        : criteria.humidityThreshold - currentWeather.humidity
-  }
-
-  if (criteria.dewPointThreshold != null && criteria.dewPointDirection) {
-    const currentDewPoint = convertTemperatureForRule(currentWeather.dewPoint, criteria.temperatureUnit ?? 'F')
-    return currentDewPoint == null
-      ? null
-      : criteria.dewPointDirection === 'ABOVE'
-        ? currentDewPoint - criteria.dewPointThreshold
-        : criteria.dewPointThreshold - currentDewPoint
-  }
-
-  if (criteria.windGustThreshold != null) {
-    return currentWeather.windGust == null ? null : currentWeather.windGust - criteria.windGustThreshold
-  }
-
-  if (criteria.skyCoverThreshold != null && criteria.skyCoverDirection) {
-    return currentWeather.skyCover == null
-      ? null
-      : criteria.skyCoverDirection === 'ABOVE'
-        ? currentWeather.skyCover - criteria.skyCoverThreshold
-        : criteria.skyCoverThreshold - currentWeather.skyCover
-  }
-
-  if (criteria.riverStageThreshold != null && criteria.riverStageDirection) {
-    const currentStage = currentWeather.riverObservedStage ?? currentWeather.riverForecastStage
-    return currentStage == null
-      ? null
-      : criteria.riverStageDirection === 'ABOVE'
-        ? currentStage - criteria.riverStageThreshold
-        : criteria.riverStageThreshold - currentStage
-  }
-
-  if (criteria.riverFloodCategoryThreshold) {
-    const thresholdRank = resolveFloodCategoryRank(criteria.riverFloodCategoryThreshold)
-    const currentRank = resolveFloodCategoryRank(
-      currentWeather.riverForecastCategory ?? currentWeather.riverObservedCategory ?? undefined,
-    )
-    return currentRank == null || thresholdRank == null ? null : currentRank - thresholdRank
-  }
-
-  return null
-}
-
-function resolveNearTriggerDistance(criteria: AlertCriteria) {
-  if (criteria.temperatureThreshold != null || criteria.dewPointThreshold != null) {
-    return 5
-  }
-  if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
-    return 8
-  }
-  if (criteria.riverStageThreshold != null) {
-    return 1
-  }
-  if (criteria.riverFloodCategoryThreshold) {
-    return 1
-  }
-  return 10
-}
-
-function convertTemperatureForRule(value: number | undefined, unit: 'C' | 'F') {
-  if (value == null || Number.isNaN(value)) {
-    return null
-  }
-  if (unit === 'C') {
-    return value
-  }
-  return (value * 9) / 5 + 32
-}
-
-function resolveFloodCategoryRank(category?: string) {
-  if (!category) {
-    return null
-  }
-
-  switch (category.toUpperCase()) {
-    case 'ACTION':
-      return 1
-    case 'MINOR':
-      return 2
-    case 'MODERATE':
-      return 3
-    case 'MAJOR':
-      return 4
-    default:
-      return null
-  }
 }

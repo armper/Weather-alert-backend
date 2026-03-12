@@ -358,3 +358,262 @@
     var(--card-shadow-soft),
     inset 0 1px 0 rgba(var(--accent-soft-rgb), 0.05);
 }
+
+.builder-mode-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  padding: 0.28rem;
+  border-radius: 999px;
+  background: var(--card-bg-muted);
+  border: 1px solid var(--panel-border);
+  margin-bottom: 1rem;
+}
+
+.builder-mode-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.52rem 0.95rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.builder-mode-tab.is-active {
+  background: var(--button-primary-gradient);
+  color: #f7fbff;
+  box-shadow: var(--button-primary-shadow);
+}
+
+.guided-rule-builder {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.preset-loaded-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.78rem 0.9rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-dark-rgb), 0.06), rgba(var(--accent-bright-rgb), 0.14)),
+    var(--card-bg-elevated);
+}
+
+.preset-loaded-banner p {
+  margin: 0.2rem 0 0;
+}
+
+.guided-rule-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.38fr) minmax(300px, 0.82fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.guided-rule-main,
+.guided-rule-aside {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.guided-rule-aside {
+  position: sticky;
+  top: 1rem;
+}
+
+.guided-step-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg-elevated);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.guided-step-card-compact {
+  gap: 0.7rem;
+}
+
+.guided-step-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.guided-step-header h3 {
+  margin: 0.12rem 0 0;
+  font-family: var(--font-heading);
+}
+
+.guided-step-header p {
+  margin: 0;
+}
+
+.simple-situation-grid,
+.simple-sensitivity-grid,
+.advanced-rule-option-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.simple-situation-card,
+.simple-sensitivity-card,
+.advanced-rule-option {
+  display: grid;
+  gap: 0.3rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.9rem;
+  padding: 0.78rem;
+  background: var(--card-bg-muted);
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.simple-situation-card:hover,
+.simple-sensitivity-card:hover,
+.advanced-rule-option:hover {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  background: var(--card-bg-hover);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.simple-situation-card.is-active,
+.simple-sensitivity-card.is-active,
+.advanced-rule-option.is-active {
+  border-color: rgba(var(--accent-rgb), 0.34);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+}
+
+.simple-situation-header {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.simple-sensitivity-card strong,
+.advanced-rule-option strong {
+  font-family: var(--font-heading);
+}
+
+.simple-sensitivity-card span,
+.advanced-rule-option span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.simple-custom-note,
+.simple-custom-threshold-panel {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  background: rgba(var(--accent-bright-rgb), 0.1);
+}
+
+.simple-custom-note p,
+.simple-threshold-summary,
+.guided-save-actions p,
+.sample-alert-note,
+.sample-alert-copy,
+.sample-alert-message {
+  margin: 0;
+}
+
+.simple-threshold-summary {
+  color: var(--text-secondary);
+}
+
+.guided-toggle-groups {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.guided-toggle-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.guided-toggle-label {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
+.advanced-rule-groups {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.advanced-rule-group {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.advanced-rule-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sky-status-card,
+.sample-alert-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  background: var(--card-bg-highlight);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.sky-status-card.is-live {
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+.sample-alert-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent),
+    var(--card-bg-highlight);
+}
+
+.sample-alert-message {
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  color: var(--text-primary);
+}
+
+.guided-save-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.guided-save-actions .primary {
+  width: 100%;
+}
+
+[data-theme='dark'] .simple-situation-card,
+[data-theme='dark'] .simple-sensitivity-card,
+[data-theme='dark'] .advanced-rule-option,
+[data-theme='dark'] .guided-step-card,
+[data-theme='dark'] .preset-loaded-banner,
+[data-theme='dark'] .simple-custom-note,
+[data-theme='dark'] .simple-custom-threshold-panel,
+[data-theme='dark'] .sky-status-card,
+[data-theme='dark'] .sample-alert-card {
+  box-shadow:
+    var(--card-shadow-soft),
+    inset 0 1px 0 rgba(var(--accent-soft-rgb), 0.05);
+}
