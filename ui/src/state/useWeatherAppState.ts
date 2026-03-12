@@ -80,7 +80,7 @@ export function useWeatherAppState() {
   const isAdmin = useMemo(() => Boolean(me?.role?.includes('ADMIN')), [me?.role])
 
   const canSubmitCriteria = useMemo(() => {
-    if (!criteriaForm.name.trim() || !criteriaForm.location.trim()) {
+    if (!criteriaForm.location.trim()) {
       return false
     }
     if (!criteriaForm.latitude.trim() || !criteriaForm.longitude.trim()) {
@@ -442,7 +442,7 @@ export function useWeatherAppState() {
         token,
         body: payload,
       })
-      setNotice({ kind: 'success', text: `Created alert "${criteriaForm.name}".` })
+      setNotice({ kind: 'success', text: `Created alert "${String(payload.name ?? criteriaForm.name ?? 'New alert')}".` })
       await refreshData(token, me)
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })

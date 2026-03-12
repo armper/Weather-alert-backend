@@ -1,4 +1,5 @@
-import type { AlertCriteria, ComparisonDirection } from '../types'
+import { formatFriendlyLocation } from './formatting'
+import type { AlertCriteria, ComparisonDirection, FloodCategory } from '../types'
 import type { CriteriaFormState, RuleType } from '../state/types'
 
 export const RIVER_STAGE_RULE_TYPES: RuleType[] = ['RIVER_STAGE_ABOVE', 'RIVER_STAGE_BELOW']
@@ -42,7 +43,9 @@ export function defaultThreshold(ruleType: RuleType): string {
 export function buildCriteriaPayload(criteriaForm: CriteriaFormState, userId: string) {
   const payload: Record<string, unknown> = {
     userId,
-    name: criteriaForm.name.trim(),
+    name:
+      criteriaForm.name.trim() ||
+      buildSuggestedAlertName(criteriaForm.ruleType, criteriaForm.location.trim(), criteriaForm.riverFloodCategoryThreshold),
     location: criteriaForm.location.trim(),
     latitude: Number(criteriaForm.latitude),
     longitude: Number(criteriaForm.longitude),
@@ -117,6 +120,44 @@ export function buildCriteriaPayload(criteriaForm: CriteriaFormState, userId: st
   return payload
 }
 
+export function buildSuggestedAlertName(ruleType: RuleType, location: string, floodCategory: FloodCategory) {
+  const locationLabel = formatFriendlyLocation(location).replace(', FL', '')
+  const locationSuffix = locationLabel === 'Selected area' ? 'for selected area' : `for ${locationLabel}`
+
+  switch (ruleType) {
+    case 'TEMP_BELOW':
+      return `Cold weather ${locationSuffix}`
+    case 'TEMP_ABOVE':
+      return `Heat alert ${locationSuffix}`
+    case 'WIND':
+      return `Wind alert ${locationSuffix}`
+    case 'RAIN':
+      return `Rain watch ${locationSuffix}`
+    case 'HUMIDITY_ABOVE':
+      return `Humidity alert ${locationSuffix}`
+    case 'HUMIDITY_BELOW':
+      return `Dry air alert ${locationSuffix}`
+    case 'DEW_POINT_ABOVE':
+      return `Muggy air alert ${locationSuffix}`
+    case 'DEW_POINT_BELOW':
+      return `Dry dew point alert ${locationSuffix}`
+    case 'WIND_GUST':
+      return `Wind gust alert ${locationSuffix}`
+    case 'SKY_COVER_ABOVE':
+      return `Cloudy sky alert ${locationSuffix}`
+    case 'SKY_COVER_BELOW':
+      return `Clearing sky alert ${locationSuffix}`
+    case 'RIVER_STAGE_ABOVE':
+      return `River rise alert ${locationSuffix}`
+    case 'RIVER_STAGE_BELOW':
+      return `River drop alert ${locationSuffix}`
+    case 'RIVER_FLOOD_CATEGORY':
+      return `${formatFloodCategoryLabel(floodCategory)} alert ${locationSuffix}`
+    default:
+      return `Weather alert ${locationSuffix}`
+  }
+}
+
 export function describeCriteria(criteria: AlertCriteria): string {
   if (criteria.temperatureThreshold !== undefined && criteria.temperatureThreshold !== null && criteria.temperatureDirection) {
     return `Temperature ${criteria.temperatureDirection.toLowerCase()} ${formatNumber(criteria.temperatureThreshold)}°${
@@ -157,8 +198,72 @@ export function describeCriteria(criteria: AlertCriteria): string {
   return 'Custom weather condition'
 }
 
+export type CriteriaVisualKind =
+  | 'temperature'
+  | 'rain'
+  | 'wind'
+  | 'humidity'
+  | 'sky'
+  | 'river'
+  | 'general'
+
+export function resolveCriteriaVisualKind(criteria: AlertCriteria): CriteriaVisualKind {
+  if (criteria.temperatureThreshold != null || criteria.dewPointThreshold != null) {
+    return 'temperature'
+  }
+  if (criteria.rainThreshold != null) {
+    return 'rain'
+  }
+  if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
+    return 'wind'
+  }
+  if (criteria.humidityThreshold != null) {
+    return 'humidity'
+  }
+  if (criteria.skyCoverThreshold != null) {
+    return 'sky'
+  }
+  if (criteria.riverStageThreshold != null || criteria.riverFloodCategoryThreshold) {
+    return 'river'
+  }
+  return 'general'
+}
+
+export function resolveCriteriaMarkerIcon(criteria: AlertCriteria): string {
+  switch (resolveCriteriaVisualKind(criteria)) {
+    case 'temperature':
+      return '🌡'
+    case 'rain':
+      return '🌧'
+    case 'wind':
+      return '🌬'
+    case 'humidity':
+      return '💧'
+    case 'sky':
+      return '☁'
+    case 'river':
+      return '🌊'
+    case 'general':
+    default:
+      return '◉'
+  }
+}
+
 function formatDirectionLabel(direction: ComparisonDirection): string {
   return direction === 'ABOVE' ? 'At or above' : 'Below'
+}
+
+function formatFloodCategoryLabel(category: FloodCategory): string {
+  switch (category) {
+    case 'ACTION':
+      return 'action stage'
+    case 'MINOR':
+      return 'minor flooding'
+    case 'MODERATE':
+      return 'moderate flooding'
+    case 'MAJOR':
+      return 'major flooding'
+  }
 }
 
 function formatNumber(value?: number | null): string {

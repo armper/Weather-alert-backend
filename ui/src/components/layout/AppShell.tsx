@@ -13,7 +13,7 @@ interface AppShellProps {
 const PRIMARY_NAV_ITEMS = [
   { key: 'overview', label: 'Overview', to: '/app/overview' },
   { key: 'rules', label: 'New Alert', to: '/app/rules' },
-  { key: 'alerts', label: 'My Alerts', to: '/app/alerts' },
+  { key: 'alerts', label: 'Monitoring Rules', to: '/app/alerts' },
   { key: 'events', label: 'Triggered Alerts', to: '/app/events' },
 ]
 

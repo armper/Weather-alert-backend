@@ -2,8 +2,24 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { Disclosure, DisclosurePanel } from 'react-aria-components'
 import { useLocation } from 'react-router-dom'
 import { apiRequest, toErrorMessage } from '../api'
+import { buildAlertConsoleSummary } from '../lib/alertConsole'
+import { RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES, buildSuggestedAlertName, defaultThreshold } from '../lib/criteria'
 import { formatFriendlyLocation, formatNumber, formatTemperature, formatWind } from '../lib/formatting'
-import { RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES, defaultThreshold } from '../lib/criteria'
+import {
+  QUICK_START_PRESETS,
+  SIMPLE_SITUATIONS,
+  filterAdvancedRuleGroups,
+  getAdvancedRuleLabel,
+  getSensitivityForSituation,
+  getSituationConfig,
+  getSituationForRuleType,
+  resolveMatchingSensitivityId,
+  type BuilderMode,
+  type QuickStartPreset,
+  type RuleBuilderIcon,
+  type SimpleSituationConfig,
+  type SimpleSituationId,
+} from '../lib/ruleBuilder'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
@@ -14,7 +30,6 @@ import { DEFAULT_LAT, DEFAULT_LON, initialCriteriaForm, type RuleType } from '..
 import type { FloodCategory, WeatherCondition } from '../types'
 
 interface RuleFormErrors {
-  name?: string
   location?: string
   threshold?: string
   riverGaugeId?: string
@@ -26,42 +41,6 @@ interface RuleFormErrors {
 }
 
 type LocationMode = 'CITY' | 'MANUAL'
-type PresetCategory = 'TEMPERATURE' | 'RAIN_WIND' | 'AIR_SKY' | 'RIVER'
-type PresetIcon = 'jacket' | 'heat' | 'rain' | 'wind' | 'humidity' | 'dew' | 'gust' | 'sky' | 'river' | 'alert' | 'flood'
-
-interface RulePreset {
-  id: string
-  category: PresetCategory
-  title: string
-  description: string
-  icon: PresetIcon
-  ruleType: RuleType
-  threshold: string
-  temperatureUnit?: 'F' | 'C'
-  forecastWindowHours?: string
-  rearmWindowMinutes?: string
-  riverFloodCategoryThreshold?: FloodCategory
-  monitorCurrent?: boolean
-  monitorForecast?: boolean
-  oncePerEvent?: boolean
-}
-
-const RULE_TYPE_OPTIONS = [
-  { id: 'TEMP_BELOW', label: 'Temperature below' },
-  { id: 'TEMP_ABOVE', label: 'Temperature above' },
-  { id: 'WIND', label: 'Wind speed above' },
-  { id: 'RAIN', label: 'Rain probability at/above' },
-  { id: 'HUMIDITY_ABOVE', label: 'Humidity at/above' },
-  { id: 'HUMIDITY_BELOW', label: 'Humidity below' },
-  { id: 'DEW_POINT_ABOVE', label: 'Dew point at/above' },
-  { id: 'DEW_POINT_BELOW', label: 'Dew point below' },
-  { id: 'WIND_GUST', label: 'Wind gust above' },
-  { id: 'SKY_COVER_ABOVE', label: 'Sky cover at/above' },
-  { id: 'SKY_COVER_BELOW', label: 'Sky cover below' },
-  { id: 'RIVER_STAGE_ABOVE', label: 'River stage above' },
-  { id: 'RIVER_STAGE_BELOW', label: 'River stage below' },
-  { id: 'RIVER_FLOOD_CATEGORY', label: 'River flood category at/above' },
-] as const
 
 const TEMP_UNIT_OPTIONS = [
   { id: 'F', label: 'Fahrenheit' },
@@ -80,166 +59,11 @@ const LOCATION_MODE_OPTIONS = [
   { id: 'MANUAL', label: 'Manual coordinates' },
 ]
 
-const GRID_RULE_TYPES: RuleType[] = [
-  'HUMIDITY_ABOVE',
-  'HUMIDITY_BELOW',
-  'DEW_POINT_ABOVE',
-  'DEW_POINT_BELOW',
-  'WIND_GUST',
-  'SKY_COVER_ABOVE',
-  'SKY_COVER_BELOW',
-]
-
-const PRESET_CATEGORY_LABELS: Record<PresetCategory, string> = {
-  TEMPERATURE: 'Temperature',
-  RAIN_WIND: 'Rain and Wind',
-  AIR_SKY: 'Air and Sky',
-  RIVER: 'River',
-}
-
-const PRESET_CATEGORY_ORDER: PresetCategory[] = ['TEMPERATURE', 'RAIN_WIND', 'AIR_SKY', 'RIVER']
-
-const RULE_PRESETS: RulePreset[] = [
-  {
-    id: 'bring-jacket',
-    category: 'TEMPERATURE',
-    title: 'Chilly Weather',
-    description: 'Get a heads-up when it is cool enough to want a jacket.',
-    icon: 'jacket',
-    ruleType: 'TEMP_BELOW',
-    threshold: '60',
-    temperatureUnit: 'F',
-    monitorCurrent: true,
-    monitorForecast: true,
-  },
-  {
-    id: 'heat-watch',
-    category: 'TEMPERATURE',
-    title: 'Hot Day Ahead',
-    description: 'Get warned before the day turns very hot.',
-    icon: 'heat',
-    ruleType: 'TEMP_ABOVE',
-    threshold: '92',
-    temperatureUnit: 'F',
-    monitorCurrent: true,
-    monitorForecast: true,
-  },
-  {
-    id: 'storm-window',
-    category: 'RAIN_WIND',
-    title: 'Rain Coming',
-    description: 'Get warned when rain chances start looking high.',
-    icon: 'rain',
-    ruleType: 'RAIN',
-    threshold: '65',
-    forecastWindowHours: '24',
-    monitorCurrent: false,
-    monitorForecast: true,
-  },
-  {
-    id: 'wind-advisory',
-    category: 'RAIN_WIND',
-    title: 'Windy Outside',
-    description: 'Get a heads-up when winds may get strong.',
-    icon: 'wind',
-    ruleType: 'WIND',
-    threshold: '30',
-    monitorCurrent: true,
-    monitorForecast: true,
-  },
-  {
-    id: 'sticky-air',
-    category: 'AIR_SKY',
-    title: 'Very Humid',
-    description: 'Get warned when the air starts feeling sticky and uncomfortable.',
-    icon: 'humidity',
-    ruleType: 'HUMIDITY_ABOVE',
-    threshold: '85',
-    forecastWindowHours: '18',
-    monitorCurrent: false,
-    monitorForecast: true,
-  },
-  {
-    id: 'tropical-night',
-    category: 'AIR_SKY',
-    title: 'Warm, Muggy Night',
-    description: 'Get a heads-up when the evening may stay warm and muggy.',
-    icon: 'dew',
-    ruleType: 'DEW_POINT_ABOVE',
-    threshold: '70',
-    temperatureUnit: 'F',
-    forecastWindowHours: '18',
-    monitorCurrent: false,
-    monitorForecast: true,
-  },
-  {
-    id: 'gust-watch',
-    category: 'RAIN_WIND',
-    title: 'Strong Wind Gusts',
-    description: 'Get warned before sudden strong gusts move in.',
-    icon: 'gust',
-    ruleType: 'WIND_GUST',
-    threshold: '40',
-    forecastWindowHours: '12',
-    monitorCurrent: false,
-    monitorForecast: true,
-  },
-  {
-    id: 'blue-sky',
-    category: 'AIR_SKY',
-    title: 'Clearing Skies',
-    description: 'Get a heads-up when clouds are expected to clear out.',
-    icon: 'sky',
-    ruleType: 'SKY_COVER_BELOW',
-    threshold: '20',
-    forecastWindowHours: '12',
-    monitorCurrent: false,
-    monitorForecast: true,
-  },
-  {
-    id: 'river-rising',
-    category: 'RIVER',
-    title: 'River Is Rising',
-    description: 'Get a heads-up when the nearby river starts rising past your chosen level.',
-    icon: 'river',
-    ruleType: 'RIVER_STAGE_ABOVE',
-    threshold: '8',
-    monitorCurrent: true,
-    monitorForecast: true,
-    forecastWindowHours: '24',
-  },
-  {
-    id: 'action-stage-watch',
-    category: 'RIVER',
-    title: 'River Could Become a Problem',
-    description: 'Get warned when the nearby river may be heading toward trouble.',
-    icon: 'alert',
-    ruleType: 'RIVER_FLOOD_CATEGORY',
-    threshold: '',
-    riverFloodCategoryThreshold: 'ACTION',
-    monitorCurrent: true,
-    monitorForecast: true,
-    forecastWindowHours: '24',
-  },
-  {
-    id: 'minor-flood-risk',
-    category: 'RIVER',
-    title: 'Minor Flooding Possible',
-    description: 'Get warned when the nearby river may start causing minor flooding.',
-    icon: 'flood',
-    ruleType: 'RIVER_FLOOD_CATEGORY',
-    threshold: '',
-    riverFloodCategoryThreshold: 'MINOR',
-    monitorCurrent: true,
-    monitorForecast: true,
-    forecastWindowHours: '36',
-  },
-]
-
 export function RulesPage() {
   const {
     token,
     setNotice,
+    alerts,
     criteria,
     criteriaForm,
     currentWeather,
@@ -255,6 +79,19 @@ export function RulesPage() {
   const [locationMode, setLocationMode] = useState<LocationMode>('CITY')
   const [useCustomCoordinates, setUseCustomCoordinates] = useState(false)
   const [flashForm, setFlashForm] = useState(false)
+  const [builderMode, setBuilderMode] = useState<BuilderMode>('SIMPLE')
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
+  const [selectedSituationId, setSelectedSituationId] = useState<SimpleSituationId>(() =>
+    getSituationForRuleType(criteriaForm.ruleType),
+  )
+  const [selectedSensitivityId, setSelectedSensitivityId] = useState<string>(() =>
+    resolveMatchingSensitivityId(
+      getSituationForRuleType(criteriaForm.ruleType),
+      criteriaForm.threshold,
+      criteriaForm.riverFloodCategoryThreshold,
+    ),
+  )
+  const [advancedSearchQuery, setAdvancedSearchQuery] = useState('')
   const [autoNameEnabled, setAutoNameEnabled] = useState(
     () => !criteriaForm.name.trim() || criteriaForm.name === initialCriteriaForm.name,
   )
@@ -265,7 +102,6 @@ export function RulesPage() {
   const isTemperatureRule = criteriaForm.ruleType === 'TEMP_BELOW' || criteriaForm.ruleType === 'TEMP_ABOVE'
   const isDewPointRule = criteriaForm.ruleType === 'DEW_POINT_ABOVE' || criteriaForm.ruleType === 'DEW_POINT_BELOW'
   const isTemperatureScaleRule = isTemperatureRule || isDewPointRule
-  const isGridRule = GRID_RULE_TYPES.includes(criteriaForm.ruleType)
   const isRiverRule = RIVER_RULE_TYPES.includes(criteriaForm.ruleType)
   const isRiverStageRule = RIVER_STAGE_RULE_TYPES.includes(criteriaForm.ruleType)
   const isRiverCategoryRule = criteriaForm.ruleType === 'RIVER_FLOOD_CATEGORY'
@@ -275,6 +111,7 @@ export function RulesPage() {
   const mapLongitude = Number(criteriaForm.longitude)
   const resolvedLatitude = Number.isNaN(mapLatitude) ? Number(DEFAULT_LAT) : mapLatitude
   const resolvedLongitude = Number.isNaN(mapLongitude) ? Number(DEFAULT_LON) : mapLongitude
+
   const primaryArea = useMemo(() => {
     const savedArea = criteria[0]
     if (savedArea?.location?.trim()) {
@@ -295,64 +132,47 @@ export function RulesPage() {
 
     return null
   }, [criteria, criteriaForm.latitude, criteriaForm.longitude, currentWeather])
-  const presetGroups = useMemo(
-    () =>
-      PRESET_CATEGORY_ORDER.map((category) => ({
-        category,
-        label: PRESET_CATEGORY_LABELS[category],
-        items: RULE_PRESETS.filter((preset) => preset.category === category),
-      })).filter((group) => group.items.length > 0),
-    [],
+
+  const selectedPreset = useMemo(
+    () => QUICK_START_PRESETS.find((preset) => preset.id === selectedPresetId) ?? null,
+    [selectedPresetId],
   )
 
-  const thresholdHelp = useMemo(() => {
-    switch (criteriaForm.ruleType) {
-      case 'TEMP_BELOW':
-        return `Alert when temperature drops below ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
-      case 'TEMP_ABOVE':
-        return `Alert when temperature rises above ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
-      case 'WIND':
-        return `Alert when sustained wind goes above ${criteriaForm.threshold || 'X'} km/h.`
-      case 'RAIN':
-        return `Alert when rain chance reaches ${criteriaForm.threshold || 'X'}% or higher.`
-      case 'HUMIDITY_ABOVE':
-        return `Alert when humidity reaches ${criteriaForm.threshold || 'X'}% or higher.`
-      case 'HUMIDITY_BELOW':
-        return `Alert when humidity drops below ${criteriaForm.threshold || 'X'}%.`
-      case 'DEW_POINT_ABOVE':
-        return `Alert when dew point reaches ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit} or higher.`
-      case 'DEW_POINT_BELOW':
-        return `Alert when dew point drops below ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
-      case 'WIND_GUST':
-        return `Alert when forecast wind gusts exceed ${criteriaForm.threshold || 'X'} km/h.`
-      case 'SKY_COVER_ABOVE':
-        return `Alert when sky cover reaches ${criteriaForm.threshold || 'X'}% or higher.`
-      case 'SKY_COVER_BELOW':
-        return `Alert when sky cover drops below ${criteriaForm.threshold || 'X'}%.`
-      case 'RIVER_STAGE_ABOVE':
-        return `Alert when the nearby river rises above ${criteriaForm.threshold || 'X'} ft.`
-      case 'RIVER_STAGE_BELOW':
-        return `Alert when the nearby river drops below ${criteriaForm.threshold || 'X'} ft.`
-      case 'RIVER_FLOOD_CATEGORY':
-        return `Alert when the gauge reaches ${formatFloodCategoryLabel(criteriaForm.riverFloodCategoryThreshold)} or higher.`
-      default:
-        return 'Alert when forecast conditions match this threshold.'
-    }
-  }, [
-    criteriaForm.ruleType,
-    criteriaForm.threshold,
-    criteriaForm.temperatureUnit,
-    criteriaForm.riverGaugeId,
-    criteriaForm.riverFloodCategoryThreshold,
-  ])
+  const selectedSituation = useMemo(
+    () => getSituationConfig(selectedSituationId),
+    [selectedSituationId],
+  )
+
+  const selectedSensitivity = useMemo(
+    () => getSensitivityForSituation(selectedSituationId, selectedSensitivityId),
+    [selectedSituationId, selectedSensitivityId],
+  )
+
+  const filteredAdvancedGroups = useMemo(
+    () => filterAdvancedRuleGroups(advancedSearchQuery),
+    [advancedSearchQuery],
+  )
+
+  const alertConsoleSummary = useMemo(
+    () => buildAlertConsoleSummary(criteria, alerts, currentWeather),
+    [criteria, alerts, currentWeather],
+  )
+
   const suggestedName = useMemo(
     () => buildSuggestedAlertName(criteriaForm.ruleType, criteriaForm.location, criteriaForm.riverFloodCategoryThreshold),
     [criteriaForm.location, criteriaForm.riverFloodCategoryThreshold, criteriaForm.ruleType],
   )
+
+  const resolvedAlertName = criteriaForm.name.trim() || suggestedName
   const previewLocation = formatFriendlyLocation(criteriaForm.location || primaryArea?.location)
   const previewChecks = describeMonitoringMode(criteriaForm.monitorCurrent, criteriaForm.monitorForecast)
   const previewCurrentSnapshot = buildCurrentSnapshotCopy(currentWeather)
+  const previewChips = buildPreviewChips(currentWeather, criteriaForm.temperatureUnit)
+  const previewAlertSentence = buildPreviewAlertSentence(criteriaForm)
+  const thresholdHelp = buildThresholdHelp(criteriaForm)
+  const advancedConditionLabel = getAdvancedRuleLabel(criteriaForm.ruleType)
   const showSuggestedNameAction = criteriaForm.name.trim() !== suggestedName
+  const isSimpleCustomSensitivity = selectedSensitivity?.custom === true
 
   useEffect(() => {
     const targetId = location.hash.replace('#', '').trim()
@@ -377,7 +197,6 @@ export function RulesPage() {
     if (!flashForm) {
       return
     }
-
     const id = window.setTimeout(() => setFlashForm(false), 900)
     return () => window.clearTimeout(id)
   }, [flashForm])
@@ -399,11 +218,9 @@ export function RulesPage() {
     if (!resolvedRiverGauge?.riverGaugeId) {
       return
     }
-
     if (criteriaForm.riverGaugeId.trim().toUpperCase() === resolvedRiverGauge.riverGaugeId.toUpperCase()) {
       return
     }
-
     setResolvedRiverGauge(null)
   }, [criteriaForm.riverGaugeId, resolvedRiverGauge])
 
@@ -439,12 +256,182 @@ export function RulesPage() {
     setCriteriaForm((state) => (state.name === suggestedName ? state : { ...state, name: suggestedName }))
   }, [autoNameEnabled, setCriteriaForm, suggestedName])
 
+  function handleBuilderModeChange(nextMode: BuilderMode) {
+    setBuilderMode(nextMode)
+
+    if (nextMode === 'SIMPLE') {
+      const nextSituationId = getSituationForRuleType(criteriaForm.ruleType)
+      setSelectedSituationId(nextSituationId)
+      setSelectedSensitivityId(
+        resolveMatchingSensitivityId(nextSituationId, criteriaForm.threshold, criteriaForm.riverFloodCategoryThreshold),
+      )
+      return
+    }
+
+    setSelectedSituationId(getSituationForRuleType(criteriaForm.ruleType))
+  }
+
+  function handleSituationSelect(situationId: SimpleSituationId) {
+    if (situationId === 'CUSTOM') {
+      setSelectedSituationId('CUSTOM')
+      handleBuilderModeChange('ADVANCED')
+      return
+    }
+
+    const situation = getSituationConfig(situationId)
+    if (!situation || !situation.ruleType) {
+      return
+    }
+
+    const fallbackSensitivity = situation.sensitivityOptions[0]
+    setBuilderMode('SIMPLE')
+    setSelectedSituationId(situationId)
+    setSelectedSensitivityId(fallbackSensitivity?.id ?? 'custom')
+    setSelectedPresetId(null)
+    setAutoNameEnabled(true)
+    applySituationConfig(situation, fallbackSensitivity?.id ?? 'custom')
+  }
+
+  function handleSensitivitySelect(sensitivityId: string) {
+    if (!selectedSituation || selectedSituation.id === 'CUSTOM') {
+      return
+    }
+
+    setSelectedSensitivityId(sensitivityId)
+    setSelectedPresetId(null)
+    setAutoNameEnabled(true)
+    applySituationConfig(selectedSituation, sensitivityId)
+  }
+
+  function applySituationConfig(situation: SimpleSituationConfig, sensitivityId: string) {
+    const sensitivity = getSensitivityForSituation(situation.id, sensitivityId)
+    setCriteriaForm((state) => ({
+      ...state,
+      name: '',
+      ruleType: situation.ruleType ?? state.ruleType,
+      threshold:
+        sensitivity?.custom === true
+          ? state.threshold || situation.defaultThreshold || defaultThreshold(situation.ruleType ?? state.ruleType)
+          : sensitivity?.threshold ?? situation.defaultThreshold ?? state.threshold,
+      temperatureUnit: situation.defaultTemperatureUnit ?? state.temperatureUnit,
+      riverFloodCategoryThreshold:
+        sensitivity?.custom === true
+          ? state.riverFloodCategoryThreshold
+          : sensitivity?.floodCategory ?? situation.defaultFloodCategory ?? state.riverFloodCategoryThreshold,
+      monitorCurrent: situation.defaultMonitorCurrent ?? state.monitorCurrent,
+      monitorForecast: situation.defaultMonitorForecast ?? state.monitorForecast,
+      oncePerEvent: situation.defaultOncePerEvent ?? state.oncePerEvent,
+      forecastWindowHours: situation.defaultForecastWindowHours ?? state.forecastWindowHours,
+    }))
+    setFormErrors((state) => ({
+      ...state,
+      threshold: undefined,
+      riverGaugeId: undefined,
+      gaugeSearchRadiusKm: undefined,
+    }))
+    setAdvancedExpanded(Boolean(isRiverLikeSituation(situation.id)))
+    setFlashForm(true)
+  }
+
+  function applyQuickStartPreset(preset: QuickStartPreset) {
+    const situation = getSituationConfig(preset.situationId)
+    if (!situation) {
+      return
+    }
+
+    setSelectedPresetId(preset.id)
+    setBuilderMode('SIMPLE')
+    setSelectedSituationId(preset.situationId)
+    setSelectedSensitivityId(preset.sensitivityId)
+    setAutoNameEnabled(true)
+    applySituationConfig(situation, preset.sensitivityId)
+    setCriteriaForm((state) => ({
+      ...state,
+      rearmWindowMinutes: preset.rearmWindowMinutes ?? state.rearmWindowMinutes,
+      forecastWindowHours: preset.forecastWindowHours ?? state.forecastWindowHours,
+    }))
+
+    window.requestAnimationFrame(() => {
+      document.getElementById('create-custom-alert')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  function handleRuleTypeChange(value: string) {
+    const next = value as RuleType
+    const nextIsRiverRule = RIVER_RULE_TYPES.includes(next)
+    const nextSituation = getSituationForRuleType(next)
+
+    setCriteriaForm((state) => ({
+      ...state,
+      ruleType: next,
+      threshold: defaultThreshold(next),
+      riverFloodCategoryThreshold:
+        next === 'RIVER_FLOOD_CATEGORY' ? state.riverFloodCategoryThreshold || 'ACTION' : state.riverFloodCategoryThreshold,
+      monitorCurrent: nextIsRiverRule ? true : state.monitorCurrent,
+      monitorForecast: nextIsRiverRule ? true : state.monitorForecast,
+    }))
+    setSelectedSituationId(nextSituation)
+    setSelectedSensitivityId(resolveMatchingSensitivityId(nextSituation, defaultThreshold(next), criteriaForm.riverFloodCategoryThreshold))
+    setSelectedPresetId(null)
+    setFormErrors((state) => ({
+      ...state,
+      threshold: undefined,
+      riverGaugeId: undefined,
+      gaugeSearchRadiusKm: undefined,
+    }))
+  }
+
+  function handleLocationModeChange(value: string) {
+    const nextMode = value as LocationMode
+    setLocationMode(nextMode)
+    if (nextMode === 'CITY') {
+      setUseCustomCoordinates(false)
+      setFormErrors((state) => ({
+        ...state,
+        latitude: undefined,
+        longitude: undefined,
+      }))
+    }
+  }
+
+  function handleCustomCoordinatesToggle(value: boolean) {
+    setUseCustomCoordinates(value)
+    if (!value) {
+      setFormErrors((state) => ({
+        ...state,
+        latitude: undefined,
+        longitude: undefined,
+      }))
+    }
+  }
+
+  function applyPrimaryArea() {
+    if (!primaryArea) {
+      return
+    }
+    setCriteriaForm((state) => ({
+      ...state,
+      location: primaryArea.location,
+      latitude: primaryArea.latitude,
+      longitude: primaryArea.longitude,
+    }))
+    setFormErrors((state) => ({
+      ...state,
+      location: undefined,
+      latitude: undefined,
+      longitude: undefined,
+    }))
+    setDidSeedPrimaryLocation(true)
+  }
+
+  function handleAlertNameChange(value: string) {
+    setCriteriaForm((state) => ({ ...state, name: value }))
+    setAutoNameEnabled(value.trim() === '' || value.trim() === suggestedName)
+  }
+
   function validateRuleForm(): RuleFormErrors {
     const errors: RuleFormErrors = {}
 
-    if (!criteriaForm.name.trim()) {
-      errors.name = 'Alert name is required.'
-    }
     if (!criteriaForm.location.trim()) {
       errors.location = 'Location is required.'
     }
@@ -583,9 +570,7 @@ export function RulesPage() {
       setResolvedRiverGauge(merged)
       setNotice({
         kind: 'success',
-        text: merged.location
-          ? `Connected this alert to ${merged.location}.`
-          : 'Connected this alert to nearby river data.',
+        text: merged.location ? `Connected this alert to ${merged.location}.` : 'Connected this alert to nearby river data.',
       })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
@@ -594,95 +579,107 @@ export function RulesPage() {
     }
   }
 
-  function handleLocationModeChange(value: string) {
-    const nextMode = value as LocationMode
-    setLocationMode(nextMode)
+  function renderLocationStep(copy: ReactNode) {
+    return (
+      <section id="location-picker" tabIndex={-1} className="guided-step-card">
+        <div className="guided-step-header">
+          <div>
+            <p className="eyebrow">Step 2</p>
+            <h3>Choose the place</h3>
+            <p className="muted small">{copy}</p>
+          </div>
+          {primaryArea ? (
+            <AriaButton type="button" className="ghost button-inline" isDisabled={savingCriteria} onPress={applyPrimaryArea}>
+              Use current area
+            </AriaButton>
+          ) : null}
+        </div>
 
-    if (nextMode === 'CITY') {
-      setUseCustomCoordinates(false)
-      setFormErrors((state) => ({
-        ...state,
-        latitude: undefined,
-        longitude: undefined,
-      }))
+        <div className="location-picker-panel">
+          <div className="location-picker-toolbar">
+            <div>
+              <p className="location-picker-label">Watching: {previewLocation}</p>
+              <p className="muted small">{`${resolvedLatitude.toFixed(4)}, ${resolvedLongitude.toFixed(4)}`}</p>
+            </div>
+          </div>
+
+          <LocationPickerMap
+            location={criteriaForm.location}
+            latitude={resolvedLatitude}
+            longitude={resolvedLongitude}
+            onSelect={({ location: selectedLocation, latitude, longitude }) => {
+              setCriteriaForm((state) => ({
+                ...state,
+                location: selectedLocation,
+                latitude: String(latitude),
+                longitude: String(longitude),
+              }))
+              setFormErrors((state) => ({
+                ...state,
+                location: undefined,
+                latitude: undefined,
+                longitude: undefined,
+              }))
+            }}
+          />
+
+          {formErrors.location ? <p className="field-error">{formErrors.location}</p> : null}
+        </div>
+      </section>
+    )
+  }
+
+  function renderThresholdControl() {
+    if (isRiverCategoryRule) {
+      return (
+        <AriaSelect
+          label="Flood risk level"
+          buttonClassName="aria-select-trigger"
+          popoverClassName="aria-select-popover"
+          listBoxClassName="aria-select-listbox"
+          selectedKey={criteriaForm.riverFloodCategoryThreshold}
+          options={FLOOD_CATEGORY_OPTIONS}
+          onSelectionChange={(value) =>
+            setCriteriaForm((state) => ({
+              ...state,
+              riverFloodCategoryThreshold: value as FloodCategory,
+            }))
+          }
+        />
+      )
     }
-  }
 
-  function handleCustomCoordinatesToggle(value: boolean) {
-    setUseCustomCoordinates(value)
+    return (
+      <div className="threshold-row">
+        <AriaTextField
+          label={isRiverStageRule ? 'Water level trigger' : 'Threshold'}
+          inputClassName="aria-input"
+          type="number"
+          required
+          value={criteriaForm.threshold}
+          description={thresholdHelp}
+          errorMessage={formErrors.threshold}
+          onChange={(value) => setCriteriaForm((state) => ({ ...state, threshold: value }))}
+        />
 
-    if (!value) {
-      setFormErrors((state) => ({
-        ...state,
-        latitude: undefined,
-        longitude: undefined,
-      }))
-    }
-  }
-
-  function handleRuleTypeChange(value: string) {
-    const next = value as RuleType
-    const nextIsGridRule = GRID_RULE_TYPES.includes(next)
-    const nextIsRiverRule = RIVER_RULE_TYPES.includes(next)
-    setCriteriaForm((state) => ({
-      ...state,
-      ruleType: next,
-      threshold: defaultThreshold(next),
-      riverFloodCategoryThreshold: next === 'RIVER_FLOOD_CATEGORY' ? state.riverFloodCategoryThreshold || 'ACTION' : state.riverFloodCategoryThreshold,
-      monitorCurrent: nextIsRiverRule ? true : state.monitorCurrent,
-      monitorForecast: nextIsGridRule || nextIsRiverRule ? true : state.monitorForecast,
-    }))
-    setFormErrors((state) => ({
-      ...state,
-      threshold: undefined,
-      riverGaugeId: undefined,
-      gaugeSearchRadiusKm: undefined,
-    }))
-  }
-
-  function applyPrimaryArea() {
-    if (!primaryArea) {
-      return
-    }
-
-    setCriteriaForm((state) => ({
-      ...state,
-      location: primaryArea.location,
-      latitude: primaryArea.latitude,
-      longitude: primaryArea.longitude,
-    }))
-    setFormErrors((state) => ({
-      ...state,
-      location: undefined,
-      latitude: undefined,
-      longitude: undefined,
-    }))
-    setDidSeedPrimaryLocation(true)
-  }
-
-  function applyPreset(preset: RulePreset) {
-    setAutoNameEnabled(false)
-    setCriteriaForm((state) => ({
-      ...state,
-      name: preset.title,
-      ruleType: preset.ruleType,
-      threshold: preset.threshold,
-      temperatureUnit: preset.temperatureUnit ?? state.temperatureUnit,
-      riverFloodCategoryThreshold: preset.riverFloodCategoryThreshold ?? state.riverFloodCategoryThreshold,
-      monitorCurrent: preset.monitorCurrent ?? state.monitorCurrent,
-      monitorForecast: preset.monitorForecast ?? state.monitorForecast,
-      oncePerEvent: preset.oncePerEvent ?? state.oncePerEvent,
-      forecastWindowHours: preset.forecastWindowHours ?? state.forecastWindowHours,
-      rearmWindowMinutes: preset.rearmWindowMinutes ?? state.rearmWindowMinutes,
-    }))
-    setFormErrors({})
-    setAdvancedExpanded(GRID_RULE_TYPES.includes(preset.ruleType) || RIVER_RULE_TYPES.includes(preset.ruleType))
-    setFlashForm(true)
-
-    window.requestAnimationFrame(() => {
-      const target = document.getElementById('create-custom-alert')
-      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+        {isTemperatureScaleRule ? (
+          <AriaSelect
+            label={isDewPointRule ? 'Unit' : 'Temperature unit'}
+            buttonClassName="aria-select-trigger"
+            popoverClassName="aria-select-popover"
+            listBoxClassName="aria-select-listbox"
+            selectedKey={criteriaForm.temperatureUnit}
+            options={TEMP_UNIT_OPTIONS}
+            onSelectionChange={(value) =>
+              setCriteriaForm((state) => ({
+                ...state,
+                temperatureUnit: value as 'F' | 'C',
+              }))
+            }
+          />
+        ) : null}
+      </div>
+    )
   }
 
   return (
@@ -701,461 +698,514 @@ export function RulesPage() {
         <div className="panel-title-row">
           <div>
             <h2>Quick Start</h2>
-            <p className="muted small">Load a common alert preset, then adjust it if needed.</p>
+            <p className="muted small">Pick a common situation, then tune the builder below for the exact place you want SkyPanda to watch.</p>
           </div>
-          <span className="badge">{RULE_PRESETS.length} presets</span>
+          <span className="badge">{QUICK_START_PRESETS.length} presets</span>
         </div>
 
         <fieldset className="rules-fieldset-reset" disabled={savingCriteria}>
           <div className="preset-groups">
-            {presetGroups.map((group) => (
-              <section key={group.category} className="preset-group">
-                <div className="preset-group-header">
-                  <p className="preset-group-title">{group.label}</p>
-                </div>
-                <div className="easy-alert-grid">
-                  {group.items.map((preset) => (
-                    <AriaButton
-                      key={preset.id}
-                      type="button"
-                      className={`easy-alert-card${criteriaForm.name === preset.title ? ' is-active' : ''}`}
-                      isDisabled={savingCriteria}
-                      onPress={() => applyPreset(preset)}
-                    >
-                      <div className="easy-alert-title-row">
-                        <span aria-hidden className="easy-alert-icon-badge">
-                          {renderPresetIcon(preset.icon)}
-                        </span>
-                        <p className="easy-alert-title">{preset.title}</p>
-                      </div>
-                      <p className="easy-alert-desc">{preset.description}</p>
-                    </AriaButton>
-                  ))}
-                </div>
-              </section>
-            ))}
+            <div className="easy-alert-grid">
+              {QUICK_START_PRESETS.map((preset) => (
+                <AriaButton
+                  key={preset.id}
+                  type="button"
+                  className={`easy-alert-card${selectedPresetId === preset.id ? ' is-active' : ''}`}
+                  isDisabled={savingCriteria}
+                  onPress={() => applyQuickStartPreset(preset)}
+                >
+                  <div className="easy-alert-title-row">
+                    <span aria-hidden className="easy-alert-icon-badge">
+                      {renderPresetIcon(preset.icon)}
+                    </span>
+                    <div className="easy-alert-copy">
+                      <p className="easy-alert-title">{preset.title}</p>
+                      <p className="easy-alert-hint">{buildQuickStartHint(preset)}</p>
+                    </div>
+                  </div>
+                  <p className="easy-alert-desc">{preset.description}</p>
+                </AriaButton>
+              ))}
+            </div>
           </div>
         </fieldset>
       </article>
 
-      <article
-        id="create-custom-alert"
-        tabIndex={-1}
-        className={`panel custom-alert-section${flashForm ? ' field-flash' : ''}`}
-      >
+      <article id="create-custom-alert" tabIndex={-1} className={`panel custom-alert-section${flashForm ? ' field-flash' : ''}`}>
         <div className="panel-title-row">
-          <h2>New Alert</h2>
+          <div>
+            <h2>New Alert</h2>
+            <p className="muted small">Choose what matters, choose the place, tune the sensitivity, and let SkyPanda keep watch.</p>
+          </div>
         </div>
 
         <fieldset className="rules-fieldset-reset" disabled={savingCriteria}>
-          <form className="grid-form create-grid" onSubmit={handleCreateAlertSubmit} noValidate>
-            <div className="full-row rules-name-block">
-              <AriaTextField
-                label="Alert name"
-                inputClassName="aria-input"
-                value={criteriaForm.name}
-                required
-                errorMessage={formErrors.name}
-                onChange={(value) => {
-                  setAutoNameEnabled(false)
-                  setCriteriaForm((state) => ({ ...state, name: value }))
-                }}
-              />
-              <div className="name-suggestion-row">
-                <p className="muted small name-suggestion-copy">{`Suggested: ${suggestedName}`}</p>
-                {showSuggestedNameAction ? (
-                  <AriaButton
-                    type="button"
-                    className="ghost button-inline"
-                    isDisabled={savingCriteria}
-                    onPress={() => {
-                      setAutoNameEnabled(true)
-                      setCriteriaForm((state) => ({ ...state, name: suggestedName }))
-                    }}
-                  >
-                    Use suggested name
-                  </AriaButton>
-                ) : null}
-              </div>
-            </div>
-
-            <section className="full-row rule-preview-card" aria-live="polite">
-              <div className="rule-preview-header">
-                <div>
-                  <p className="eyebrow">Live Preview</p>
-                  <h3>{criteriaForm.name.trim() || suggestedName}</h3>
-                </div>
-                <span className="badge">{previewChecks}</span>
-              </div>
-              <p className="rule-preview-copy">{thresholdHelp}</p>
-              <div className="rule-preview-pills">
-                <span className="metric-pill">Area {previewLocation}</span>
-                <span className="metric-pill">
-                  {criteriaForm.oncePerEvent ? 'Notifies once per event' : `Repeats every ${criteriaForm.rearmWindowMinutes} min`}
-                </span>
-                <span className="metric-pill">{`Forecast window ${criteriaForm.forecastWindowHours}h`}</span>
-                {previewCurrentSnapshot ? <span className="metric-pill">{previewCurrentSnapshot}</span> : null}
-              </div>
-            </section>
-
-            <div id="location-picker" tabIndex={-1} className="full-row location-picker-panel">
-              <div className="location-picker-toolbar">
-                <div>
-                  <p className="location-picker-label">Alert area</p>
-                  <p className="muted small">
-                    {`${previewLocation} • ${resolvedLatitude.toFixed(4)}, ${resolvedLongitude.toFixed(4)}`}
-                  </p>
-                </div>
-                {primaryArea ? (
-                  <AriaButton
-                    type="button"
-                    className="ghost button-inline"
-                    isDisabled={savingCriteria}
-                    onPress={applyPrimaryArea}
-                  >
-                    Use current area
-                  </AriaButton>
-                ) : null}
-              </div>
-              <LocationPickerMap
-                location={criteriaForm.location}
-                latitude={resolvedLatitude}
-                longitude={resolvedLongitude}
-                onSelect={({ location: selectedLocation, latitude, longitude }) =>
-                  setCriteriaForm((state) => ({
-                    ...state,
-                    location: selectedLocation,
-                    latitude: String(latitude),
-                    longitude: String(longitude),
-                  }))
-                }
-              />
-              {formErrors.location ? <p className="field-error">{formErrors.location}</p> : null}
-            </div>
-
-            <AriaSelect
-              label="Rule type"
-              buttonClassName="aria-select-trigger"
-              popoverClassName="aria-select-popover"
-              listBoxClassName="aria-select-listbox"
-              selectedKey={criteriaForm.ruleType}
-              options={RULE_TYPE_OPTIONS.map((option) => ({ ...option }))}
-              onSelectionChange={handleRuleTypeChange}
-            />
-
-            {isGridRule ? (
-              <p className="muted small full-row rule-mode-note">
-                Advanced grid rules come from NOAA forecast grid data. Keep Forecast enabled to use the best signal.
-              </p>
-            ) : null}
-
-          {isRiverRule ? (
-            <section className="full-row river-rule-panel">
-              <div className="river-rule-header">
-                <div>
-                  <h3>River location</h3>
-                  <p className="muted small river-rule-copy">
-                    Pick a spot on the map, then find the nearest river monitor. We use that in the background so you do not have to.
-                  </p>
-                </div>
-                <AriaButton
-                  type="button"
-                  className="button-inline river-helper-button"
-                  isDisabled={savingCriteria || resolvingRiverGauge}
-                  onPress={() => void handleResolveNearestGauge()}
-                >
-                  {resolvingRiverGauge ? 'Finding nearby river...' : 'Find nearby river'}
-                </AriaButton>
-              </div>
-
-              {!criteriaForm.riverGaugeId.trim() ? (
-                <p className="muted small river-setup-hint">
-                  Choose the river point first. After that, the save button will unlock for this alert.
-                </p>
-              ) : null}
-              {formErrors.riverGaugeId ? <p className="field-error">{formErrors.riverGaugeId}</p> : null}
-
-              {resolvedRiverGauge?.riverGaugeId ? (
-                <div className="river-gauge-card">
-                  <div className="river-gauge-card-header">
-                    <p className="river-gauge-title">
-                      {resolvedRiverGauge.location || 'Nearby river selected'}
-                    </p>
-                    {resolvedRiverGauge.riverDistanceKm != null ? (
-                      <span className="badge">{formatNumber(resolvedRiverGauge.riverDistanceKm)} km away</span>
-                    ) : null}
-                  </div>
-
-                  <div className="river-gauge-metrics">
-                    {resolvedRiverGauge.riverObservedStage != null ? (
-                      <span className="metric-pill">
-                        Now: {formatStage(resolvedRiverGauge.riverObservedStage, resolvedRiverGauge.riverStageUnit)}
-                      </span>
-                    ) : null}
-                    {resolvedRiverGauge.riverForecastStage != null ? (
-                      <span className="metric-pill">
-                        Later: {formatStage(resolvedRiverGauge.riverForecastStage, resolvedRiverGauge.riverStageUnit)}
-                      </span>
-                    ) : null}
-                    {resolvedRiverGauge.riverActionStage != null ? (
-                      <span className="metric-pill">
-                        Early warning: {formatStage(resolvedRiverGauge.riverActionStage, resolvedRiverGauge.riverStageUnit)}
-                      </span>
-                    ) : null}
-                    {resolvedRiverGauge.riverFloodStage != null ? (
-                      <span className="metric-pill">
-                        Flood level: {formatStage(resolvedRiverGauge.riverFloodStage, resolvedRiverGauge.riverStageUnit)}
-                      </span>
-                    ) : null}
-                    {resolvedRiverGauge.riverObservedCategory ? (
-                      <span className="metric-pill">
-                        Current risk: {formatRiverCategoryLabel(resolvedRiverGauge.riverObservedCategory)}
-                      </span>
-                    ) : null}
-                    {resolvedRiverGauge.riverForecastCategory ? (
-                      <span className="metric-pill">
-                        Forecast risk: {formatRiverCategoryLabel(resolvedRiverGauge.riverForecastCategory)}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </section>
-          ) : null}
-
-          {isRiverCategoryRule ? (
-            <div className="threshold-row full-row river-threshold-row">
-              <AriaSelect
-                label="Flood risk level"
-                buttonClassName="aria-select-trigger"
-                popoverClassName="aria-select-popover"
-                listBoxClassName="aria-select-listbox"
-                selectedKey={criteriaForm.riverFloodCategoryThreshold}
-                options={FLOOD_CATEGORY_OPTIONS}
-                onSelectionChange={(value) =>
-                  setCriteriaForm((state) => ({
-                    ...state,
-                    riverFloodCategoryThreshold: value as FloodCategory,
-                  }))
-                }
-              />
-
-              <div className="river-threshold-help">
-                <p className="muted small">{thresholdHelp}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="threshold-row full-row">
-              <AriaTextField
-                label={isRiverStageRule ? 'Water level trigger' : 'Threshold'}
-                inputClassName="aria-input"
-                type="number"
-                required
-                value={criteriaForm.threshold}
-                description={thresholdHelp}
-                errorMessage={formErrors.threshold}
-                onChange={(value) => setCriteriaForm((state) => ({ ...state, threshold: value }))}
-              />
-
-              {isTemperatureScaleRule ? (
-                <AriaSelect
-                  label={isDewPointRule ? 'Dew point unit' : 'Temperature unit'}
-                  buttonClassName="aria-select-trigger"
-                  popoverClassName="aria-select-popover"
-                  listBoxClassName="aria-select-listbox"
-                  selectedKey={criteriaForm.temperatureUnit}
-                  options={TEMP_UNIT_OPTIONS}
-                  onSelectionChange={(value) =>
-                    setCriteriaForm((state) => ({
-                      ...state,
-                      temperatureUnit: value as 'F' | 'C',
-                    }))
-                  }
-                />
-              ) : null}
-            </div>
-          )}
-
-          <div className="toggle-row full-row toggle-row-wide">
-            <AriaSwitch
-              label="Current"
-              isSelected={criteriaForm.monitorCurrent}
-              onChange={(value) =>
-                setCriteriaForm((state) => ({
-                  ...state,
-                  monitorCurrent: value,
-                }))
-              }
-            />
-            <AriaSwitch
-              label="Forecast"
-              isSelected={criteriaForm.monitorForecast}
-              onChange={(value) =>
-                setCriteriaForm((state) => ({
-                  ...state,
-                  monitorForecast: value,
-                }))
-              }
-            />
-            <AriaSwitch
-              label="Notify once"
-              isSelected={criteriaForm.oncePerEvent}
-              onChange={(value) =>
-                setCriteriaForm((state) => ({
-                  ...state,
-                  oncePerEvent: value,
-                }))
-              }
-            />
+          <div className="builder-mode-switch" role="tablist" aria-label="Alert builder mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={builderMode === 'SIMPLE'}
+              className={`builder-mode-tab${builderMode === 'SIMPLE' ? ' is-active' : ''}`}
+              onClick={() => handleBuilderModeChange('SIMPLE')}
+            >
+              Simple
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={builderMode === 'ADVANCED'}
+              className={`builder-mode-tab${builderMode === 'ADVANCED' ? ' is-active' : ''}`}
+              onClick={() => handleBuilderModeChange('ADVANCED')}
+            >
+              Advanced
+            </button>
           </div>
 
-            <AriaButton
-              type="submit"
-              className="primary button-inline full-row"
-              isDisabled={!canSubmitCriteria || savingCriteria}
-            >
-              {savingCriteria ? 'Saving alert...' : 'Create alert'}
-            </AriaButton>
-
-          <Disclosure
-            className="advanced-disclosure full-row"
-            isExpanded={advancedExpanded}
-            onExpandedChange={setAdvancedExpanded}
-          >
-            <AriaButton type="button" slot="trigger" className="advanced-trigger" aria-label="Advanced settings">
-              <span>Advanced</span>
-              <span className="advanced-chevron" aria-hidden>
-                ▾
-              </span>
-            </AriaButton>
-
-            <DisclosurePanel className="advanced-disclosure-panel">
-              <section className="advanced-section">
-                <h3>Delivery behavior</h3>
-                <div className="advanced-delivery-grid">
-                  <AriaTextField
-                    label="Minimum time between alerts (minutes)"
-                    inputClassName="aria-input"
-                    type="number"
-                    value={criteriaForm.rearmWindowMinutes}
-                    errorMessage={formErrors.rearmWindowMinutes}
-                    onChange={(value) =>
-                      setCriteriaForm((state) => ({
-                        ...state,
-                        rearmWindowMinutes: value,
-                      }))
-                    }
-                  />
-
-                  <AriaTextField
-                    label="Look ahead (forecast hours)"
-                    inputClassName="aria-input"
-                    type="number"
-                    value={criteriaForm.forecastWindowHours}
-                    errorMessage={formErrors.forecastWindowHours}
-                    onChange={(value) =>
-                      setCriteriaForm((state) => ({
-                        ...state,
-                        forecastWindowHours: value,
-                      }))
-                    }
-                  />
+          <form className={`guided-rule-builder${builderMode === 'ADVANCED' ? ' is-advanced' : ''}`} onSubmit={handleCreateAlertSubmit} noValidate>
+            {selectedPreset ? (
+              <div className="preset-loaded-banner" role="status" aria-live="polite">
+                <div>
+                  <strong>{`Preset loaded: ${selectedPreset.title}`}</strong>
+                  <p className="muted small">You can adjust it below. Presets are just starting points.</p>
                 </div>
-              </section>
+                <span className="badge">{buildQuickStartHint(selectedPreset)}</span>
+              </div>
+            ) : null}
 
-              <section className="advanced-section">
-                <h3>Location details</h3>
-                <AriaSelect
-                  label="Location mode"
-                  buttonClassName="aria-select-trigger"
-                  popoverClassName="aria-select-popover"
-                  listBoxClassName="aria-select-listbox"
-                  selectedKey={locationMode}
-                  options={LOCATION_MODE_OPTIONS}
-                  onSelectionChange={handleLocationModeChange}
-                />
-
-                {shouldShowCoordinateToggle ? (
+            <div className="guided-rule-layout">
+              <div className="guided-rule-main">
+                {builderMode === 'SIMPLE' ? (
                   <>
-                    <AriaSwitch
-                      label="Use custom coordinates"
-                      isSelected={useCustomCoordinates}
-                      onChange={handleCustomCoordinatesToggle}
-                    />
-
-                    {shouldUseCustomCoordinates ? (
-                      <>
-                        <p className="muted small advanced-helper">
-                          Only needed if you want alerts for a specific coordinate.
-                        </p>
-                        <div className="advanced-coordinate-grid">
-                          <AriaTextField
-                            label="Latitude"
-                            inputClassName="aria-input"
-                            type="number"
-                            step="0.0001"
-                            value={criteriaForm.latitude}
-                            errorMessage={formErrors.latitude}
-                            onChange={(value) => setCriteriaForm((state) => ({ ...state, latitude: value }))}
-                          />
-                          <AriaTextField
-                            label="Longitude"
-                            inputClassName="aria-input"
-                            type="number"
-                            step="0.0001"
-                            value={criteriaForm.longitude}
-                            errorMessage={formErrors.longitude}
-                            onChange={(value) => setCriteriaForm((state) => ({ ...state, longitude: value }))}
-                          />
+                    <section className="guided-step-card">
+                      <div className="guided-step-header">
+                        <div>
+                          <p className="eyebrow">Step 1</p>
+                          <h3>Choose what to watch</h3>
+                          <p className="muted small">Start with the kind of situation you care about. You can tune the details after.</p>
                         </div>
-                      </>
-                    ) : null}
-                  </>
-                ) : null}
-              </section>
+                      </div>
 
-              {isRiverRule ? (
-                <section className="advanced-section">
-                  <h3>River source</h3>
-                  <p className="muted small advanced-helper">
-                    These settings control how we find the river monitor behind the scenes.
-                  </p>
-                  <div className="advanced-coordinate-grid">
-                    <AriaTextField
-                      label="River monitor ID"
-                      inputClassName="aria-input"
-                      value={criteriaForm.riverGaugeId}
-                      errorMessage={formErrors.riverGaugeId}
-                      onChange={(value) =>
-                        setCriteriaForm((state) => ({
-                          ...state,
-                          riverGaugeId: value.toUpperCase(),
-                        }))
-                      }
-                    />
-                    <AriaTextField
-                      label="Search range (km)"
-                      inputClassName="aria-input"
-                      type="number"
-                      min="1"
-                      max="500"
-                      value={criteriaForm.gaugeSearchRadiusKm}
-                      errorMessage={formErrors.gaugeSearchRadiusKm}
-                      onChange={(value) =>
-                        setCriteriaForm((state) => ({
-                          ...state,
-                          gaugeSearchRadiusKm: value,
-                        }))
-                      }
-                    />
+                      <div className="simple-situation-grid">
+                        {SIMPLE_SITUATIONS.map((situation) => (
+                          <AriaButton
+                            key={situation.id}
+                            type="button"
+                            className={`simple-situation-card${selectedSituationId === situation.id ? ' is-active' : ''}`}
+                            onPress={() => handleSituationSelect(situation.id)}
+                          >
+                            <div className="simple-situation-header">
+                              <span aria-hidden className="easy-alert-icon-badge">
+                                {renderPresetIcon(situation.icon)}
+                              </span>
+                              <div className="easy-alert-copy">
+                                <p className="easy-alert-title">{situation.title}</p>
+                                <p className="easy-alert-hint">{situation.helper}</p>
+                              </div>
+                            </div>
+                            <p className="easy-alert-desc">{situation.description}</p>
+                          </AriaButton>
+                        ))}
+                      </div>
+
+                      {selectedSituation?.id === 'CUSTOM' ? (
+                        <div className="simple-custom-note">
+                          <strong>Custom situations use the full Advanced builder.</strong>
+                          <p className="muted small">Switch to Advanced to choose the exact weather variable and threshold yourself.</p>
+                        </div>
+                      ) : null}
+                    </section>
+
+                    {renderLocationStep('Search for a place, use your current area, or drop a point directly on the map.')}
+
+                    <section className="guided-step-card">
+                      <div className="guided-step-header">
+                        <div>
+                          <p className="eyebrow">Step 3</p>
+                          <h3>Choose sensitivity</h3>
+                          <p className="muted small">
+                            {selectedSituation?.sensitivityLabel
+                              ? `${selectedSituation.sensitivityLabel}. Choose a preset first, then fine-tune only if you need to.`
+                              : 'Choose how sensitive this alert should be.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedSituation && selectedSituation.id !== 'CUSTOM' ? (
+                        <>
+                          <div className="simple-sensitivity-grid">
+                            {selectedSituation.sensitivityOptions.map((option) => (
+                              <AriaButton
+                                key={option.id}
+                                type="button"
+                                className={`simple-sensitivity-card${selectedSensitivityId === option.id ? ' is-active' : ''}`}
+                                onPress={() => handleSensitivitySelect(option.id)}
+                              >
+                                <strong>{option.label}</strong>
+                                <span>{option.description}</span>
+                              </AriaButton>
+                            ))}
+                          </div>
+
+                          {isSimpleCustomSensitivity ? (
+                            <div className="simple-custom-threshold-panel">{renderThresholdControl()}</div>
+                          ) : (
+                            <p className="muted small simple-threshold-summary">
+                              {isRiverCategoryRule
+                                ? `Using ${formatFloodCategoryLabel(criteriaForm.riverFloodCategoryThreshold)} sensitivity.`
+                                : `Using ${formatThresholdForPreview(criteriaForm)} as the trigger threshold.`}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="muted small">Choose a situation above to unlock the simple sensitivity presets.</p>
+                      )}
+
+                      {isRiverRule ? renderRiverGaugePanel(criteriaForm, resolvedRiverGauge, resolvingRiverGauge, formErrors, handleResolveNearestGauge) : null}
+                    </section>
+
+                    <section className="guided-step-card">
+                      <div className="guided-step-header">
+                        <div>
+                          <p className="eyebrow">Step 4</p>
+                          <h3>Choose timing and notifications</h3>
+                          <p className="muted small">Tell SkyPanda whether to watch current conditions, forecast conditions, or both.</p>
+                        </div>
+                      </div>
+
+                      <div className="guided-toggle-groups">
+                        <div className="guided-toggle-group">
+                          <p className="guided-toggle-label">Alert for</p>
+                          <div className="toggle-row toggle-row-wide">
+                            <AriaSwitch
+                              label="Current conditions"
+                              isSelected={criteriaForm.monitorCurrent}
+                              onChange={(value) => setCriteriaForm((state) => ({ ...state, monitorCurrent: value }))}
+                            />
+                            <AriaSwitch
+                              label="Forecast conditions"
+                              isSelected={criteriaForm.monitorForecast}
+                              onChange={(value) => setCriteriaForm((state) => ({ ...state, monitorForecast: value }))}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="guided-toggle-group">
+                          <p className="guided-toggle-label">Notify</p>
+                          <div className="toggle-row toggle-row-wide">
+                            <AriaSwitch
+                              label="Once per event"
+                              isSelected={criteriaForm.oncePerEvent}
+                              onChange={(value) => setCriteriaForm((state) => ({ ...state, oncePerEvent: value }))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  </>
+                ) : (
+                  <>
+                    {renderLocationStep('Pick the place first, then choose the exact condition you want to monitor.')}
+
+                    <section className="guided-step-card">
+                      <div className="guided-step-header">
+                        <div>
+                          <p className="eyebrow">Step 2</p>
+                          <h3>Choose the raw condition</h3>
+                          <p className="muted small">Search by terms like heat, rain, flood, wind, humidity, or sky to get to the exact rule faster.</p>
+                        </div>
+                      </div>
+
+                      <AriaTextField
+                        label="Search conditions"
+                        inputClassName="aria-input"
+                        value={advancedSearchQuery}
+                        placeholder="Search heat, rain, wind, flood..."
+                        onChange={setAdvancedSearchQuery}
+                      />
+
+                      <div className="advanced-rule-groups">
+                        {filteredAdvancedGroups.map((group) => (
+                          <section key={group.id} className="advanced-rule-group">
+                            <div className="advanced-rule-group-header">
+                              <p className="preset-group-title">{group.label}</p>
+                            </div>
+                            <div className="advanced-rule-option-grid">
+                              {group.options.map((option) => (
+                                <AriaButton
+                                  key={option.id}
+                                  type="button"
+                                  className={`advanced-rule-option${criteriaForm.ruleType === option.id ? ' is-active' : ''}`}
+                                  onPress={() => handleRuleTypeChange(option.id)}
+                                >
+                                  <strong>{option.label}</strong>
+                                  <span>{option.description}</span>
+                                </AriaButton>
+                              ))}
+                            </div>
+                          </section>
+                        ))}
+                        {filteredAdvancedGroups.length === 0 ? (
+                          <p className="muted small">No matching conditions. Try broader terms like rain, flood, heat, or sky.</p>
+                        ) : null}
+                      </div>
+
+                      {isRiverRule ? renderRiverGaugePanel(criteriaForm, resolvedRiverGauge, resolvingRiverGauge, formErrors, handleResolveNearestGauge) : null}
+                    </section>
+
+                    <section className="guided-step-card">
+                      <div className="guided-step-header">
+                        <div>
+                          <p className="eyebrow">Step 3</p>
+                          <h3>Tune the threshold</h3>
+                          <p className="muted small">Edit the exact raw condition for this rule.</p>
+                        </div>
+                      </div>
+
+                      {renderThresholdControl()}
+                    </section>
+
+                    <section className="guided-step-card">
+                      <div className="guided-step-header">
+                        <div>
+                          <p className="eyebrow">Step 4</p>
+                          <h3>Choose timing and notifications</h3>
+                          <p className="muted small">Keep it simple here, then open Advanced settings below if you need more control.</p>
+                        </div>
+                      </div>
+
+                      <div className="guided-toggle-groups">
+                        <div className="guided-toggle-group">
+                          <p className="guided-toggle-label">Alert for</p>
+                          <div className="toggle-row toggle-row-wide">
+                            <AriaSwitch
+                              label="Current conditions"
+                              isSelected={criteriaForm.monitorCurrent}
+                              onChange={(value) => setCriteriaForm((state) => ({ ...state, monitorCurrent: value }))}
+                            />
+                            <AriaSwitch
+                              label="Forecast conditions"
+                              isSelected={criteriaForm.monitorForecast}
+                              onChange={(value) => setCriteriaForm((state) => ({ ...state, monitorForecast: value }))}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="guided-toggle-group">
+                          <p className="guided-toggle-label">Notify</p>
+                          <div className="toggle-row toggle-row-wide">
+                            <AriaSwitch
+                              label="Once per event"
+                              isSelected={criteriaForm.oncePerEvent}
+                              onChange={(value) => setCriteriaForm((state) => ({ ...state, oncePerEvent: value }))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  </>
+                )}
+
+                <Disclosure className="advanced-disclosure" isExpanded={advancedExpanded} onExpandedChange={setAdvancedExpanded}>
+                  <AriaButton type="button" slot="trigger" className="advanced-trigger" aria-label="Advanced settings">
+                    <span>Additional options</span>
+                    <span className="advanced-chevron" aria-hidden>
+                      ▾
+                    </span>
+                  </AriaButton>
+
+                  <DisclosurePanel className="advanced-disclosure-panel">
+                    <section className="advanced-section">
+                      <h3>Delivery behavior</h3>
+                      <div className="advanced-delivery-grid">
+                        <AriaTextField
+                          label="Minimum time between alerts (minutes)"
+                          inputClassName="aria-input"
+                          type="number"
+                          value={criteriaForm.rearmWindowMinutes}
+                          errorMessage={formErrors.rearmWindowMinutes}
+                          onChange={(value) => setCriteriaForm((state) => ({ ...state, rearmWindowMinutes: value }))}
+                        />
+
+                        <AriaTextField
+                          label="Look ahead (forecast hours)"
+                          inputClassName="aria-input"
+                          type="number"
+                          value={criteriaForm.forecastWindowHours}
+                          errorMessage={formErrors.forecastWindowHours}
+                          onChange={(value) => setCriteriaForm((state) => ({ ...state, forecastWindowHours: value }))}
+                        />
+                      </div>
+                    </section>
+
+                    <section className="advanced-section">
+                      <h3>Location details</h3>
+                      <AriaSelect
+                        label="Location mode"
+                        buttonClassName="aria-select-trigger"
+                        popoverClassName="aria-select-popover"
+                        listBoxClassName="aria-select-listbox"
+                        selectedKey={locationMode}
+                        options={LOCATION_MODE_OPTIONS}
+                        onSelectionChange={handleLocationModeChange}
+                      />
+
+                      {shouldShowCoordinateToggle ? (
+                        <>
+                          <AriaSwitch
+                            label="Edit coordinates directly"
+                            isSelected={useCustomCoordinates}
+                            onChange={handleCustomCoordinatesToggle}
+                          />
+
+                          {shouldUseCustomCoordinates ? (
+                            <div className="advanced-coordinate-grid">
+                              <AriaTextField
+                                label="Latitude"
+                                inputClassName="aria-input"
+                                type="number"
+                                value={criteriaForm.latitude}
+                                errorMessage={formErrors.latitude}
+                                onChange={(value) => setCriteriaForm((state) => ({ ...state, latitude: value }))}
+                              />
+                              <AriaTextField
+                                label="Longitude"
+                                inputClassName="aria-input"
+                                type="number"
+                                value={criteriaForm.longitude}
+                                errorMessage={formErrors.longitude}
+                                onChange={(value) => setCriteriaForm((state) => ({ ...state, longitude: value }))}
+                              />
+                            </div>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </section>
+
+                    {isRiverRule ? (
+                      <section className="advanced-section">
+                        <h3>River source</h3>
+                        <AriaTextField
+                          label="River gauge id"
+                          inputClassName="aria-input"
+                          value={criteriaForm.riverGaugeId}
+                          errorMessage={formErrors.riverGaugeId}
+                          description="Use the nearby river helper above or enter a gauge id directly."
+                          onChange={(value) => setCriteriaForm((state) => ({ ...state, riverGaugeId: value }))}
+                        />
+
+                        <AriaTextField
+                          label="Gauge search radius (km)"
+                          inputClassName="aria-input"
+                          type="number"
+                          value={criteriaForm.gaugeSearchRadiusKm}
+                          errorMessage={formErrors.gaugeSearchRadiusKm}
+                          description="Only used when SkyPanda searches for the nearest river gauge."
+                          onChange={(value) => setCriteriaForm((state) => ({ ...state, gaugeSearchRadiusKm: value }))}
+                        />
+
+                        {criteriaForm.riverGaugeId ? (
+                          <p className="muted small river-monitor-note">Current monitor: {criteriaForm.riverGaugeId}</p>
+                        ) : null}
+                      </section>
+                    ) : null}
+                  </DisclosurePanel>
+                </Disclosure>
+              </div>
+
+              <aside className="guided-rule-aside">
+                <section className={`sky-status-card${alertConsoleSummary.allClear ? ' is-calm' : ' is-live'}`}>
+                  <div className="rule-preview-header">
+                    <div>
+                      <p className="eyebrow">Sky Status</p>
+                      <h3>{alertConsoleSummary.allClear ? 'Stable' : 'Changing'}</h3>
+                    </div>
+                    <span className={`badge ${alertConsoleSummary.allClear ? '' : 'is-live'}`}>
+                      {alertConsoleSummary.allClear ? 'All clear' : `${alertConsoleSummary.activeCount} active`}
+                    </span>
                   </div>
-                  {criteriaForm.riverGaugeId ? (
-                    <p className="muted small river-monitor-note">Current monitor: {criteriaForm.riverGaugeId}</p>
+                  <p className="rule-preview-copy">
+                    {alertConsoleSummary.allClear
+                      ? `${alertConsoleSummary.watchLocation} has been calm${alertConsoleSummary.calmStreakLabel ? ` for ${alertConsoleSummary.calmStreakLabel}` : ''}.`
+                      : `${alertConsoleSummary.watchLocation} has active weather changes being tracked now.`}
+                  </p>
+                  <div className="rule-preview-pills">
+                    <span className="metric-pill">{alertConsoleSummary.freshnessLabel}</span>
+                    {alertConsoleSummary.lastAlertLabel ? <span className="metric-pill">{alertConsoleSummary.lastAlertLabel}</span> : null}
+                  </div>
+                </section>
+
+                <section className="sample-alert-card">
+                  <div className="rule-preview-header">
+                    <div>
+                      <p className="eyebrow">Live Preview</p>
+                      <h3>{resolvedAlertName}</h3>
+                    </div>
+                    <span className="badge">{builderMode === 'SIMPLE' ? 'Simple setup' : 'Advanced setup'}</span>
+                  </div>
+                  <p className="sample-alert-message">{previewAlertSentence}</p>
+                  <p className="sample-alert-copy">{`Watching ${previewLocation}. ${previewChecks}. ${
+                    criteriaForm.oncePerEvent ? 'Notify once per event.' : `Repeat every ${criteriaForm.rearmWindowMinutes} minutes.`
+                  }`}</p>
+                  <div className="rule-preview-pills">
+                    <span className="metric-pill">{`Condition ${builderMode === 'SIMPLE' ? selectedSituation?.title ?? advancedConditionLabel : advancedConditionLabel}`}</span>
+                    <span className="metric-pill">{`Threshold ${formatThresholdForPreview(criteriaForm)}`}</span>
+                    {builderMode === 'ADVANCED' ? <span className="metric-pill">{advancedConditionLabel}</span> : null}
+                  </div>
+                  {previewChips.length > 0 ? (
+                    <div className="rule-preview-pills">
+                      {previewChips.map((chip) => (
+                        <span key={chip} className="metric-pill">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {previewCurrentSnapshot ? <p className="sample-alert-note muted small">{previewCurrentSnapshot}</p> : null}
+                </section>
+
+                <section className="guided-step-card guided-step-card-compact">
+                  <div className="guided-step-header">
+                    <div>
+                      <p className="eyebrow">Optional</p>
+                      <h3>Alert name</h3>
+                      <p className="muted small">SkyPanda can name this for you. Edit only if you want a custom label.</p>
+                    </div>
+                  </div>
+
+                  <AriaTextField
+                    label="Alert name"
+                    inputClassName="aria-input"
+                    value={criteriaForm.name}
+                    placeholder={suggestedName}
+                    onChange={handleAlertNameChange}
+                  />
+
+                  {showSuggestedNameAction ? (
+                    <AriaButton
+                      type="button"
+                      className="ghost button-inline"
+                      onPress={() => {
+                        setAutoNameEnabled(true)
+                        setCriteriaForm((state) => ({ ...state, name: suggestedName }))
+                      }}
+                    >
+                      Use suggested name
+                    </AriaButton>
                   ) : null}
                 </section>
-              ) : null}
-            </DisclosurePanel>
-          </Disclosure>
+
+                <div className="guided-save-actions">
+                  <button type="submit" className="primary" disabled={!canSubmitCriteria || savingCriteria}>
+                    {savingCriteria ? 'Saving alert…' : 'Save alert'}
+                  </button>
+                  <p className="muted small">
+                    {builderMode === 'SIMPLE'
+                      ? 'A useful alert should take four choices or fewer.'
+                      : 'Advanced mode preserves every raw rule type the backend supports.'}
+                  </p>
+                </div>
+              </aside>
+            </div>
           </form>
         </fieldset>
       </article>
@@ -1163,251 +1213,294 @@ export function RulesPage() {
   )
 }
 
-function validateThreshold(ruleType: RuleType, threshold: number, unit: 'F' | 'C'): string | undefined {
-  if (ruleType === 'TEMP_ABOVE' || ruleType === 'TEMP_BELOW' || ruleType === 'DEW_POINT_ABOVE' || ruleType === 'DEW_POINT_BELOW') {
-    if (unit === 'F') {
-      if (threshold < -50 || threshold > 140) {
-        return 'For Fahrenheit, use a value between -50 and 140.'
-      }
-    } else if (threshold < -45 || threshold > 60) {
-      return 'For Celsius, use a value between -45 and 60.'
-    }
-    return undefined
-  }
+function renderRiverGaugePanel(
+  criteriaForm: typeof initialCriteriaForm,
+  resolvedRiverGauge: WeatherCondition | null,
+  resolvingRiverGauge: boolean,
+  formErrors: RuleFormErrors,
+  handleResolveNearestGauge: () => Promise<void>,
+) {
+  return (
+    <section className="river-rule-panel">
+      <div className="river-rule-header">
+        <div>
+          <h3>Connect the nearby river monitor</h3>
+          <p className="muted small river-rule-copy">Pick the point on the map first, then let SkyPanda find the river gauge behind the scenes.</p>
+        </div>
+        <AriaButton type="button" className="button-inline river-helper-button" onPress={() => void handleResolveNearestGauge()}>
+          {resolvingRiverGauge ? 'Finding nearby river...' : 'Find nearby river'}
+        </AriaButton>
+      </div>
 
-  if (ruleType === 'RAIN' || ruleType === 'HUMIDITY_ABOVE' || ruleType === 'HUMIDITY_BELOW' || ruleType === 'SKY_COVER_ABOVE' || ruleType === 'SKY_COVER_BELOW') {
-    if (threshold < 0 || threshold > 100) {
-      return 'Use a value between 0 and 100.'
-    }
-    return undefined
-  }
+      {!criteriaForm.riverGaugeId.trim() ? (
+        <p className="muted small river-setup-hint">Choose the river point first. After that, this alert is ready to save.</p>
+      ) : null}
+      {formErrors.riverGaugeId ? <p className="field-error">{formErrors.riverGaugeId}</p> : null}
 
-  if (threshold < 0) {
-    return 'Threshold must be zero or greater.'
-  }
+      {resolvedRiverGauge?.riverGaugeId ? (
+        <div className="river-gauge-card">
+          <div className="river-gauge-card-header">
+            <p className="river-gauge-title">{resolvedRiverGauge.location || 'Nearby river selected'}</p>
+            {resolvedRiverGauge.riverDistanceKm != null ? (
+              <span className="badge">{formatNumber(resolvedRiverGauge.riverDistanceKm)} km away</span>
+            ) : null}
+          </div>
 
-  return undefined
+          <div className="river-gauge-metrics">
+            {resolvedRiverGauge.riverObservedStage != null ? (
+              <span className="metric-pill">Now: {formatStage(resolvedRiverGauge.riverObservedStage, resolvedRiverGauge.riverStageUnit)}</span>
+            ) : null}
+            {resolvedRiverGauge.riverForecastStage != null ? (
+              <span className="metric-pill">Later: {formatStage(resolvedRiverGauge.riverForecastStage, resolvedRiverGauge.riverStageUnit)}</span>
+            ) : null}
+            {resolvedRiverGauge.riverActionStage != null ? (
+              <span className="metric-pill">Early warning: {formatStage(resolvedRiverGauge.riverActionStage, resolvedRiverGauge.riverStageUnit)}</span>
+            ) : null}
+            {resolvedRiverGauge.riverFloodStage != null ? (
+              <span className="metric-pill">Flood level: {formatStage(resolvedRiverGauge.riverFloodStage, resolvedRiverGauge.riverStageUnit)}</span>
+            ) : null}
+            {resolvedRiverGauge.riverObservedCategory ? (
+              <span className="metric-pill">Current risk: {formatRiverCategoryLabel(resolvedRiverGauge.riverObservedCategory)}</span>
+            ) : null}
+            {resolvedRiverGauge.riverForecastCategory ? (
+              <span className="metric-pill">Forecast risk: {formatRiverCategoryLabel(resolvedRiverGauge.riverForecastCategory)}</span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
 }
 
-function mergeRiverGaugeConditions(
-  current: WeatherCondition | null,
-  forecast: WeatherCondition | null,
-): WeatherCondition | null {
-  if (!current && !forecast) {
-    return null
-  }
-
-  return {
-    ...(current ?? {}),
-    ...(forecast ?? {}),
-    id: current?.id ?? forecast?.id ?? 'resolved-river-gauge',
-    riverGaugeId: current?.riverGaugeId ?? forecast?.riverGaugeId,
-    location: current?.location ?? forecast?.location,
-    riverObservedStage: current?.riverObservedStage ?? forecast?.riverObservedStage,
-    riverObservedCategory: current?.riverObservedCategory ?? forecast?.riverObservedCategory,
-    riverForecastStage: forecast?.riverForecastStage ?? current?.riverForecastStage,
-    riverForecastCategory: forecast?.riverForecastCategory ?? current?.riverForecastCategory,
-    riverFloodStage: current?.riverFloodStage ?? forecast?.riverFloodStage,
-    riverActionStage: current?.riverActionStage ?? forecast?.riverActionStage,
-    riverStageUnit: current?.riverStageUnit ?? forecast?.riverStageUnit,
-    riverDistanceKm: current?.riverDistanceKm ?? forecast?.riverDistanceKm,
-    timestamp: current?.timestamp ?? forecast?.timestamp,
-  }
-}
-
-function formatFloodCategoryLabel(category: FloodCategory): string {
-  switch (category) {
-    case 'ACTION':
-      return 'action stage'
-    case 'MINOR':
-      return 'minor flooding'
-    case 'MODERATE':
-      return 'moderate flooding'
-    case 'MAJOR':
-      return 'major flooding'
-  }
-}
-
-function formatRiverCategoryLabel(category?: string | null): string {
-  if (!category) {
-    return 'Unknown'
-  }
-
-  const normalized = category.replace(/_/g, ' ').trim()
-  if (normalized.length === 0) {
-    return 'Unknown'
-  }
-
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1)
-}
-
-function formatStage(stage?: number | null, unit?: string | null): string {
-  const stageLabel = formatNumber(stage)
-  if (stageLabel === '-') {
-    return '--'
-  }
-  return `${stageLabel} ${unit ?? 'ft'}`
-}
-
-function buildSuggestedAlertName(ruleType: RuleType, location: string, floodCategory: FloodCategory) {
-  const locationLabel = formatFriendlyLocation(location).replace(', FL', '')
-  const locationSuffix = locationLabel === 'Selected area' ? 'for selected area' : `for ${locationLabel}`
-
-  switch (ruleType) {
+function buildThresholdHelp(criteriaForm: typeof initialCriteriaForm) {
+  switch (criteriaForm.ruleType) {
     case 'TEMP_BELOW':
-      return `Cold weather ${locationSuffix}`
+      return `Alert when temperature drops below ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
     case 'TEMP_ABOVE':
-      return `Heat alert ${locationSuffix}`
+      return `Alert when temperature rises above ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
     case 'WIND':
-      return `Wind alert ${locationSuffix}`
+      return `Alert when sustained wind goes above ${criteriaForm.threshold || 'X'} km/h.`
     case 'RAIN':
-      return `Rain watch ${locationSuffix}`
+      return `Alert when rain chance reaches ${criteriaForm.threshold || 'X'}% or higher.`
     case 'HUMIDITY_ABOVE':
-      return `Humidity alert ${locationSuffix}`
+      return `Alert when humidity reaches ${criteriaForm.threshold || 'X'}% or higher.`
     case 'HUMIDITY_BELOW':
-      return `Dry air alert ${locationSuffix}`
+      return `Alert when humidity drops below ${criteriaForm.threshold || 'X'}%.`
     case 'DEW_POINT_ABOVE':
-      return `Muggy air alert ${locationSuffix}`
+      return `Alert when dew point reaches ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit} or higher.`
     case 'DEW_POINT_BELOW':
-      return `Dry dew point alert ${locationSuffix}`
+      return `Alert when dew point drops below ${criteriaForm.threshold || 'X'}°${criteriaForm.temperatureUnit}.`
     case 'WIND_GUST':
-      return `Wind gust alert ${locationSuffix}`
+      return `Alert when forecast wind gusts exceed ${criteriaForm.threshold || 'X'} km/h.`
     case 'SKY_COVER_ABOVE':
-      return `Cloudy sky alert ${locationSuffix}`
+      return `Alert when sky cover reaches ${criteriaForm.threshold || 'X'}% or higher.`
     case 'SKY_COVER_BELOW':
-      return `Clearing sky alert ${locationSuffix}`
+      return `Alert when sky cover drops below ${criteriaForm.threshold || 'X'}%.`
     case 'RIVER_STAGE_ABOVE':
-      return `River rise alert ${locationSuffix}`
+      return `Alert when the nearby river rises above ${criteriaForm.threshold || 'X'} ft.`
     case 'RIVER_STAGE_BELOW':
-      return `River drop alert ${locationSuffix}`
+      return `Alert when the nearby river drops below ${criteriaForm.threshold || 'X'} ft.`
     case 'RIVER_FLOOD_CATEGORY':
-      return `${formatFloodCategoryLabel(floodCategory)} alert ${locationSuffix}`
+      return `Alert when the gauge reaches ${formatFloodCategoryLabel(criteriaForm.riverFloodCategoryThreshold)} or higher.`
     default:
-      return `Weather alert ${locationSuffix}`
+      return 'Alert when forecast conditions match this threshold.'
   }
+}
+
+function buildPreviewAlertSentence(criteriaForm: typeof initialCriteriaForm) {
+  const thresholdHelp = buildThresholdHelp(criteriaForm)
+  return thresholdHelp.replace(/\.$/, '')
+}
+
+function buildQuickStartHint(preset: QuickStartPreset) {
+  const situation = getSituationConfig(preset.situationId)
+  const sensitivity = getSensitivityForSituation(preset.situationId, preset.sensitivityId)
+  if (sensitivity?.floodCategory) {
+    return `Flood stage ${formatFloodCategoryLabel(sensitivity.floodCategory)}`
+  }
+  return `${situation?.helper ?? 'Watch'} ${sensitivity?.threshold ?? ''}`.trim()
+}
+
+function buildPreviewChips(currentWeather: WeatherCondition | null, unit: 'F' | 'C') {
+  if (!currentWeather) {
+    return []
+  }
+
+  return [
+    currentWeather.temperature != null ? `🌡 ${formatTemperature(currentWeather.temperature, unit)}` : null,
+    currentWeather.humidity != null ? `💧 ${currentWeather.humidity}%` : null,
+    currentWeather.precipitationProbability != null ? `🌧 ${formatNumber(currentWeather.precipitationProbability)}%` : null,
+    currentWeather.windSpeed != null ? `🌬 ${formatWind(currentWeather.windSpeed)}` : null,
+  ].filter((value): value is string => Boolean(value))
 }
 
 function describeMonitoringMode(monitorCurrent: boolean, monitorForecast: boolean) {
   if (monitorCurrent && monitorForecast) {
-    return 'Current and forecast'
-  }
-  if (monitorCurrent) {
-    return 'Current conditions'
+    return 'Watching current conditions and forecast'
   }
   if (monitorForecast) {
-    return 'Forecast only'
+    return 'Watching forecast conditions'
   }
-  return 'Manual review needed'
+  if (monitorCurrent) {
+    return 'Watching current conditions'
+  }
+  return 'Monitoring mode not selected yet'
 }
 
 function buildCurrentSnapshotCopy(currentWeather: WeatherCondition | null) {
-  if (!currentWeather) {
+  if (!currentWeather?.location) {
+    return ''
+  }
+  return `Current snapshot for ${formatFriendlyLocation(currentWeather.location)}: ${
+    currentWeather.headline?.trim() || 'latest NOAA observation'
+  }.`
+}
+
+function validateThreshold(ruleType: RuleType, threshold: number, temperatureUnit: 'F' | 'C') {
+  switch (ruleType) {
+    case 'TEMP_BELOW':
+    case 'TEMP_ABOVE':
+      return temperatureUnit === 'F'
+        ? threshold < -80 || threshold > 160
+          ? 'Use a temperature between -80°F and 160°F.'
+          : undefined
+        : threshold < -60 || threshold > 70
+          ? 'Use a temperature between -60°C and 70°C.'
+          : undefined
+    case 'RAIN':
+    case 'HUMIDITY_ABOVE':
+    case 'HUMIDITY_BELOW':
+    case 'SKY_COVER_ABOVE':
+    case 'SKY_COVER_BELOW':
+      return threshold < 0 || threshold > 100 ? 'Use a value between 0 and 100.' : undefined
+    case 'WIND':
+    case 'WIND_GUST':
+      return threshold <= 0 || threshold > 300 ? 'Use a wind speed between 1 and 300 km/h.' : undefined
+    case 'DEW_POINT_ABOVE':
+    case 'DEW_POINT_BELOW':
+      return temperatureUnit === 'F'
+        ? threshold < -80 || threshold > 100
+          ? 'Use a dew point between -80°F and 100°F.'
+          : undefined
+        : threshold < -60 || threshold > 40
+          ? 'Use a dew point between -60°C and 40°C.'
+          : undefined
+    case 'RIVER_STAGE_ABOVE':
+    case 'RIVER_STAGE_BELOW':
+      return threshold <= 0 || threshold > 100 ? 'Use a river stage between 1 and 100 ft.' : undefined
+    default:
+      return undefined
+  }
+}
+
+function mergeRiverGaugeConditions(current: WeatherCondition | null, forecast: WeatherCondition | null) {
+  if (!current && !forecast) {
     return null
   }
 
-  const parts = [formatTemperature(currentWeather.temperature, 'F')]
-  if (currentWeather.windSpeed != null) {
-    parts.push(`Wind ${formatWind(currentWeather.windSpeed)}`)
+  const base = current ?? forecast
+  if (!base) {
+    return null
   }
-  return `Now ${parts.join(' • ')}`
+
+  return {
+    ...base,
+    riverObservedStage: current?.riverObservedStage ?? base.riverObservedStage,
+    riverObservedCategory: current?.riverObservedCategory ?? base.riverObservedCategory,
+    riverForecastStage: forecast?.riverForecastStage ?? base.riverForecastStage,
+    riverForecastCategory: forecast?.riverForecastCategory ?? base.riverForecastCategory,
+    riverDistanceKm: current?.riverDistanceKm ?? forecast?.riverDistanceKm ?? base.riverDistanceKm,
+  }
 }
 
-function renderPresetIcon(icon: PresetIcon): ReactNode {
-  const commonProps = {
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.8,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    className: 'easy-alert-icon-svg',
+function formatStage(value?: number, unit = 'ft') {
+  if (value == null || Number.isNaN(value)) {
+    return '--'
   }
+  return `${formatNumber(value)} ${unit}`
+}
 
+function formatRiverCategoryLabel(value?: string) {
+  switch ((value ?? '').toUpperCase()) {
+    case 'ACTION':
+      return 'Action stage'
+    case 'MINOR':
+      return 'Minor flood'
+    case 'MODERATE':
+      return 'Moderate flood'
+    case 'MAJOR':
+      return 'Major flood'
+    default:
+      return value ?? 'Unknown'
+  }
+}
+
+function formatFloodCategoryLabel(value: FloodCategory) {
+  switch (value) {
+    case 'ACTION':
+      return 'action stage'
+    case 'MINOR':
+      return 'minor flood'
+    case 'MODERATE':
+      return 'moderate flood'
+    case 'MAJOR':
+      return 'major flood'
+  }
+}
+
+function formatThresholdForPreview(criteriaForm: typeof initialCriteriaForm) {
+  if (criteriaForm.ruleType === 'RIVER_FLOOD_CATEGORY') {
+    return formatFloodCategoryLabel(criteriaForm.riverFloodCategoryThreshold)
+  }
+  if (
+    criteriaForm.ruleType === 'TEMP_ABOVE' ||
+    criteriaForm.ruleType === 'TEMP_BELOW' ||
+    criteriaForm.ruleType === 'DEW_POINT_ABOVE' ||
+    criteriaForm.ruleType === 'DEW_POINT_BELOW'
+  ) {
+    return `${criteriaForm.threshold}°${criteriaForm.temperatureUnit}`
+  }
+  if (
+    criteriaForm.ruleType === 'RAIN' ||
+    criteriaForm.ruleType.startsWith('HUMIDITY') ||
+    criteriaForm.ruleType.startsWith('SKY_COVER')
+  ) {
+    return `${criteriaForm.threshold}%`
+  }
+  if (criteriaForm.ruleType.startsWith('RIVER_STAGE')) {
+    return `${criteriaForm.threshold} ft`
+  }
+  return `${criteriaForm.threshold} km/h`
+}
+
+function isRiverLikeSituation(situationId: SimpleSituationId) {
+  return situationId === 'RIVER_RISING' || situationId === 'FLOOD_RISK'
+}
+
+function renderPresetIcon(icon: RuleBuilderIcon) {
   switch (icon) {
     case 'jacket':
-      return (
-        <svg {...commonProps}>
-          <path d="M9 5 7 8l-2 1.5L7 13v6h10v-6l2-3.5L17 8l-2-3-3 2-3-2Z" />
-          <path d="M10.5 9.5v9" />
-          <path d="M13.5 9.5v9" />
-        </svg>
-      )
+      return '🧥'
     case 'heat':
-      return (
-        <svg {...commonProps}>
-          <circle cx="12" cy="12" r="4.2" />
-          <path d="M12 2.5v2.2M12 19.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
-        </svg>
-      )
+      return '☀️'
     case 'rain':
-      return (
-        <svg {...commonProps}>
-          <path d="M7 16a4 4 0 1 1 .8-7.9A5.5 5.5 0 0 1 18 10a3.5 3.5 0 1 1-.5 7H7Z" />
-          <path d="m9 18.5-.8 2M13 18.5l-.8 2M17 18.5l-.8 2" />
-        </svg>
-      )
+      return '🌧️'
     case 'wind':
-      return (
-        <svg {...commonProps}>
-          <path d="M4 9h11a2.5 2.5 0 1 0-2.5-2.5" />
-          <path d="M3 13h15a2.5 2.5 0 1 1-2.5 2.5" />
-          <path d="M6 17h8" />
-        </svg>
-      )
+      return '🌬️'
     case 'humidity':
-      return (
-        <svg {...commonProps}>
-          <path d="M12 3.5c3.5 4 5.3 6.8 5.3 9.1A5.3 5.3 0 1 1 6.7 12.6c0-2.3 1.8-5.1 5.3-9.1Z" />
-          <path d="M9.2 14.2a3 3 0 0 0 5.2 0" />
-        </svg>
-      )
+      return '💧'
     case 'dew':
-      return (
-        <svg {...commonProps}>
-          <path d="M8.5 5.5c2.3 2.6 3.5 4.5 3.5 6a3.5 3.5 0 1 1-7 0c0-1.5 1.2-3.4 3.5-6Z" />
-          <path d="M16.5 9.5c2.3 2.6 3.5 4.5 3.5 6a3.5 3.5 0 1 1-7 0c0-1.5 1.2-3.4 3.5-6Z" />
-        </svg>
-      )
-    case 'gust':
-      return (
-        <svg {...commonProps}>
-          <path d="M3 9.5h10.5a2.5 2.5 0 1 0-2.5-2.5" />
-          <path d="M3 14h14.5a2.5 2.5 0 1 1-2.5 2.5" />
-          <path d="m14 6 2-2 2 2M15 18l2 2 2-2" />
-        </svg>
-      )
-    case 'sky':
-      return (
-        <svg {...commonProps}>
-          <path d="M8 16a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 10a3 3 0 1 1 0 6H8Z" />
-          <path d="M6 6.5h.01M9 4h.01M15.5 5.5h.01" />
-        </svg>
-      )
+      return '🌙'
     case 'river':
-      return (
-        <svg {...commonProps}>
-          <path d="M3 8c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
-          <path d="M3 13c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
-          <path d="M3 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
-        </svg>
-      )
+      return '🌊'
     case 'alert':
-      return (
-        <svg {...commonProps}>
-          <path d="M12 3 4 19h16L12 3Z" />
-          <path d="M12 9v4.5M12 17h.01" />
-        </svg>
-      )
+      return '⚠️'
     case 'flood':
-      return (
-        <svg {...commonProps}>
-          <path d="M7 11V6.5A1.5 1.5 0 0 1 8.5 5h7A1.5 1.5 0 0 1 17 6.5V11" />
-          <path d="M5 11h14" />
-          <path d="M3 15c1.5 0 1.5 1.5 3 1.5s1.5-1.5 3-1.5 1.5 1.5 3 1.5 1.5-1.5 3-1.5 1.5 1.5 3 1.5" />
-          <path d="M3 19c1.5 0 1.5 1.5 3 1.5s1.5-1.5 3-1.5 1.5 1.5 3 1.5 1.5-1.5 3-1.5 1.5 1.5 3 1.5" />
-        </svg>
-      )
+      return '🚨'
+    case 'sky':
+      return '☁️'
+    case 'custom':
     default:
-      return null
+      return '✨'
   }
 }

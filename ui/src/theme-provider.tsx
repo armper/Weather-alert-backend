@@ -1,32 +1,17 @@
-import { createContext, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { ThemeContext, type Theme, type ThemePreference } from './theme'
 
 const THEME_STORAGE_KEY = 'weather-alert-theme'
 
-export type Theme = 'light' | 'dark'
-export type ThemePreference = Theme | 'system'
-
-export type ThemeContextValue = {
-  theme: Theme
-  themePreference: ThemePreference
-  setThemePreference: (themePreference: ThemePreference) => void
-}
-
-export const ThemeContext = createContext<ThemeContextValue | null>(null)
-
-function resolveTheme(themePreference: ThemePreference): Theme {
-  if (themePreference !== 'system') {
-    return themePreference
-  }
-
+function resolveSystemTheme(): Theme {
   if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark'
   }
-
   return 'light'
 }
 
 export function ThemeProvider({ children }: PropsWithChildren) {
-  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => {
     if (typeof window === 'undefined') {
       return 'system'
     }
@@ -38,7 +23,16 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
     return 'system'
   })
-  const [theme, setTheme] = useState<Theme>(() => resolveTheme(themePreference))
+  const [systemTheme, setSystemTheme] = useState<Theme>(() => resolveSystemTheme())
+
+  const theme = themePreference === 'system' ? systemTheme : themePreference
+
+  const setThemePreference = useCallback((nextPreference: ThemePreference) => {
+    if (nextPreference === 'system') {
+      setSystemTheme(resolveSystemTheme())
+    }
+    setThemePreferenceState(nextPreference)
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -54,8 +48,6 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   }, [themePreference])
 
   useEffect(() => {
-    setTheme(resolveTheme(themePreference))
-
     if (themePreference !== 'system') {
       return undefined
     }
@@ -63,7 +55,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
     function handleChange(event: MediaQueryListEvent) {
-      setTheme(event.matches ? 'dark' : 'light')
+      setSystemTheme(event.matches ? 'dark' : 'light')
     }
 
     mediaQuery.addEventListener('change', handleChange)
@@ -76,16 +68,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       themePreference,
       setThemePreference,
     }),
-    [theme, themePreference],
+    [theme, themePreference, setThemePreference],
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-}
-
-export function useThemePreference() {
-  const context = useContext(ThemeContext)
-  if (!context) {
-    throw new Error('useThemePreference must be used within ThemeContext')
-  }
-  return context
 }
