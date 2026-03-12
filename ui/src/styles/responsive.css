@@ -5,7 +5,10 @@
 
   .billing-plan-grid,
   .theme-settings-grid,
-  .create-grid {
+  .create-grid,
+  .simple-situation-grid,
+  .simple-sensitivity-grid,
+  .advanced-rule-option-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -22,9 +25,23 @@
   .location-picker-toolbar,
   .manage-alerts-toolbar,
   .criteria-section-header,
+  .guided-step-header,
+  .preset-loaded-banner,
   .overview-watch-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .rule-monitoring-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-rule-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-rule-aside {
+    position: static;
   }
 }
 
@@ -128,6 +145,12 @@
     grid-template-columns: 1fr;
   }
 
+  .simple-situation-grid,
+  .simple-sensitivity-grid,
+  .advanced-rule-option-grid {
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
     flex-direction: column;
     align-items: stretch;
@@ -209,6 +232,8 @@
   .monitoring-banner-header,
   .monitoring-banner-stats,
   .monitoring-watch-context,
+  .rule-heartbeat-strip,
+  .rule-monitoring-layout,
   .console-section-header,
   .active-alert-card-header,
   .active-alert-status-stack,
@@ -217,7 +242,23 @@
     align-items: stretch;
   }
 
+  .rule-monitoring-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-monitoring-context {
+    order: -1;
+  }
+
+  .monitoring-map {
+    min-height: 240px;
+  }
+
   .active-alert-actions {
     justify-content: stretch;
+  }
+
+  .rule-heartbeat-secondary {
+    justify-items: start;
   }
 }

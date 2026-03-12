@@ -1,50 +1,73 @@
 import type { AlertCriteria } from '../../../types'
-import { describeCriteria } from '../../../lib/criteria'
 import { AriaButton } from '../../ui/AriaButton'
 import { AriaSwitch } from '../../ui/AriaSwitch'
+import type { RuleEmphasis, RuleMonitoringState, RuleTone } from '../../../lib/ruleDashboard'
 
 interface CriteriaCardProps {
   criteria: AlertCriteria
   busy: boolean
-  lastTriggeredLabel?: string
   onDelete: (criteriaId: string) => void
   onToggleEnabled: (criteriaId: string, enabled: boolean) => void
-  severityLabel?: string
-  severityTone?: 'calm' | 'critical' | 'muted' | 'warning'
+  triggerCondition: string
+  locationLabel: string
+  monitoringState: RuleMonitoringState
+  monitoringTone: RuleTone
+  monitoringDetail: string
+  historyLabel: string
+  emphasis: RuleEmphasis
+  selected?: boolean
+  onPointerEnter?: () => void
+  onPointerLeave?: () => void
+  onSelect?: () => void
+  cardRef?: (element: HTMLElement | null) => void
 }
 
 export function CriteriaCard({
   criteria,
   busy,
-  lastTriggeredLabel,
   onDelete,
   onToggleEnabled,
-  severityLabel,
-  severityTone = 'muted',
+  triggerCondition,
+  locationLabel,
+  monitoringState,
+  monitoringTone,
+  monitoringDetail,
+  historyLabel,
+  emphasis,
+  selected = false,
+  onPointerEnter,
+  onPointerLeave,
+  onSelect,
+  cardRef,
 }: CriteriaCardProps) {
   const enabled = criteria.enabled !== false
   const ruleName = criteria.name ?? 'custom alert'
   return (
-    <article className="criteria-card">
+    <article
+      ref={cardRef}
+      className={`criteria-card is-${emphasis}${selected ? ' is-selected' : ''}`}
+      onMouseEnter={onPointerEnter}
+      onMouseLeave={onPointerLeave}
+      onFocus={onPointerEnter}
+      onBlur={onPointerLeave}
+      onClick={onSelect}
+    >
       <header>
         <div>
           <h3 className="criteria-name">{criteria.name ?? 'Custom alert'}</h3>
-          <p className="criteria-rule-line">{describeCriteria(criteria)}</p>
+          <p className="criteria-rule-line">{triggerCondition}</p>
         </div>
         <div className="criteria-card-statuses">
           <span className={`badge${enabled ? '' : ' is-paused'}`}>{enabled ? 'Active' : 'Paused'}</span>
-          {severityLabel ? (
-            <span className={`criteria-signal-chip is-${severityTone}`}>{severityLabel}</span>
-          ) : null}
+          <span className={`criteria-signal-chip is-${monitoringTone}`}>{monitoringState}</span>
         </div>
       </header>
       <div className="criteria-card-meta">
-        <span className="muted small">{criteria.location ?? 'No location'}</span>
-        <span className="criteria-meta-note">
-          {lastTriggeredLabel ? `Last triggered ${lastTriggeredLabel}` : 'No triggered events yet'}
-        </span>
+        <span className="criteria-location-line">{locationLabel}</span>
+        <span className="criteria-meta-note">{monitoringDetail}</span>
+        <span className="criteria-meta-note">{historyLabel}</span>
       </div>
-      <footer>
+      <footer onClick={(event) => event.stopPropagation()}>
         <div className="criteria-card-actions">
           <AriaSwitch
             compact

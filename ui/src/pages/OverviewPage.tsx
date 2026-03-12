@@ -4,6 +4,7 @@ import { useAppState } from '../state/useAppState'
 import { RecentActivityFeed } from '../components/features/dashboard/RecentActivityFeed'
 import { WeatherTimeline } from '../components/features/dashboard/WeatherTimeline'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
+import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import {
   formatFriendlyLocation,
   formatPercentOrNA,
@@ -13,6 +14,7 @@ import {
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
 import { buildOverviewDashboardSummary } from '../lib/overviewDashboard'
 import { useLiveNow } from '../lib/useLiveNow'
+import { buildRuleDashboardSummary } from '../lib/ruleDashboard'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
@@ -21,6 +23,10 @@ export function OverviewPage() {
   const summary = useMemo(() => buildAlertConsoleSummary(criteria, alerts, currentWeather, now), [criteria, alerts, currentWeather, now])
   const dashboard = useMemo(
     () => buildOverviewDashboardSummary(criteria, alerts, currentWeather, now),
+    [criteria, alerts, currentWeather, now],
+  )
+  const ruleSummary = useMemo(
+    () => buildRuleDashboardSummary(criteria, alerts, currentWeather, now),
     [criteria, alerts, currentWeather, now],
   )
   const defaultAlertLocation = criteria[0]?.location?.trim() ?? ''
@@ -55,13 +61,24 @@ export function OverviewPage() {
                 {!summary.allClear ? <span>{`${summary.activeCount} active alert${summary.activeCount === 1 ? '' : 's'}`}</span> : null}
               </div>
               <Link to="/app/rules#location-picker" className="weather-map-link" aria-label="Open location picker map">
-                <StaticLocationMap
-                  latitude={defaultLatitude}
-                  longitude={defaultLongitude}
-                  radiusKm={defaultRadiusKm}
-                  className="weather-map-preview"
-                  ruleCount={dashboard.mapRuleCount}
-                />
+                {ruleSummary.locationGroups.length > 0 ? (
+                  <MonitoringRulesMap
+                    groups={ruleSummary.locationGroups}
+                    selectedGroupId={ruleSummary.locationGroups.find((item) => item.statusTone === 'critical')?.id ?? null}
+                    compact
+                    interactive={false}
+                    className="weather-map-preview"
+                    ariaLabel="Monitored locations overview"
+                  />
+                ) : (
+                  <StaticLocationMap
+                    latitude={defaultLatitude}
+                    longitude={defaultLongitude}
+                    radiusKm={defaultRadiusKm}
+                    className="weather-map-preview"
+                    ruleCount={dashboard.mapRuleCount}
+                  />
+                )}
               </Link>
               <p className="weather-temp weather-temp-hero">{formatTemperature(currentWeather.temperature, 'F')}</p>
               <p className="overview-headline">{currentHeadline}</p>
