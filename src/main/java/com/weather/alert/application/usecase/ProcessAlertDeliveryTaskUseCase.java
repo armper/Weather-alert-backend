@@ -22,6 +22,7 @@ import com.weather.alert.domain.service.notification.SmsDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,9 @@ public class ProcessAlertDeliveryTaskUseCase {
     private final NotificationDeliveryProperties properties;
     private final UserRepositoryPort userRepository;
     private final BillingPlanService billingPlanService;
+
+    @Value("${app.auth.recovery.frontend-base-url:http://localhost:5174}")
+    private String frontendBaseUrl;
 
     @Transactional
     public void processTask(String deliveryId) {
@@ -186,32 +190,34 @@ public class ProcessAlertDeliveryTaskUseCase {
     private String buildSubject(Alert alert, AlertCriteria criteria) {
         String alertName = displayAlertName(criteria, alert);
         if (alertName != null) {
-            return "Weather Alert: " + alertName;
+            return "SkyPanda Alert: " + alertName;
         }
         if (alert != null && alert.getHeadline() != null && !alert.getHeadline().isBlank()) {
-            return "Weather Alert: " + alert.getHeadline();
+            return "SkyPanda Alert: " + alert.getHeadline();
         }
         if (alert != null && alert.getEventType() != null && !alert.getEventType().isBlank()) {
-            return "Weather Alert: " + alert.getEventType();
+            return "SkyPanda Alert: " + alert.getEventType();
         }
-        return "Weather Alert: New alert triggered";
+        return "SkyPanda Alert: New alert triggered";
     }
 
     private String buildBody(Alert alert, AlertCriteria criteria, User user) {
+        String dashboardUrl = buildDashboardUrl();
         if (alert == null) {
             return """
                     Hi there,
 
-                    A weather alert has been triggered.
+                    SkyPanda noticed a weather change for one of your watches.
 
-                    Please check your Weather Alert app for details.
+                    Open your dashboard to review it:
+                    %s
 
-                    Weather Alert
-                    """;
+                    SkyPanda Alerts
+                    """.formatted(dashboardUrl);
         }
         StringBuilder body = new StringBuilder();
         body.append("Hi there,\n\n");
-        body.append("Your weather alert was triggered.\n\n");
+        body.append("SkyPanda noticed a weather change for one of your watches.\n\n");
         body.append("Alert name: ").append(displayAlertName(criteria, alert)).append('\n');
         body.append("Area: ").append(describeArea(alert, criteria)).append('\n');
         body.append("Rule: ").append(describeAlertSummary(criteria)).append('\n');
@@ -245,12 +251,13 @@ public class ProcessAlertDeliveryTaskUseCase {
             body.append("\nYou will get one notification per matching event.\n");
         }
 
-        body.append("\nYou can review or update this alert anytime in the app.\n");
+        body.append("\nOpen your dashboard to review or update this alert:\n");
+        body.append(dashboardUrl).append('\n');
         if (user != null && billingPlanService.resolveEntitlements(user).isAdSponsoredEmails()) {
             body.append("\nSponsored message:\n");
-            body.append("Upgrade to Weather Alert Plus for ad-free emails and up to 10 active alerts.\n");
+            body.append("Upgrade to SkyPanda Family Plan for ad-free emails and up to 10 active alerts.\n");
         }
-        body.append("\nWeather Alert");
+        body.append("\nSkyPanda Alerts");
         return body.toString();
     }
 
@@ -275,6 +282,14 @@ public class ProcessAlertDeliveryTaskUseCase {
 
         String message = String.join(" | ", parts);
         return truncate(message, 320);
+    }
+
+    private String buildDashboardUrl() {
+        String base = frontendBaseUrl == null ? "http://localhost:5174" : frontendBaseUrl.trim();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/app/events";
     }
 
     private String displayAlertName(AlertCriteria criteria, Alert alert) {

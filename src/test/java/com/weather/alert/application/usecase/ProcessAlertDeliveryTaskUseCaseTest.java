@@ -29,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -89,6 +90,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
                 properties,
                 userRepository,
                 billingPlanService);
+        ReflectionTestUtils.setField(useCase, "frontendBaseUrl", "https://skypandaweather.com");
         lenient().when(userRepository.findById("dev-admin")).thenReturn(Optional.of(User.builder()
                 .id("dev-admin")
                 .build()));
@@ -130,13 +132,15 @@ class ProcessAlertDeliveryTaskUseCaseTest {
 
         ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
         verify(emailSenderPort).send(emailCaptor.capture());
-        assertEquals("Weather Alert: Bring a jacket", emailCaptor.getValue().subject());
+        assertEquals("SkyPanda Alert: Bring a jacket", emailCaptor.getValue().subject());
         assertTrue(emailCaptor.getValue().body().contains("Alert name: Bring a jacket"));
         assertTrue(emailCaptor.getValue().body().contains("Area: Orlando"));
         assertTrue(emailCaptor.getValue().body().contains("Rule: temperature is below 80 F"));
         assertTrue(emailCaptor.getValue().body().contains("Matched reading: temperature 75.9 F"));
         assertTrue(emailCaptor.getValue().body().contains("Source: Current conditions"));
         assertTrue(emailCaptor.getValue().body().contains("Current conditions: Partly Cloudy"));
+        assertTrue(emailCaptor.getValue().body().contains("https://skypandaweather.com/app/events"));
+        assertTrue(emailCaptor.getValue().body().contains("SkyPanda Alerts"));
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
         verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
@@ -215,7 +219,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
         verify(emailSenderPort).send(emailCaptor.capture());
         assertTrue(emailCaptor.getValue().body().contains("Sponsored message:"));
-        assertTrue(emailCaptor.getValue().body().contains("Upgrade to Weather Alert Plus"));
+        assertTrue(emailCaptor.getValue().body().contains("Upgrade to SkyPanda Family Plan"));
     }
 
     @Test
