@@ -243,10 +243,12 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
     }
 
     private RequestResult<NoaaPointProperties> fetchPointProperties(double latitude, double longitude) {
+        String normalizedLatitude = String.format(Locale.US, "%.4f", latitude);
+        String normalizedLongitude = String.format(Locale.US, "%.4f", longitude);
         return requestWithFallback(
                 "point_metadata",
                 () -> noaaWebClient.get()
-                        .uri("/points/{latitude},{longitude}", latitude, longitude)
+                        .uri("/points/{latitude},{longitude}", normalizedLatitude, normalizedLongitude)
                         .retrieve()
                         .bodyToMono(NoaaPointResponse.class))
                 .mapPayload(response -> response == null ? null : response.getProperties());
