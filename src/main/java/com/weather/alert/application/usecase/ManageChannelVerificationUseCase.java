@@ -31,7 +31,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.UUID;
@@ -55,6 +54,9 @@ public class ManageChannelVerificationUseCase {
 
     @Value("${app.notification.verification.send-email:false}")
     private boolean sendEmail;
+
+    @Value("${app.notification.verification.frontend-base-url:http://localhost:5174}")
+    private String verificationFrontendBaseUrl;
 
     @Value("${app.notification.verification.email-subject:Weather Alert email verification}")
     private String verificationEmailSubject;
@@ -220,38 +222,33 @@ public class ManageChannelVerificationUseCase {
 
     private void sendVerificationEmail(ChannelVerification verification, String rawToken) {
         try {
+            String verificationUrl = verificationFrontendBaseUrl
+                    + "/auth/verify-email?userId="
+                    + verification.getUserId()
+                    + "&verificationId="
+                    + verification.getId();
             String body = """
                     Hi there,
 
-                    Please verify your email to finish setting up your Weather Alert account.
+                    Welcome to SkyPanda.
 
-                    Your verification code:
+                    Enter this verification code to confirm your email:
+
                     %s
 
-                    Verification details:
-                    - Verification ID: %s
-                    - Expires at: %s
+                    Or open this page to verify:
+                    %s
 
-                    If you are verifying via API, send:
+                    This code expires at %s.
 
-                    POST /api/auth/register/verify-email
-                    {
-                      "userId": "%s",
-                      "verificationId": "%s",
-                      "token": "%s"
-                    }
+                    If you did not create a SkyPanda account, you can ignore this email.
 
-                    If you did not request this, you can ignore this email.
-
-                    Weather Alert
+                    SkyPanda
                     """
                     .formatted(
                             rawToken,
-                            verification.getId(),
-                            verification.getTokenExpiresAt(),
-                            verification.getUserId(),
-                            verification.getId(),
-                            rawToken);
+                            verificationUrl,
+                            verification.getTokenExpiresAt());
 
             emailSenderPort.send(EmailMessage.builder()
                     .to(verification.getDestination())
@@ -266,13 +263,19 @@ public class ManageChannelVerificationUseCase {
     }
 
     private String generateToken() {
-        byte[] random = new byte[24];
-        SECURE_RANDOM.nextBytes(random);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(random);
+        final char[] alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray();
+        StringBuilder token = new StringBuilder(9);
+        for (int index = 0; index < 8; index++) {
+            if (index == 4) {
+                token.append('-');
+            }
+            token.append(alphabet[SECURE_RANDOM.nextInt(alphabet.length)]);
+        }
+        return token.toString();
     }
 
     private String hashToken(String rawToken) {
-        return HEX_FORMAT.formatHex(sha256(rawToken));
+        return HEX_FORMAT.formatHex(sha256(normalizeToken(rawToken)));
     }
 
     private boolean tokenMatches(String rawToken, String storedTokenHash) {
@@ -280,12 +283,16 @@ public class ManageChannelVerificationUseCase {
             return false;
         }
         try {
-            byte[] candidate = sha256(rawToken);
+            byte[] candidate = sha256(normalizeToken(rawToken));
             byte[] expected = HEX_FORMAT.parseHex(storedTokenHash);
             return MessageDigest.isEqual(candidate, expected);
         } catch (IllegalArgumentException ex) {
             return false;
         }
+    }
+
+    private String normalizeToken(String rawToken) {
+        return rawToken == null ? "" : rawToken.replace("-", "").replace(" ", "").trim().toUpperCase();
     }
 
     private byte[] sha256(String value) {

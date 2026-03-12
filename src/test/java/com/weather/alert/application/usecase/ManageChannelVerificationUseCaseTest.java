@@ -64,6 +64,7 @@ class ManageChannelVerificationUseCaseTest {
         ReflectionTestUtils.setField(useCase, "tokenTtlMinutes", 15L);
         ReflectionTestUtils.setField(useCase, "exposeRawToken", true);
         ReflectionTestUtils.setField(useCase, "sendEmail", false);
+        ReflectionTestUtils.setField(useCase, "verificationFrontendBaseUrl", "https://app.skypanda.test");
         ReflectionTestUtils.setField(useCase, "verificationEmailSubject", "Weather Alert email verification");
     }
 
@@ -236,7 +237,7 @@ class ManageChannelVerificationUseCaseTest {
         ChannelVerificationResponse response = useCase.startVerification("dev-admin", request);
 
         assertNotNull(response.getVerificationToken());
-        assertTrue(response.getVerificationToken().length() > 20);
+        assertTrue(response.getVerificationToken().length() >= 8);
         ArgumentCaptor<ChannelVerification> captor = ArgumentCaptor.forClass(ChannelVerification.class);
         verify(channelVerificationRepository).save(captor.capture());
         assertNotNull(captor.getValue().getVerificationTokenHash());
@@ -267,6 +268,26 @@ class ManageChannelVerificationUseCaseTest {
     }
 
     @Test
+    void shouldHideRawTokenWhenExposureIsDisabled() {
+        ReflectionTestUtils.setField(useCase, "exposeRawToken", false);
+
+        StartChannelVerificationRequest request = new StartChannelVerificationRequest();
+        request.setChannel(NotificationChannel.EMAIL);
+        request.setDestination("dev-admin@example.com");
+
+        when(userRepository.findByEmail("dev-admin@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findById("dev-admin")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(channelVerificationRepository.findByUserIdAndChannelAndDestination(
+                "dev-admin", NotificationChannel.EMAIL, "dev-admin@example.com")).thenReturn(Optional.empty());
+        when(channelVerificationRepository.save(any(ChannelVerification.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ChannelVerificationResponse response = useCase.startVerification("dev-admin", request);
+
+        assertNull(response.getVerificationToken());
+    }
+
+    @Test
     void shouldFailStartVerificationWhenEmailDeliveryFails() {
         ReflectionTestUtils.setField(useCase, "sendEmail", true);
 
@@ -293,7 +314,8 @@ class ManageChannelVerificationUseCaseTest {
     private String hash(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
+            String normalized = token.replace("-", "").replace(" ", "").trim().toUpperCase();
+            return HexFormat.of().formatHex(digest.digest(normalized.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException(ex);
         }
