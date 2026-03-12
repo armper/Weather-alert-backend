@@ -44,13 +44,17 @@ export function AuthLandingPage() {
       <BackgroundArtwork />
       <main className="auth-layout auth-home-layout">
         <section className="panel hero-panel auth-home-hero">
-          <BrandLockup />
-          <div className="auth-home-copy">
-            <h1>Weather alerts that actually matter to you.</h1>
-            <p className="muted">
-              SkyPanda turns noisy weather data into clear alerts. Monitor the exact locations you care about, and
-              only upgrade when your needs grow.
-            </p>
+          <div className="auth-home-brand-block">
+            <div className="auth-home-brand-mark">
+              <BrandLockup compact />
+            </div>
+            <div className="auth-home-copy">
+              <h1>Weather alerts that actually matter to you.</h1>
+              <p className="muted">
+                SkyPanda turns noisy weather data into clear alerts. Monitor the exact locations you care about, and
+                only upgrade when your needs grow.
+              </p>
+            </div>
           </div>
 
           <ul className="feature-list auth-home-value-list">
@@ -60,10 +64,19 @@ export function AuthLandingPage() {
           </ul>
 
           <article className="auth-home-example-card">
-            <span className="badge">Example alert</span>
-            <strong>Heat Alert</strong>
-            <p>Orlando, FL</p>
-            <p>Temp above 92°F tomorrow afternoon</p>
+            <div className="auth-home-example-card-head">
+              <div className="auth-home-example-icon" aria-hidden="true">
+                <span>🌡</span>
+              </div>
+              <div className="auth-home-example-card-copy">
+                <div className="auth-home-example-meta">
+                  <span className="badge">Example alert</span>
+                  <p>Orlando, FL</p>
+                </div>
+                <strong>Heat Alert</strong>
+                <p>Temp above 92°F tomorrow afternoon</p>
+              </div>
+            </div>
           </article>
 
           <div className="auth-home-proof">
