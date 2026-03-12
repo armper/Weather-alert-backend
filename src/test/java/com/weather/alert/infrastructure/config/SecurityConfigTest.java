@@ -6,6 +6,7 @@ import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
+import com.weather.alert.application.usecase.ChangeBillingPlanUseCase;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
@@ -117,6 +118,9 @@ class SecurityConfigTest {
 
     @MockBean
     private CreateBillingPortalSessionUseCase createBillingPortalSessionUseCase;
+
+    @MockBean
+    private ChangeBillingPlanUseCase changeBillingPlanUseCase;
 
     @MockBean
     private HandleStripeWebhookUseCase handleStripeWebhookUseCase;
@@ -367,6 +371,27 @@ class SecurityConfigTest {
                         .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessionId").value("bps_test_123"));
+    }
+
+    @Test
+    void shouldAllowAuthenticatedUserToChangeBillingPlan() throws Exception {
+        when(changeBillingPlanUseCase.changeForUser("user-1", com.weather.alert.domain.model.BillingPlan.PRO))
+                .thenReturn(BillingStatusResponse.builder()
+                        .userId("user-1")
+                        .plan(com.weather.alert.domain.model.BillingPlan.PRO)
+                        .activeSubscription(true)
+                        .build());
+
+        mockMvc.perform(post("/api/billing/change-plan")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "plan": "PRO"
+                                }
+                                """)
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plan").value("PRO"));
     }
 
     @Test

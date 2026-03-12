@@ -5,6 +5,7 @@ import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.domain.model.BillingPlan;
 import com.weather.alert.application.dto.JobRunResponse;
+import com.weather.alert.application.usecase.ChangeBillingPlanUseCase;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
@@ -110,6 +111,9 @@ class ApiIntegrationContractTest {
 
     @MockBean
     private CreateBillingPortalSessionUseCase createBillingPortalSessionUseCase;
+
+    @MockBean
+    private ChangeBillingPlanUseCase changeBillingPlanUseCase;
 
     private OpenApiValidationFilter openApiValidationFilter;
 
@@ -220,6 +224,21 @@ class ApiIntegrationContractTest {
                         .sessionId("bps_test_weather_alerts")
                         .url("https://billing.stripe.com/p/session/bps_test_weather_alerts")
                         .build());
+
+        when(changeBillingPlanUseCase.changeForUser("test-admin", BillingPlan.PRO))
+                .thenReturn(BillingStatusResponse.builder()
+                        .userId("test-admin")
+                        .plan(BillingPlan.PRO)
+                        .paidPlan(true)
+                        .maxActiveAlerts(50)
+                        .adSponsoredEmails(false)
+                        .stripeCustomerId("cus_test_admin")
+                        .stripeSubscriptionId("sub_test_admin")
+                        .stripePriceId("price_test_weather_alerts_pro")
+                        .stripeSubscriptionStatus("active")
+                        .stripeCurrentPeriodEnd(Instant.parse("2026-04-01T00:00:00Z"))
+                        .activeSubscription(true)
+                        .build());
     }
 
     @Test
@@ -270,6 +289,23 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("sessionId", equalTo("cs_test_weather_alerts"))
                 .body("url", equalTo("https://checkout.stripe.com/c/pay/cs_test_weather_alerts"));
+    }
+
+    @Test
+    void shouldChangeBillingPlanWithOpenApiValidation() {
+        String token = issueAdminToken();
+
+        given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + token)
+                .filter(openApiValidationFilter)
+                .body(Map.of("plan", "PRO"))
+                .when()
+                .post("/api/billing/change-plan")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("plan", equalTo("PRO"))
+                .body("activeSubscription", equalTo(true));
     }
 
     @Test

@@ -71,6 +71,7 @@ export function useWeatherAppState() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [loadingBilling, setLoadingBilling] = useState(false)
   const [checkoutPlan, setCheckoutPlan] = useState<BillingPlan | null>(null)
+  const [changingPlan, setChangingPlan] = useState<BillingPlan | null>(null)
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [busyAlertId, setBusyAlertId] = useState<string | null>(null)
@@ -724,6 +725,40 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleChangePlan(plan: BillingPlan): Promise<boolean> {
+    if (!token) {
+      return false
+    }
+
+    setChangingPlan(plan)
+    setNotice(null)
+
+    try {
+      const updatedStatus = await apiRequest<BillingStatus>('/api/billing/change-plan', {
+        method: 'POST',
+        token,
+        body: { plan },
+      })
+      setBillingStatus(updatedStatus)
+      if (me) {
+        await refreshData(token, me)
+      }
+      setNotice({
+        kind: 'success',
+        text:
+          plan === 'FREE'
+            ? 'Plan downgraded to The Basics.'
+            : `Plan updated to ${plan === 'PRO' ? 'The Globetrotter' : 'The Family Plan'}.`,
+      })
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setChangingPlan(null)
+    }
+  }
+
   async function handleDeleteAccount(): Promise<boolean> {
     if (!token) {
       return false
@@ -830,6 +865,7 @@ export function useWeatherAppState() {
     savingProfile,
     loadingBilling,
     checkoutPlan,
+    changingPlan,
     openingBillingPortal,
     deletingAccount,
     busyAlertId,
@@ -853,6 +889,7 @@ export function useWeatherAppState() {
     handleChangePassword,
     handleSaveNotificationPreference,
     handleStartCheckout,
+    handleChangePlan,
     handleOpenBillingPortal,
     handleDeleteAccount,
     handleAdminAction,

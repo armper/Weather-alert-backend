@@ -2,9 +2,11 @@ package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
+import com.weather.alert.application.dto.ChangeBillingPlanRequest;
 import com.weather.alert.application.dto.CreateBillingCheckoutSessionRequest;
 import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.exception.ForbiddenOperationException;
+import com.weather.alert.application.usecase.ChangeBillingPlanUseCase;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +31,7 @@ public class BillingController {
     private final GetBillingStatusUseCase getBillingStatusUseCase;
     private final CreateBillingCheckoutSessionUseCase createBillingCheckoutSessionUseCase;
     private final CreateBillingPortalSessionUseCase createBillingPortalSessionUseCase;
+    private final ChangeBillingPlanUseCase changeBillingPlanUseCase;
 
     @GetMapping("/me")
     @Operation(
@@ -74,6 +77,24 @@ public class BillingController {
             })
     public ResponseEntity<BillingCheckoutSessionResponse> createPortalSession(Authentication authentication) {
         return ResponseEntity.ok(createBillingPortalSessionUseCase.createForUser(authenticatedUserId(authentication)));
+    }
+
+    @PostMapping("/change-plan")
+    @Operation(
+            summary = "Change the authenticated user's billing plan",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Billing plan changed"),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "Plan change is not valid for the current subscription state",
+                            content = @Content(mediaType = "application/problem+json"))
+            })
+    public ResponseEntity<BillingStatusResponse> changePlan(
+            Authentication authentication,
+            @RequestBody ChangeBillingPlanRequest request) {
+        return ResponseEntity.ok(changeBillingPlanUseCase.changeForUser(
+                authenticatedUserId(authentication),
+                request == null ? null : request.getPlan()));
     }
 
     private String authenticatedUserId(Authentication authentication) {

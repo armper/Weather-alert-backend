@@ -11,7 +11,9 @@ import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.weather.alert.application.exception.BillingStateException;
 import com.weather.alert.application.exception.BillingNotConfiguredException;
 import com.weather.alert.application.exception.StripeBillingException;
 import com.weather.alert.application.exception.StripeWebhookException;
@@ -86,6 +88,50 @@ public class StripeBillingAdapter implements BillingProviderPort {
                     .build();
         } catch (StripeException ex) {
             throw new StripeBillingException("Unable to create Stripe Customer Portal session", ex);
+        }
+    }
+
+    @Override
+    public BillingWebhookEvent changeSubscriptionPlan(String stripeSubscriptionId, String newPriceId) {
+        requireSubscriptionMutationConfigured(stripeSubscriptionId, newPriceId);
+        try {
+            Stripe.apiKey = properties.getSecretKey();
+
+            Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+            String subscriptionItemId = resolvePrimarySubscriptionItemId(subscription);
+            Subscription updatedSubscription = subscription.update(SubscriptionUpdateParams.builder()
+                    .setCancelAtPeriodEnd(false)
+                    .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.CREATE_PRORATIONS)
+                    .addItem(SubscriptionUpdateParams.Item.builder()
+                            .setId(subscriptionItemId)
+                            .setPrice(newPriceId)
+                            .build())
+                    .build());
+
+            return fromSubscription(BillingWebhookEventType.SUBSCRIPTION_UPDATED, updatedSubscription);
+        } catch (StripeException ex) {
+            throw new StripeBillingException("Unable to change Stripe subscription plan", ex);
+        }
+    }
+
+    @Override
+    public BillingWebhookEvent cancelSubscription(String stripeSubscriptionId) {
+        requireSubscriptionMutationConfigured(stripeSubscriptionId, "cancel");
+        try {
+            Stripe.apiKey = properties.getSecretKey();
+
+            Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+            Subscription canceledSubscription = subscription;
+            String status = subscription == null ? null : subscription.getStatus();
+            if (status != null
+                    && !"canceled".equalsIgnoreCase(status)
+                    && !"incomplete_expired".equalsIgnoreCase(status)) {
+                canceledSubscription = subscription.cancel();
+            }
+
+            return fromSubscription(BillingWebhookEventType.SUBSCRIPTION_DELETED, canceledSubscription);
+        } catch (StripeException ex) {
+            throw new StripeBillingException("Unable to cancel Stripe subscription", ex);
         }
     }
 
@@ -211,6 +257,27 @@ public class StripeBillingAdapter implements BillingProviderPort {
                 || isBlank(stripeCustomerId)) {
             throw new BillingNotConfiguredException();
         }
+    }
+
+    private void requireSubscriptionMutationConfigured(String stripeSubscriptionId, String value) {
+        if (!properties.isEnabled()
+                || isBlank(properties.getSecretKey())
+                || isBlank(stripeSubscriptionId)
+                || isBlank(value)) {
+            throw new BillingNotConfiguredException();
+        }
+    }
+
+    private String resolvePrimarySubscriptionItemId(Subscription subscription) {
+        if (subscription == null
+                || subscription.getItems() == null
+                || subscription.getItems().getData() == null
+                || subscription.getItems().getData().isEmpty()
+                || subscription.getItems().getData().get(0) == null
+                || isBlank(subscription.getItems().getData().get(0).getId())) {
+            throw new BillingStateException("Stripe subscription has no mutable subscription item");
+        }
+        return subscription.getItems().getData().get(0).getId();
     }
 
     private boolean isBlank(String value) {

@@ -61,6 +61,7 @@ export function AccountPage() {
     billingStatus,
     loadingBilling,
     checkoutPlan,
+    changingPlan,
     openingBillingPortal,
     deletingAccount,
     profileForm,
@@ -73,6 +74,7 @@ export function AccountPage() {
     handleChangePassword,
     handleSaveNotificationPreference,
     handleStartCheckout,
+    handleChangePlan,
     handleOpenBillingPortal,
     handleDeleteAccount,
     refresh,
@@ -189,11 +191,19 @@ export function AccountPage() {
     if (planId === currentPlan) {
       return billingStatus?.activeSubscription ? 'Manage billing' : 'Included'
     }
-    if (billingStatus?.activeSubscription) {
+    if (changingPlan === planId) {
+      return planId === 'FREE' ? 'Downgrading...' : 'Updating...'
+    }
+    if (billingStatus?.activeSubscription && currentPlan !== 'FREE') {
       if (planId === 'FREE') {
-        return 'Downgrade in billing portal'
+        return 'Downgrade to The Basics'
       }
-      return `Change in billing portal`
+      if (currentPlan === 'PLUS' && planId === 'PRO') {
+        return 'Upgrade to The Globetrotter'
+      }
+      if (currentPlan === 'PRO' && planId === 'PLUS') {
+        return 'Switch to The Family Plan'
+      }
     }
     if (checkoutPlan === planId) {
       return 'Redirecting...'
@@ -258,8 +268,10 @@ export function AccountPage() {
             <div className="billing-plan-grid">
               {PLAN_DETAILS.map((plan) => {
                 const isCurrentPlan = plan.id === currentPlan
-                const usePortalAction = Boolean(billingStatus?.activeSubscription)
-                const disableAction = usePortalAction ? openingBillingPortal : isCurrentPlan || checkoutPlan !== null
+                const usesDirectChange = Boolean(billingStatus?.activeSubscription && currentPlan !== 'FREE' && !isCurrentPlan)
+                const disableAction = isCurrentPlan
+                  ? openingBillingPortal
+                  : checkoutPlan !== null || changingPlan !== null || openingBillingPortal
                 return (
                   <article
                     key={plan.id}
@@ -284,7 +296,7 @@ export function AccountPage() {
                       </ul>
                     </div>
 
-                    {plan.id === 'FREE' && !usePortalAction ? (
+                    {plan.id === 'FREE' && !billingStatus?.activeSubscription ? (
                       <div className="billing-plan-note">
                         <span className="small muted">
                           The Basics includes one live alert and full email or SMS delivery.
@@ -294,7 +306,13 @@ export function AccountPage() {
                       <AriaButton
                         className={plan.id === 'PRO' ? 'primary button-inline' : 'ghost button-inline'}
                         isDisabled={disableAction}
-                        onPress={() => void (usePortalAction ? handleOpenBillingPortal() : handleStartCheckout(plan.id))}
+                        onPress={() =>
+                          void (isCurrentPlan
+                            ? handleOpenBillingPortal()
+                            : usesDirectChange
+                              ? handleChangePlan(plan.id)
+                              : handleStartCheckout(plan.id))
+                        }
                       >
                         {planActionLabel(plan.id)}
                       </AriaButton>
@@ -307,7 +325,7 @@ export function AccountPage() {
             <div className="billing-footnote">
               {billingStatus?.activeSubscription ? (
                 <p className="small muted">
-                  Manage upgrades, downgrades, and cancellation in the Stripe billing portal.
+                  Switch plans directly here. Use the billing portal on your current plan card for payment methods and invoices.
                 </p>
               ) : (
                 <p className="small muted">

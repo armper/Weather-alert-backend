@@ -20,6 +20,10 @@ public class GetBillingStatusUseCase {
         User user = userRepositoryPort.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
+        return toResponse(user);
+    }
+
+    public BillingStatusResponse toResponse(User user) {
         BillingEntitlements entitlements = billingPlanService.resolveEntitlements(user);
         return BillingStatusResponse.builder()
                 .userId(user.getId())
