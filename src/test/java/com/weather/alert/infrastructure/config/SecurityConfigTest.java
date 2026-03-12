@@ -7,6 +7,7 @@ import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
+import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
 import com.weather.alert.application.usecase.HandleStripeWebhookUseCase;
 import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
@@ -113,6 +114,9 @@ class SecurityConfigTest {
 
     @MockBean
     private CreateBillingCheckoutSessionUseCase createBillingCheckoutSessionUseCase;
+
+    @MockBean
+    private CreateBillingPortalSessionUseCase createBillingPortalSessionUseCase;
 
     @MockBean
     private HandleStripeWebhookUseCase handleStripeWebhookUseCase;
@@ -350,6 +354,19 @@ class SecurityConfigTest {
                         .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessionId").value("cs_test_123"));
+    }
+
+    @Test
+    void shouldAllowAuthenticatedUserToCreateBillingPortalSession() throws Exception {
+        when(createBillingPortalSessionUseCase.createForUser("user-1")).thenReturn(BillingCheckoutSessionResponse.builder()
+                .sessionId("bps_test_123")
+                .url("https://billing.stripe.com/p/session/bps_test_123")
+                .build());
+
+        mockMvc.perform(post("/api/billing/portal-session")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value("bps_test_123"));
     }
 
     @Test

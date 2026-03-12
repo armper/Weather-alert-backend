@@ -198,3 +198,4 @@ app:
       pro-price-id: ${APP_BILLING_STRIPE_PRO_PRICE_ID:}
       success-url: ${APP_BILLING_STRIPE_SUCCESS_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/billing/success?session_id={CHECKOUT_SESSION_ID}}
       cancel-url: ${APP_BILLING_STRIPE_CANCEL_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/billing/cancel}
+      portal-return-url: ${APP_BILLING_STRIPE_PORTAL_RETURN_URL:${APP_AUTH_RECOVERY_FRONTEND_BASE_URL:http://localhost:5174}/app/account}

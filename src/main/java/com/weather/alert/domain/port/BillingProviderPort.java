@@ -8,5 +8,7 @@ public interface BillingProviderPort {
 
     BillingCheckoutSession createSubscriptionCheckoutSession(BillingCheckoutSessionRequest request);
 
+    BillingCheckoutSession createCustomerPortalSession(String stripeCustomerId);
+
     BillingWebhookEvent parseWebhookEvent(String payload, String signatureHeader);
 }

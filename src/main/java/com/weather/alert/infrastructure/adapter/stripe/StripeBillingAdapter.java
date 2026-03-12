@@ -68,6 +68,27 @@ public class StripeBillingAdapter implements BillingProviderPort {
     }
 
     @Override
+    public BillingCheckoutSession createCustomerPortalSession(String stripeCustomerId) {
+        requirePortalConfigured(stripeCustomerId);
+        try {
+            Stripe.apiKey = properties.getSecretKey();
+
+            com.stripe.model.billingportal.Session session = com.stripe.model.billingportal.Session.create(
+                    com.stripe.param.billingportal.SessionCreateParams.builder()
+                    .setCustomer(stripeCustomerId)
+                    .setReturnUrl(properties.getPortalReturnUrl())
+                    .build());
+
+            return BillingCheckoutSession.builder()
+                    .id(session.getId())
+                    .url(session.getUrl())
+                    .build();
+        } catch (StripeException ex) {
+            throw new StripeBillingException("Unable to create Stripe Customer Portal session", ex);
+        }
+    }
+
+    @Override
     public BillingWebhookEvent parseWebhookEvent(String payload, String signatureHeader) {
         requireWebhookConfigured();
         try {
@@ -148,6 +169,15 @@ public class StripeBillingAdapter implements BillingProviderPort {
     private void requireWebhookConfigured() {
         if (!properties.isEnabled()
                 || isBlank(properties.getWebhookSecret())) {
+            throw new BillingNotConfiguredException();
+        }
+    }
+
+    private void requirePortalConfigured(String stripeCustomerId) {
+        if (!properties.isEnabled()
+                || isBlank(properties.getSecretKey())
+                || isBlank(properties.getPortalReturnUrl())
+                || isBlank(stripeCustomerId)) {
             throw new BillingNotConfiguredException();
         }
     }

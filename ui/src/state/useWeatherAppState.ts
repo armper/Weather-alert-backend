@@ -71,6 +71,7 @@ export function useWeatherAppState() {
   const [savingProfile, setSavingProfile] = useState(false)
   const [loadingBilling, setLoadingBilling] = useState(false)
   const [checkoutPlan, setCheckoutPlan] = useState<BillingPlan | null>(null)
+  const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
   const [busyAlertId, setBusyAlertId] = useState<string | null>(null)
   const [busyCriteriaId, setBusyCriteriaId] = useState<string | null>(null)
   const [busyAdminAction, setBusyAdminAction] = useState<string | null>(null)
@@ -698,6 +699,29 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleOpenBillingPortal(): Promise<boolean> {
+    if (!token) {
+      return false
+    }
+
+    setOpeningBillingPortal(true)
+    setNotice(null)
+
+    try {
+      const session = await apiRequest<BillingCheckoutSession>('/api/billing/portal-session', {
+        method: 'POST',
+        token,
+      })
+      window.location.assign(session.url)
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setOpeningBillingPortal(false)
+    }
+  }
+
   async function handleAdminAction(userId: string, action: 'suspend' | 'reactivate' | 'force-password-reset') {
     if (!token) {
       return
@@ -781,6 +805,7 @@ export function useWeatherAppState() {
     savingProfile,
     loadingBilling,
     checkoutPlan,
+    openingBillingPortal,
     busyAlertId,
     busyCriteriaId,
     busyAdminAction,
@@ -802,6 +827,7 @@ export function useWeatherAppState() {
     handleChangePassword,
     handleSaveNotificationPreference,
     handleStartCheckout,
+    handleOpenBillingPortal,
     handleAdminAction,
 
     refresh,
