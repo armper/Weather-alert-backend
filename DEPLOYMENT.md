@@ -209,6 +209,7 @@ Required values include:
   - `SPRING_MAIL_USERNAME=apikey`
   - `SPRING_MAIL_PASSWORD=<sendgrid-api-key>`
   - `APP_NOTIFICATION_EMAIL_FROM_ADDRESS=<verified-sender>`
+  - optional `APP_NOTIFICATION_EMAIL_REPLY_TO_ADDRESS=<real-support-inbox>`
 - SMS settings if Twilio SMS delivery is enabled:
   - `APP_NOTIFICATION_SMS_PROVIDER=twilio`
   - `APP_NOTIFICATION_SMS_TWILIO_ACCOUNT_SID`

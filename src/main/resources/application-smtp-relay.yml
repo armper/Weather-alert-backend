@@ -25,5 +25,6 @@ app:
     email:
       provider: ${APP_NOTIFICATION_EMAIL_PROVIDER:smtp}
       from-address: ${APP_NOTIFICATION_EMAIL_FROM_ADDRESS:no-reply@weatheralerts.app}
+      reply-to-address: ${APP_NOTIFICATION_EMAIL_REPLY_TO_ADDRESS:}
     verification:
       send-email: ${APP_NOTIFICATION_VERIFICATION_SEND_EMAIL:true}

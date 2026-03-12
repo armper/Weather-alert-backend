@@ -58,6 +58,27 @@ class SmtpEmailSenderAdapterTest {
     }
 
     @Test
+    void shouldSetReplyToWhenConfigured() throws Exception {
+        MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        NotificationEmailProperties properties = new NotificationEmailProperties();
+        properties.setFromAddress("SkyPanda Alerts <alerts@skypandaweather.com>");
+        properties.setReplyToAddress("SkyPanda Support <alpereastorage@gmail.com>");
+        adapter = new SmtpEmailSenderAdapter(mailSender, properties);
+
+        adapter.send(EmailMessage.builder()
+                .to("user@example.com")
+                .subject("Weather alert")
+                .body("Rain expected")
+                .build());
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertEquals("SkyPanda Support <alpereastorage@gmail.com>", captor.getValue().getHeader("Reply-To", null));
+    }
+
+    @Test
     void shouldClassifyAuthenticationFailuresAsNonRetryable() {
         MimeMessage mimeMessage = new MimeMessage(Session.getInstance(new Properties()));
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);

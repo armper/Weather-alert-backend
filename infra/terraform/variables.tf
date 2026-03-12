@@ -143,6 +143,12 @@ variable "mail_from_address" {
   description = "From address for notification emails."
 }
 
+variable "mail_reply_to_address" {
+  type        = string
+  description = "Optional Reply-To address for notification emails."
+  default     = ""
+}
+
 variable "notification_sms_provider" {
   type        = string
   description = "Notification SMS provider."

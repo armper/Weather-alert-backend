@@ -451,6 +451,7 @@ Notification verification tuning values in `.env`:
 
 - `APP_NOTIFICATION_EMAIL_PROVIDER` (`smtp` for local/MailHog or Twilio SendGrid SMTP, `ses` for AWS SES)
 - `APP_NOTIFICATION_EMAIL_FROM_ADDRESS` (default sender address)
+- `APP_NOTIFICATION_EMAIL_REPLY_TO_ADDRESS` (optional reply target shown to users when they hit reply)
 - `APP_NOTIFICATION_EMAIL_SES_REGION` (AWS region for SES, default `us-east-1`)
 - `SPRING_PROFILES_ACTIVE` (set `smtp-relay` to enable external SMTP relay defaults like Twilio SendGrid SMTP)
 - `SPRING_MAIL_HOST` / `SPRING_MAIL_PORT` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` (SMTP credentials)

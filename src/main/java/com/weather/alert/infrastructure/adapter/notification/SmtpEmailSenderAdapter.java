@@ -19,6 +19,7 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor
@@ -34,6 +35,9 @@ public class SmtpEmailSenderAdapter implements EmailSenderPort {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
             helper.setFrom(properties.getFromAddress());
+            if (StringUtils.hasText(properties.getReplyToAddress())) {
+                helper.setReplyTo(properties.getReplyToAddress());
+            }
             helper.setTo(message.to());
             helper.setSubject(message.subject());
             helper.setText(message.body() == null ? "" : message.body(), false);

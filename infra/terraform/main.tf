@@ -328,6 +328,11 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
+        name  = "APP_NOTIFICATION_EMAIL_REPLY_TO_ADDRESS"
+        value = var.mail_reply_to_address
+      }
+
+      env {
         name  = "APP_NOTIFICATION_SMS_FROM_NUMBER"
         value = var.twilio_sms_from_number
       }

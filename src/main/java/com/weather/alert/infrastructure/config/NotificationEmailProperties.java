@@ -11,6 +11,7 @@ public class NotificationEmailProperties {
 
     private String provider = "smtp";
     private String fromAddress = "no-reply@weather-alert.local";
+    private String replyToAddress;
     private Ses ses = new Ses();
 
     @Data
