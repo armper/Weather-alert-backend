@@ -6,6 +6,7 @@ import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.domain.model.BillingPlan;
 import com.weather.alert.application.dto.JobRunResponse;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
+import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
 import com.weather.alert.application.usecase.PublishDueAlertDeliveryTasksUseCase;
 import com.weather.alert.application.usecase.RunDataRetentionCleanupUseCase;
@@ -105,6 +106,9 @@ class ApiIntegrationContractTest {
 
     @MockBean
     private CreateBillingCheckoutSessionUseCase createBillingCheckoutSessionUseCase;
+
+    @MockBean
+    private CreateBillingPortalSessionUseCase createBillingPortalSessionUseCase;
 
     private OpenApiValidationFilter openApiValidationFilter;
 
@@ -208,6 +212,12 @@ class ApiIntegrationContractTest {
                 .thenReturn(BillingCheckoutSessionResponse.builder()
                         .sessionId("cs_test_weather_alerts")
                         .url("https://checkout.stripe.com/c/pay/cs_test_weather_alerts")
+                        .build());
+
+        when(createBillingPortalSessionUseCase.createForUser("test-admin"))
+                .thenReturn(BillingCheckoutSessionResponse.builder()
+                        .sessionId("bps_test_weather_alerts")
+                        .url("https://billing.stripe.com/p/session/bps_test_weather_alerts")
                         .build());
     }
 

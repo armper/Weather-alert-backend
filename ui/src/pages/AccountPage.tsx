@@ -61,6 +61,7 @@ export function AccountPage() {
     billingStatus,
     loadingBilling,
     checkoutPlan,
+    openingBillingPortal,
     profileForm,
     setProfileForm,
     passwordForm,
@@ -71,6 +72,7 @@ export function AccountPage() {
     handleChangePassword,
     handleSaveNotificationPreference,
     handleStartCheckout,
+    handleOpenBillingPortal,
     refresh,
   } = useAppState()
   const { theme, themePreference, setThemePreference } = useThemePreference()
@@ -169,10 +171,13 @@ export function AccountPage() {
 
   function planActionLabel(planId: BillingPlan) {
     if (planId === currentPlan) {
-      return billingStatus?.activeSubscription ? 'Current plan' : 'Included'
+      return billingStatus?.activeSubscription ? 'Manage billing' : 'Included'
     }
     if (billingStatus?.activeSubscription) {
-      return 'Plan changes soon'
+      if (planId === 'FREE') {
+        return 'Downgrade in billing portal'
+      }
+      return `Change in billing portal`
     }
     if (checkoutPlan === planId) {
       return 'Redirecting...'
@@ -237,7 +242,8 @@ export function AccountPage() {
             <div className="billing-plan-grid">
               {PLAN_DETAILS.map((plan) => {
                 const isCurrentPlan = plan.id === currentPlan
-                const disableAction = isCurrentPlan || Boolean(billingStatus?.activeSubscription)
+                const usePortalAction = Boolean(billingStatus?.activeSubscription)
+                const disableAction = usePortalAction ? openingBillingPortal : isCurrentPlan || checkoutPlan !== null
                 return (
                   <article
                     key={plan.id}
@@ -262,7 +268,7 @@ export function AccountPage() {
                       </ul>
                     </div>
 
-                    {plan.id === 'FREE' ? (
+                    {plan.id === 'FREE' && !usePortalAction ? (
                       <div className="billing-plan-note">
                         <span className="small muted">
                           The Basics includes one live alert and full email or SMS delivery.
@@ -271,8 +277,8 @@ export function AccountPage() {
                     ) : (
                       <AriaButton
                         className={plan.id === 'PRO' ? 'primary button-inline' : 'ghost button-inline'}
-                        isDisabled={disableAction || checkoutPlan !== null}
-                        onPress={() => void handleStartCheckout(plan.id)}
+                        isDisabled={disableAction}
+                        onPress={() => void (usePortalAction ? handleOpenBillingPortal() : handleStartCheckout(plan.id))}
                       >
                         {planActionLabel(plan.id)}
                       </AriaButton>
@@ -285,8 +291,7 @@ export function AccountPage() {
             <div className="billing-footnote">
               {billingStatus?.activeSubscription ? (
                 <p className="small muted">
-                  Self-serve plan changes are not wired yet. Once Stripe Customer Portal is added, upgrades and downgrades
-                  will happen here instead of through support.
+                  Manage upgrades, downgrades, and cancellation in the Stripe billing portal.
                 </p>
               ) : (
                 <p className="small muted">

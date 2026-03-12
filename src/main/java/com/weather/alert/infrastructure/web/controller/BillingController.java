@@ -3,6 +3,7 @@ package com.weather.alert.infrastructure.web.controller;
 import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.application.dto.CreateBillingCheckoutSessionRequest;
+import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.exception.ForbiddenOperationException;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
@@ -27,6 +28,7 @@ public class BillingController {
 
     private final GetBillingStatusUseCase getBillingStatusUseCase;
     private final CreateBillingCheckoutSessionUseCase createBillingCheckoutSessionUseCase;
+    private final CreateBillingPortalSessionUseCase createBillingPortalSessionUseCase;
 
     @GetMapping("/me")
     @Operation(
@@ -58,6 +60,20 @@ public class BillingController {
         return ResponseEntity.ok(createBillingCheckoutSessionUseCase.createForUser(
                 authenticatedUserId(authentication),
                 request == null ? null : request.getPlan()));
+    }
+
+    @PostMapping("/portal-session")
+    @Operation(
+            summary = "Create a Stripe Customer Portal session for subscription management",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Portal session created"),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "User is not eligible for Stripe Customer Portal",
+                            content = @Content(mediaType = "application/problem+json"))
+            })
+    public ResponseEntity<BillingCheckoutSessionResponse> createPortalSession(Authentication authentication) {
+        return ResponseEntity.ok(createBillingPortalSessionUseCase.createForUser(authenticatedUserId(authentication)));
     }
 
     private String authenticatedUserId(Authentication authentication) {

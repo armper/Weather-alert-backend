@@ -17,4 +17,5 @@ public class StripeBillingProperties {
     private String priceId;
     private String successUrl = "http://localhost:5174/billing/success?session_id={CHECKOUT_SESSION_ID}";
     private String cancelUrl = "http://localhost:5174/billing/cancel";
+    private String portalReturnUrl = "http://localhost:5174/app/account";
 }
