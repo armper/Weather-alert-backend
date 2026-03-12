@@ -128,8 +128,10 @@ public class ManageUserAccountUseCase {
 
     @Transactional(readOnly = true)
     public UserAccountResponse getMyAccount(String userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-        return UserAccountResponse.fromDomain(user);
+        return userRepository.findById(userId)
+                .map(UserAccountResponse::fromDomain)
+                .orElseGet(() -> reservedAccountResponse(userId)
+                        .orElseThrow(() -> new UserNotFoundException(userId)));
     }
 
     @Transactional
@@ -220,6 +222,35 @@ public class ManageUserAccountUseCase {
         }
         return username.equalsIgnoreCase(valueOrEmpty(bootstrapUserUsername))
                 || username.equalsIgnoreCase(valueOrEmpty(bootstrapAdminUsername));
+    }
+
+    private java.util.Optional<UserAccountResponse> reservedAccountResponse(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        if (userId.equalsIgnoreCase(valueOrEmpty(bootstrapAdminUsername))) {
+            return java.util.Optional.of(UserAccountResponse.builder()
+                    .id(userId)
+                    .email(userId)
+                    .name("SkyPanda Admin")
+                    .role("ROLE_ADMIN")
+                    .approvalStatus(UserApprovalStatus.ACTIVE)
+                    .emailVerified(true)
+                    .passwordResetRequired(false)
+                    .build());
+        }
+        if (userId.equalsIgnoreCase(valueOrEmpty(bootstrapUserUsername))) {
+            return java.util.Optional.of(UserAccountResponse.builder()
+                    .id(userId)
+                    .email(userId)
+                    .name("SkyPanda User")
+                    .role("ROLE_USER")
+                    .approvalStatus(UserApprovalStatus.ACTIVE)
+                    .emailVerified(true)
+                    .passwordResetRequired(false)
+                    .build());
+        }
+        return java.util.Optional.empty();
     }
 
     private String normalizeUserId(String userId) {

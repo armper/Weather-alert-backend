@@ -26,6 +26,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -195,5 +196,18 @@ class ManageUserAccountUseCaseTest {
         org.springframework.test.util.ReflectionTestUtils.setField(useCase, "bootstrapUserUsername", "test-user");
 
         assertThrows(InvalidUserAccountStateException.class, () -> useCase.deleteMyAccount("test-user"));
+    }
+
+    @Test
+    void shouldReturnSyntheticAccountForReservedAdmin() {
+        org.springframework.test.util.ReflectionTestUtils.setField(useCase, "bootstrapAdminUsername", "weather-admin");
+        when(userRepository.findById("weather-admin")).thenReturn(Optional.empty());
+
+        var response = useCase.getMyAccount("weather-admin");
+
+        assertEquals("weather-admin", response.getId());
+        assertEquals("ROLE_ADMIN", response.getRole());
+        assertEquals(UserApprovalStatus.ACTIVE, response.getApprovalStatus());
+        assertTrue(response.getEmailVerified());
     }
 }

@@ -124,14 +124,16 @@ export function useWeatherAppState() {
 
       const [freshAlerts, preferences, weather, billing, adminAccounts] = await Promise.all([
         apiRequest<AlertEvent[]>(`/api/alerts/user/${account.id}`, { token: activeToken }),
-        apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }),
+        apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }).catch(
+          () => null,
+        ),
         apiRequest<WeatherCondition>(
           `/api/weather/conditions/current?latitude=${encodeURIComponent(
             freshCriteria[0]?.latitude?.toString() ?? DEFAULT_LAT,
           )}&longitude=${encodeURIComponent(freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON)}`,
           { token: activeToken },
         ).catch(() => null),
-        apiRequest<BillingStatus>('/api/billing/me', { token: activeToken }),
+        apiRequest<BillingStatus>('/api/billing/me', { token: activeToken }).catch(() => null),
         account.role.includes('ADMIN')
           ? apiRequest<UserAccount[]>('/api/admin/users', { token: activeToken })
           : Promise.resolve([]),
