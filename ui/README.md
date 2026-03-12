@@ -5,6 +5,7 @@ Modern React + TypeScript dashboard for the Weather Alert backend.
 ## What It Covers
 
 - Login via `POST /api/auth/token`
+- Magic-link sign-in via `POST /api/auth/magic-link/request` and `POST /api/auth/magic-link/confirm`
 - Register + email verification flow
 - Forgot username + forgot password recovery flow
 - Auth routes split for cleaner UX:
@@ -22,8 +23,10 @@ Modern React + TypeScript dashboard for the Weather Alert backend.
   - triggered alerts timeline + acknowledge
   - account profile update
   - password change
-  - admin pending-approval panel
+  - admin control panel at `/app/admin`
   - admin account actions (suspend/reactivate/force reset)
+  - manual admin job runs for weather processing, delivery retries, and retention cleanup
+  - production operations links for Cloud Run logs, metrics, Cloud Build, Monitoring, and Error Reporting
 
 ## Run Locally
 
@@ -47,7 +50,7 @@ Default backend target is `http://localhost:8088` (Docker `weather-app`).
 Override with:
 
 ```bash
-VITE_API_TARGET=http://localhost:8092 npm run dev
+VITE_API_TARGET=http://localhost:8080 npm run dev
 ```
 
 If you changed backend code and run with Docker, rebuild so new endpoints are included:

@@ -1,372 +1,276 @@
 # Weather Alert Backend - Architecture Overview
 
-## System Architecture
+## System Shape
 
-This document provides a detailed overview of the Weather Alert Backend architecture, which implements **Hexagonal Architecture** (Ports and Adapters) with Spring Boot.
+The application uses hexagonal architecture with a Spring Boot runtime and a React dashboard in `ui/`.
+Core business logic stays in the domain and application layers, while external concerns are isolated behind adapters.
 
-## High-Level Architecture
+Current external integrations:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         External Systems                         │
-├─────────────┬──────────────┬──────────────┬────────────────────┤
-│ NOAA API    │ PostgreSQL   │ Kafka        │ Elasticsearch      │
-└──────┬──────┴──────┬───────┴──────┬───────┴──────┬─────────────┘
-       │             │              │              │
-┌──────▼─────────────▼──────────────▼──────────────▼─────────────┐
-│              Infrastructure Layer (Adapters)                     │
-│  ┌────────────┐ ┌────────────┐ ┌────────┐ ┌──────────────┐    │
-│  │ NOAA       │ │ JPA/       │ │ Kafka  │ │ Elasticsearch│    │
-│  │ Adapter    │ │ Repository │ │ Adapter│ │ Adapter      │    │
-│  └────────────┘ └────────────┘ └────────┘ └──────────────┘    │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │              REST API Controllers                        │  │
-│  └─────────────────────────────────────────────────────────┘  │
-└──────────────────────────┬───────────────────────────────────┘
-                           │
-┌──────────────────────────▼────────────────────────────────────┐
-│                 Application Layer (Use Cases)                  │
-│  ┌─────────────────────┐ ┌─────────────────────────────────┐ │
-│  │ Manage Alert        │ │ Query Alerts Use Case           │ │
-│  │ Criteria Use Case   │ │ (CQRS Query Side)               │ │
-│  │ (CQRS Command Side) │ │                                 │ │
-│  └─────────────────────┘ └─────────────────────────────────┘ │
-└──────────────────────────┬────────────────────────────────────┘
-                           │
-┌──────────────────────────▼────────────────────────────────────┐
-│                       Domain Layer                              │
-│  ┌─────────────────┐ ┌─────────────┐ ┌───────────────────┐   │
-│  │ Domain Models   │ │ Domain      │ │ Ports (Interfaces)│   │
-│  │ - Alert         │ │ Services    │ │ - Repositories    │   │
-│  │ - AlertCriteria │ │             │ │ - External APIs   │   │
-│  │ - WeatherData   │ │             │ │ - Messaging       │   │
-│  │ - User          │ │             │ │                   │   │
-│  └─────────────────┘ └─────────────┘ └───────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+- NOAA Weather API for alerts and forecast/current conditions
+- NWPS hydrology data for river gauges
+- PostgreSQL for transactional data and the weather read model
+- SMTP or AWS SES for email delivery
+- Twilio for SMS delivery
+- Stripe for subscription billing
+- Cloud Scheduler or admins calling `/api/admin/jobs/**` for operational runs
+
+## High-Level View
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ External Clients and Services                                       │
+├───────────────────────┬────────────────────┬─────────────────────────┤
+│ React UI (`ui/`)      │ Cloud Scheduler    │ Swagger / API clients   │
+├───────────────────────┼────────────────────┼─────────────────────────┤
+│ NOAA / NWPS           │ SMTP / SES /       │ Stripe                  │
+│ weather providers     │ Twilio delivery    │ billing                 │
+└───────────────┬───────┴──────────────┬─────┴───────────────┬─────────┘
+                │                      │                     │
+┌───────────────▼──────────────────────▼─────────────────────▼─────────┐
+│ Infrastructure Layer                                                 │
+│ controllers, config, provider adapters, persistence adapters         │
+└───────────────┬──────────────────────┬─────────────────────┬─────────┘
+                │                      │                     │
+┌───────────────▼──────────────────────▼─────────────────────▼─────────┐
+│ Application Layer                                                    │
+│ use cases for auth, criteria, alerts, billing, admin jobs, delivery  │
+└───────────────┬──────────────────────┬─────────────────────┬─────────┘
+                │                      │                     │
+┌───────────────▼──────────────────────▼─────────────────────▼─────────┐
+│ Domain Layer                                                         │
+│ entities, value objects, rule evaluation, ports                      │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-## Layer Details
+## Layer Responsibilities
 
-### 1. Domain Layer (Core Business Logic)
+### Domain
 
-**Purpose**: Contains the core business rules and entities, independent of any framework or technology.
+Packages: `src/main/java/com/weather/alert/domain/**`
 
-#### Domain Models
-- **Alert**: Represents a weather alert sent to a user
-- **AlertCriteria**: User-defined criteria for triggering alerts (location/event/severity plus temperature and rain thresholds, unit preference, monitoring scope, and alert cadence policy)
-- **WeatherData**: Weather information from NOAA
-- **User**: User profile and preferences
+Responsibilities:
 
-#### Domain Services
-- **AlertProcessingService**: Orchestrates the alert matching and generation process
-- **AlertCriteriaRuleEvaluator**: Explicit filter/trigger rule engine used by `AlertCriteria.matches(...)` and processing flows
+- Weather alert criteria model and rule matching semantics
+- Alert lifecycle and dedupe concepts
+- User, notification preference, channel verification, and billing domain models
+- Port definitions for persistence, weather providers, delivery, and billing
+- Rule evaluation and alert orchestration in `AlertProcessingService`
 
-#### Ports (Interfaces)
-- **AlertRepositoryPort**: Alert persistence operations
-- **AlertCriteriaRepositoryPort**: Criteria persistence operations
-- **AlertCriteriaStateRepositoryPort**: Criteria anti-spam edge-state persistence
-- **UserRepositoryPort**: User persistence operations
-- **WeatherDataPort**: Fetch weather data from external API
-- **NotificationPort**: Send notifications
-- **WeatherDataSearchPort**: Search weather data
+Important ports:
 
-### 2. Application Layer (Use Cases)
+- `AlertRepositoryPort`
+- `AlertCriteriaRepositoryPort`
+- `AlertCriteriaStateRepositoryPort`
+- `WeatherDataPort`
+- `WeatherDataSearchPort`
+- `AlertDeliveryTaskPublisherPort`
+- `EmailSenderPort`
+- `SmsSenderPort`
 
-**Purpose**: Implements application-specific business logic and coordinates domain operations.
+### Application
 
-#### CQRS Implementation
+Packages: `src/main/java/com/weather/alert/application/**`
 
-**Commands (Write Operations)**
+Responsibilities:
+
+- Use cases coordinating domain logic and adapters
+- DTOs used by REST controllers
+- Security-sensitive account and recovery flows
+- Operational job execution results returned to the UI and scheduler callers
+
+Representative use cases:
+
 - `ManageAlertCriteriaUseCase`
-  - Create new alert criteria
-  - Update existing criteria
-  - Delete criteria
-
-**Queries (Read Operations)**
 - `QueryAlertsUseCase`
-  - Get alerts by user ID
-  - Get alert by ID
-  - Get alert history by criteria ID
-  - Get criteria by user ID (with optional query filters: unit/monitoring/rule presence/enabled)
-  - Get pending alerts
-  - Acknowledge / expire alert lifecycle transitions
+- `ManageUserAccountUseCase`
+- `ManageAccountRecoveryUseCase`
+- `ManageChannelVerificationUseCase`
+- `GetBillingStatusUseCase`
+- `RunWeatherAlertProcessingUseCase`
+- `PublishDueAlertDeliveryTasksUseCase`
+- `RunDataRetentionCleanupUseCase`
 
-#### DTOs (Data Transfer Objects)
-- `CreateAlertCriteriaRequest` (supports temperature/rain threshold pairs, monitoring scope, and cadence controls)
-- `AlertCriteriaResponse` (concise criteria payload, null fields omitted)
-- `AlertResponse`
-- `WeatherDataResponse`
+### Infrastructure
 
-### 3. Infrastructure Layer (Technical Details)
+Packages: `src/main/java/com/weather/alert/infrastructure/**`
 
-**Purpose**: Implements the domain ports using specific technologies and frameworks.
+Responsibilities:
 
-#### Adapters
+- REST controllers and OpenAPI annotations
+- Spring Security, JWT, rate limiting, scheduling, tracing, and config
+- NOAA/NWPS adapters
+- JPA persistence adapters
+- Delivery adapters for SMTP, SES, and Twilio
+- Stripe adapter
+- In-process task publishing for alert delivery
 
-**NOAA API Adapter**
-```
-NoaaWeatherAdapter
-├── Fetches active alerts from https://api.weather.gov/alerts/active
-├── Fetches current conditions via points -> stations -> observations/latest
-├── Fetches hourly forecast via points -> forecastHourly (windowed, e.g., 48h)
-├── Normalizes units (temperature C, wind km/h, precipitation probability/amount)
-└── Applies timeout + retry + empty-result fallback for provider resilience
-```
+Key controller surface:
 
-**Persistence Adapters**
-```
-JPA/PostgreSQL
-├── AlertEntity → AlertRepositoryAdapter
-├── AlertCriteriaEntity → AlertCriteriaRepositoryAdapter
-├── AlertCriteriaStateEntity → AlertCriteriaStateRepositoryAdapter
-├── UserEntity → UserRepositoryAdapter
-└── Flyway-managed schema migrations + Hibernate validation (including criteria extension in V2, anti-spam state in V3, and alert lifecycle/dedupe fields in V4)
-```
+- `/api/auth/**`
+- `/api/users/me`
+- `/api/criteria/**`
+- `/api/alerts/**`
+- `/api/notifications/**`
+- `/api/weather/**`
+- `/api/admin/users/**`
+- `/api/admin/jobs/**`
+- `/api/billing/**`
+- `/api/stripe/webhook`
 
-**Kafka Adapter**
-```
-Kafka Messaging
-├── KafkaNotificationAdapter (Producer)
-│   └── Publishes alerts to "weather-alerts" topic
-└── AlertKafkaConsumer (Consumer)
-    └── Consumes and processes alerts
-```
+## Persistence Model
 
-**Elasticsearch Adapter**
-```
-Elasticsearch Search
-├── WeatherDataDocument (Index mapping)
-├── ElasticsearchWeatherRepository
-└── ElasticsearchWeatherAdapter
-    ├── Index weather data for fast search
-    └── Search by location, event type, severity
-```
+The app is PostgreSQL-first.
 
-#### REST API Controllers
+- Transactional entities such as users, criteria, alerts, delivery attempts, verification tokens, and billing state live in PostgreSQL.
+- Weather alert search also uses PostgreSQL via `WeatherDataSearchRepositoryAdapter`; this is no longer an Elasticsearch-backed read model.
+- Flyway manages schema changes from `src/main/resources/db/migration`.
+- Hibernate runs in validation mode (`ddl-auto: validate`) to catch schema drift.
 
-**Alert Query Controller** (`/api/alerts`)
-- GET `/user/{userId}` - Get user's alerts
-- GET `/{alertId}` - Get specific alert
-- GET `/criteria/{criteriaId}/history` - Get alert history for a criteria
-- GET `/pending` - Get pending alerts
-- POST `/{alertId}/acknowledge` - Acknowledge an alert
-- POST `/{alertId}/expire` - Expire an alert
+Important persisted concepts:
 
-**Alert Criteria Controller** (`/api/criteria`)
-- POST `/` - Create criteria
-- PUT `/{criteriaId}` - Update criteria
-- DELETE `/{criteriaId}` - Delete criteria
-- GET `/user/{userId}` - Get user's criteria (supports optional filters via query params)
-- GET `/{criteriaId}` - Get specific criteria
+- `alerts`
+- `alert_delivery`
+- `alert_criteria`
+- `criteria_state`
+- `users`
+- `channel_verifications`
+- `user_notification_preferences`
+- `criteria_notification_preferences`
+- `account_recovery_tokens`
+- `weather_data`
 
-**Weather Data Controller** (`/api/weather`)
-- GET `/active` - Get active NOAA alerts
-- GET `/location?lat={lat}&lon={lon}` - Get alerts for location
-- GET `/state/{stateCode}` - Get alerts for state
-- GET `/conditions/current?latitude={lat}&longitude={lon}` - Get latest current conditions
-- GET `/conditions/forecast?latitude={lat}&longitude={lon}&hours={h}` - Get hourly forecast conditions
-- GET `/search/location/{location}` - Search by location
-- GET `/search/event/{eventType}` - Search by event type
+## Core Runtime Flows
 
-## Data Flow
+### 1. Criteria Creation and Immediate Evaluation
 
-### 1. Alert Processing Flow (Scheduled)
-
-```
-┌──────────────┐
-│  Scheduler   │ (Every 5 minutes)
-└──────┬───────┘
-       │
-       ▼
-┌──────────────────────┐
-│ AlertProcessing      │
-│ Service              │
-└──────┬───────────────┘
-       │
-       ├─► Fetch from NOAA API
-       │   └─► WeatherDataPort → NoaaWeatherAdapter
-       │
-       ├─► Index in Elasticsearch
-       │   └─► WeatherDataSearchPort → ElasticsearchAdapter
-       │
-       ├─► Load enabled criteria
-       │   └─► AlertCriteriaRepositoryPort
-       │
-       ├─► Partition criteria into scheduler batches (size=100)
-       │
-       ├─► Reuse per-run NOAA caches
-       │   ├─► current conditions cache key: (lat, lon)
-       │   └─► forecast cache key: (lat, lon, forecastWindowHours)
-       │
-       ├─► Evaluate criteria using explicit rules
-       │   ├─► Filter rules: location, event type, severity
-       │   └─► Trigger rules: temperature, rain, wind, precipitation
-       │
-       ├─► For criteria with weather-condition rules + coordinates
-       │   ├─► Fetch current conditions (if monitorCurrent=true)
-       │   └─► Fetch forecast conditions in forecastWindowHours (if monitorForecast=true)
-       │
-       ├─► Load + evaluate criteria_state (anti-spam edge state)
-       │   ├─► If transition is not met -> met, generate alert
-       │   ├─► If still met, suppress duplicates
-       │   └─► If cleared then re-occurs, allow rearm notification
-       │
-       ├─► Outage guard behavior
-       │   ├─► NOAA failures can produce UNAVAILABLE evaluation status
-       │   ├─► UNAVAILABLE skips criteria_state mutation (no false transition)
-       │   └─► provider call pacing + short outage window reduce upstream load during failures
-       │
-       ├─► Persist alert + updated criteria_state
-       │   ├─► Dedupe check by (criteria_id, event_key)
-       │   └─► AlertRepositoryPort.save() + AlertCriteriaStateRepositoryPort.save()
-       │
-       └─► Publish to Kafka
-           └─► NotificationPort.publishAlert()
+```text
+HTTP request
+  -> AlertCriteriaController
+  -> ManageAlertCriteriaUseCase
+  -> AlertCriteriaRepositoryPort.save(...)
+  -> AlertProcessingService.processCriteriaImmediately(...)
+  -> alert + criteria_state persistence
+  -> async delivery task publication
 ```
 
-### 2. User Creates Alert Criteria Flow
+Design intent:
 
-```
-┌──────────────┐
-│  REST API    │ POST /api/criteria
-└──────┬───────┘
-       │
-       ▼
-┌──────────────────────┐
-│ AlertCriteria        │
-│ Controller           │
-└──────┬───────────────┘
-       │
-       ▼
-┌──────────────────────┐
-│ ManageAlertCriteria  │
-│ UseCase              │
-└──────┬───────────────┘
-       │
-       ├─► Persist criteria
-       │
-       ├─► Immediate criteria evaluation
-       │   └─► AlertProcessingService.processCriteriaImmediately(...)
-       │
-       ▼
-┌──────────────────────┐
-│ AlertCriteria        │
-│ RepositoryPort       │
-└──────┬───────────────┘
-       │
-       ▼
-┌──────────────────────┐
-│ AlertCriteria        │
-│ RepositoryAdapter    │
-└──────┬───────────────┘
-       │
-       ▼
-┌──────────────────────┐
-│ JPA Repository       │
-│ → PostgreSQL         │
-└──────────────────────┘
+- Newly created criteria do not wait for the next scheduler tick.
+- If the condition is already true, the user can receive an alert immediately.
+
+### 2. Scheduled or Manual Weather Processing
+
+```text
+WeatherAlertScheduler or POST /api/admin/jobs/weather-processing
+  -> RunWeatherAlertProcessingUseCase
+  -> AlertProcessingService
+  -> NOAA/NWPS fetches
+  -> weather_data read-model updates
+  -> criteria evaluation in batches
+  -> deduped alert creation
+  -> delivery task publication
 ```
 
-After persistence, `ManageAlertCriteriaUseCase` invokes `AlertProcessingService.processCriteriaImmediately(...)`
-so criteria that are already true can produce an immediate alert.
+Important behavior:
 
-## Key Design Patterns
+- The default cadence is fixed-delay every 5 minutes.
+- Criteria are processed in batches.
+- Current and forecast lookups are cached per run by coordinate/window.
+- Provider outage protection can return `UNAVAILABLE` without mutating anti-spam state.
 
-### 1. Hexagonal Architecture (Ports & Adapters)
-- **Domain** is at the center, independent of infrastructure
-- **Ports** define contracts (interfaces)
-- **Adapters** implement ports for specific technologies
-- Easy to swap implementations (e.g., change database)
+### 3. Alert Delivery
 
-### 2. CQRS (Command Query Responsibility Segregation)
-- **Commands**: `ManageAlertCriteriaUseCase` handles writes
-- **Queries**: `QueryAlertsUseCase` handles reads
-- Separate models for reading and writing
-- Can be optimized independently
+```text
+alert persisted
+  -> delivery row persisted
+  -> InProcessAlertDeliveryTaskPublisherAdapter
+  -> TaskExecutor after transaction commit
+  -> ProcessAlertDeliveryTaskUseCase
+  -> SMTP / SES / Twilio adapter
+  -> SENT or RETRY_SCHEDULED / FAILED
+```
 
-### 3. Repository Pattern
-- Abstracts data persistence
-- Domain works with ports, not concrete implementations
-- Easy to mock for testing
+This is intentionally in-process today.
 
-### 4. Adapter Pattern
-- Each external system has its own adapter
-- Adapters translate between domain and external formats
-- Isolates external dependencies
+- There is no Kafka runtime dependency in the current implementation.
+- Retries are persisted and later re-published by `POST /api/admin/jobs/alert-delivery-retries` or the retry poller.
+- Permanent failures are logged through the DLQ publisher abstraction.
 
-### 5. Dependency Inversion Principle
-- High-level modules (domain) don't depend on low-level modules (infrastructure)
-- Both depend on abstractions (ports)
-- Domain defines interfaces that infrastructure implements
+### 4. Account Security and Recovery
 
-## Configuration
+Authentication and recovery are layered:
 
-### Application Configuration
-- **application.yml**: Main configuration
-- **application-test.yml**: Test-specific configuration
+- Username/password login issues JWTs.
+- Magic-link login reuses the recovery-token machinery.
+- Forgot-username and forgot-password flows use hashed one-time codes with TTL and cooldowns.
+- Email verification is required for normal sign-in.
+- Login and recovery flows apply lockouts and throttling.
 
-### Key Configurations
-- PostgreSQL database connection
-- Kafka broker settings
-- Elasticsearch connection
-- Scheduled task intervals
-- Logging levels
+### 5. Billing
+
+Billing is isolated behind Stripe-focused use cases and adapter code.
+
+- Authenticated users read billing state from `/api/billing/me`.
+- Checkout, Customer Portal, and plan changes are explicit POST actions.
+- Stripe subscription sync enters through `/api/stripe/webhook`.
+
+## Frontend Relationship
+
+The React app in `ui/` is a first-party client for the backend.
+
+- Vite dev server runs on `http://localhost:5174`.
+- Default local proxy target is `http://localhost:8088` for Docker Compose.
+- The admin page at `/app/admin` consumes:
+  - `/api/admin/users`
+  - `/api/admin/jobs/weather-processing`
+  - `/api/admin/jobs/alert-delivery-retries`
+  - `/api/admin/jobs/data-retention`
+
+In production, the UI Cloud Run service reverse-proxies `/api`, `/actuator`, `/swagger-ui`, and `/v3` to the backend service to keep the browser same-origin.
+
+## Security Model
+
+Current security design:
+
+- JWT bearer auth for most `/api/**` routes
+- public bootstrap routes for registration, recovery, magic-link, and Stripe webhook
+- role-based authorization using `ROLE_USER` and `ROLE_ADMIN`
+- optional machine auth for admin jobs through `X-Admin-Job-Token`
+- BCrypt for in-memory configured credentials
+- request rate limiting via `ApiRateLimitingFilter`
+
+## Observability and Operations
+
+Built-in operational features:
+
+- Actuator health, info, metrics, and loggers endpoints
+- Micrometer tracing with Brave/Zipkin support
+- rolling file logs
+- admin job endpoints for weather processing, delivery retries, and retention cleanup
+- frontend admin console links to Cloud Run logs, metrics, Cloud Build, Monitoring, and Error Reporting
 
 ## Testing Strategy
 
-### Unit Tests
-- **Domain Tests**: Test business logic in isolation
-  - `AlertCriteriaTest`: Tests matching logic
-- **Use Case Tests**: Test application logic with mocks
-  - `ManageAlertCriteriaUseCaseTest`: Tests CQRS commands
-- **Scheduler/Orchestration Tests**:
-  - `AlertProcessingServiceTest`: batching cache reuse and outage-state guardrails
+Current test stack:
 
-### Test Coverage
-- Domain models: 100% coverage
-- Use cases: 100% coverage
-- Adapters: Can be tested with integration tests
+- JUnit 5 with `spring-boot-starter-test`
+- Spring Security test support
+- H2 for selected test slices
+- MockWebServer for provider integration tests
+- RestAssured and OpenAPI contract validation for API coverage
 
-## Benefits of This Architecture
+Priority test areas:
 
-1. **Testability**: Business logic can be tested without infrastructure
-2. **Maintainability**: Clear separation of concerns
-3. **Flexibility**: Easy to change implementations
-4. **Independence**: Domain doesn't depend on frameworks
-5. **Scalability**: Each layer can be scaled independently
-6. **Evolution**: Easy to add new features without breaking existing code
+- use-case behavior
+- controller auth rules
+- NOAA/NWPS edge cases
+- delivery retry and failure classification
+- account recovery and verification flows
 
-## Technology Stack Summary
+## Architecture Constraints
 
-| Layer | Technologies |
-|-------|-------------|
-| Domain | Pure Java POJOs |
-| Application | Java, Lombok |
-| Infrastructure | Spring Boot, Spring Data JPA, Spring Kafka, Spring Data Elasticsearch |
-| Database | PostgreSQL |
-| Messaging | Apache Kafka |
-| Search | Elasticsearch |
-| External API | NOAA Weather API (WebClient) |
-| Build | Maven |
-| Testing | JUnit 5, Mockito, H2 (in-memory) |
-
-## Security Considerations
-
-1. **API Authentication**: Add Spring Security for API endpoints
-2. **Database Security**: Use encrypted connections
-3. **Kafka Security**: Configure SASL/SSL
-4. **Input Validation**: Use `@Valid` annotations
-5. **Rate Limiting**: Prevent API abuse
-6. **HTTPS**: Enforce secure connections
-
-## Future Enhancements
-
-1. **Event Sourcing**: Store all domain events
-2. **Distributed Tracing**: Add Sleuth/Zipkin
-3. **Circuit Breaker**: Add Resilience4j for fault tolerance
-4. **Caching**: Add Redis for frequently accessed data
-5. **Multi-tenancy**: Support multiple organizations
-6. **GraphQL**: Add GraphQL API alongside REST
-7. **Real-time Updates**: Add WebSocket support
-8. **Machine Learning**: Predict severe weather patterns
+- Keep domain logic out of controllers and adapters.
+- Add new integrations behind ports first, then adapters.
+- Prefer persistence-backed workflows over instance-local ephemeral state.
+- Treat the OpenAPI surface and DTOs as the stable contract for the UI.

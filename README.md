@@ -53,8 +53,9 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 - ✅ **Account Recovery Flow**: Forgot username and forgot password with one-time recovery codes via email
 - ✅ **Account Security Controls**: Auth throttling, login lockouts, recovery request throttling, and recovery confirm lockouts
 - ✅ **Account Admin Controls**: Suspend/reactivate and force-password-reset by admin
+- ✅ **Admin Operations Console**: Admin-only `/app/admin` control panel for account actions, manual job runs, and Cloud Run/GCP links
 - ✅ **Self-Service Password Change**: Authenticated users can rotate their password from `/api/users/me/change-password`
-- ✅ **Stripe Billing Foundations**: Authenticated billing status, Checkout session creation, and webhook-based subscription sync
+- ✅ **Stripe Billing Foundations**: Billing status, Checkout, Customer Portal, plan changes, and webhook-based subscription sync
 - ✅ **Simple Activity Refresh**: Triggered alerts are available through authenticated API reads
 - ✅ **Swagger UI**: Interactive API documentation for exploring and testing endpoints
 - ✅ **API Integration + Contract Tests**: RestAssured suite with OpenAPI response/request validation
@@ -78,12 +79,14 @@ This application follows **Hexagonal (Ports and Adapters) Clean Architecture** p
 
 A dedicated React dashboard is available in [`ui/`](./ui) for everyday operations:
 
-- Login and registration with email verification flow
+- Login, magic-link sign-in, and registration with email verification flow
 - Alert criteria creation and deletion
 - Map-assisted location selection (search + click-to-pin) for alert criteria
 - Triggered alert timeline with acknowledge actions
 - Account profile updates
-- Admin pending-user approval panel
+- Admin-only control panel at `/app/admin`
+- Manual operational job triggers for weather processing, delivery retries, and retention cleanup
+- Cloud Run / Cloud Build / Monitoring quick links for production support
 
 Run it locally:
 
@@ -93,8 +96,14 @@ npm install
 npm run dev
 ```
 
-The UI runs on `http://localhost:5174` and proxies API requests to `http://localhost:8092` by default.
+The UI runs on `http://localhost:5174` and proxies API requests to `http://localhost:8088` by default.
 Override backend target if needed:
+
+```bash
+VITE_API_TARGET=http://localhost:8088 npm run dev
+```
+
+Use `8088` when the backend is running via Docker Compose, or point directly at the Spring Boot port when running the backend outside Docker:
 
 ```bash
 VITE_API_TARGET=http://localhost:8080 npm run dev
@@ -157,6 +166,23 @@ Notification delivery tracking (email-first with SMS-ready channel preferences) 
 - ⏳ Pending in TODO: Chunk 9 (expanded observability dashboards) and Chunk 10 (end-to-end matrix + manual playbook)
 
 ## Changelog
+
+### 2026-03-12 (Admin Control Panel)
+
+- Expanded the React admin surface from account-only actions into a full `/app/admin` operations console.
+- Added admin summary cards for account counts, suspended users, forced resets, and live monitoring context.
+- Added manual admin job actions for:
+  - `POST /api/admin/jobs/weather-processing`
+  - `POST /api/admin/jobs/alert-delivery-retries`
+  - `POST /api/admin/jobs/data-retention`
+- Added in-app visibility for recent admin job results, including status, duration, and metrics.
+- Added direct links to GCP operations surfaces for the deployed project:
+  - backend and UI logs
+  - backend and UI metrics
+  - Cloud Build history
+  - Monitoring overview
+  - Error Reporting
+- Added admin navigation entry points in both the shell navigation and user menu.
 
 ### 2026-03-04 (Map-Assisted Alert UX)
 
