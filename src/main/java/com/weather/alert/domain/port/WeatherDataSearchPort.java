@@ -14,12 +14,12 @@ public interface WeatherDataSearchPort {
     void indexWeatherData(WeatherData weatherData);
 
     PagedResult<WeatherData> getActiveWeatherData(int page, int size);
-    
-    List<WeatherData> searchByLocation(String location);
-    
-    List<WeatherData> searchByEventType(String eventType);
-    
-    List<WeatherData> searchBySeverity(String severity);
+
+    List<WeatherData> searchByLocation(String location, int limit);
+
+    List<WeatherData> searchByEventType(String eventType, int limit);
+
+    List<WeatherData> searchBySeverity(String severity, int limit);
 
     long deleteWeatherDataOlderThan(Instant cutoff);
 }

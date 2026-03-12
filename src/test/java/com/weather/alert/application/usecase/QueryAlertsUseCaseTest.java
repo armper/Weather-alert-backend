@@ -6,6 +6,7 @@ import com.weather.alert.application.exception.CriteriaNotFoundException;
 import com.weather.alert.application.exception.InvalidAlertTransitionException;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
+import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -150,5 +151,44 @@ class QueryAlertsUseCaseTest {
 
         assertEquals(1, result.size());
         assertEquals("criteria-2", result.get(0).getId());
+    }
+
+    @Test
+    void shouldReturnPagedAlertsByUserId() {
+        PagedResult<Alert> pagedResult = PagedResult.<Alert>builder()
+                .items(List.of(Alert.builder().id("alert-1").userId("user-1").build()))
+                .page(0)
+                .size(50)
+                .totalElements(1)
+                .totalPages(1)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
+        when(alertRepository.findByUserIdPaged("user-1", 0, 50)).thenReturn(pagedResult);
+
+        PagedResult<Alert> result = useCase.getAlertsByUserIdPaged("user-1", 0, 50);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("alert-1", result.getItems().get(0).getId());
+        assertEquals(0, result.getPage());
+    }
+
+    @Test
+    void shouldReturnPagedAlertHistoryByCriteriaId() {
+        PagedResult<Alert> pagedResult = PagedResult.<Alert>builder()
+                .items(List.of(Alert.builder().id("alert-2").criteriaId("criteria-1").build()))
+                .page(0)
+                .size(50)
+                .totalElements(1)
+                .totalPages(1)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
+        when(alertRepository.findHistoryByCriteriaIdPaged("criteria-1", 0, 50)).thenReturn(pagedResult);
+
+        PagedResult<Alert> result = useCase.getAlertHistoryByCriteriaIdPaged("criteria-1", 0, 50);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("alert-2", result.getItems().get(0).getId());
     }
 }

@@ -1,8 +1,11 @@
 package com.weather.alert.infrastructure.adapter.persistence;
 
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -36,10 +39,24 @@ public class AlertRepositoryAdapter implements AlertRepositoryPort {
     }
 
     @Override
+    public PagedResult<Alert> findByUserIdPaged(String userId, int page, int size) {
+        Page<AlertEntity> results = jpaRepository.findByUserIdOrderByAlertTimeDesc(
+                userId, PageRequest.of(page, size));
+        return toPagedResult(results);
+    }
+
+    @Override
     public List<Alert> findHistoryByCriteriaId(String criteriaId) {
         return jpaRepository.findByCriteriaIdOrderByAlertTimeDesc(criteriaId).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PagedResult<Alert> findHistoryByCriteriaIdPaged(String criteriaId, int page, int size) {
+        Page<AlertEntity> results = jpaRepository.findByCriteriaIdOrderByAlertTimeDesc(
+                criteriaId, PageRequest.of(page, size));
+        return toPagedResult(results);
     }
 
     @Override
@@ -189,5 +206,17 @@ public class AlertRepositoryAdapter implements AlertRepositoryPort {
             return Alert.AlertStatus.PENDING;
         }
         return Alert.AlertStatus.valueOf(status);
+    }
+
+    private PagedResult<Alert> toPagedResult(Page<AlertEntity> page) {
+        return PagedResult.<Alert>builder()
+                .items(page.getContent().stream().map(this::toDomain).toList())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .hasNext(page.hasNext())
+                .hasPrevious(page.hasPrevious())
+                .build();
     }
 }

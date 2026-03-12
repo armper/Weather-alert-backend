@@ -1,6 +1,7 @@
 package com.weather.alert.domain.port;
 
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.model.PagedResult;
 
 import java.time.Instant;
 import java.util.List;
@@ -17,7 +18,11 @@ public interface AlertRepositoryPort {
     
     List<Alert> findByUserId(String userId);
 
+    PagedResult<Alert> findByUserIdPaged(String userId, int page, int size);
+
     List<Alert> findHistoryByCriteriaId(String criteriaId);
+
+    PagedResult<Alert> findHistoryByCriteriaIdPaged(String criteriaId, int page, int size);
 
     Optional<Alert> findByCriteriaIdAndEventKey(String criteriaId, String eventKey);
     

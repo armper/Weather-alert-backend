@@ -142,8 +142,10 @@ public class WeatherDataController {
     @GetMapping("/search/location/{location}")
     @Operation(summary = "Search indexed weather alerts by location text")
     public ResponseEntity<List<WeatherDataResponse>> searchByLocation(
-            @Parameter(example = "Seattle") @PathVariable String location) {
-        List<WeatherData> weatherData = weatherDataSearchPort.searchByLocation(location);
+            @Parameter(example = "Seattle") @PathVariable String location,
+            @Parameter(description = "Maximum number of results (max 200)", example = "50")
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
+        List<WeatherData> weatherData = weatherDataSearchPort.searchByLocation(location, limit);
         List<WeatherDataResponse> response = weatherData.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -153,8 +155,10 @@ public class WeatherDataController {
     @GetMapping("/search/event/{eventType}")
     @Operation(summary = "Search indexed weather alerts by event type")
     public ResponseEntity<List<WeatherDataResponse>> searchByEventType(
-            @Parameter(example = "Flood Warning") @PathVariable String eventType) {
-        List<WeatherData> weatherData = weatherDataSearchPort.searchByEventType(eventType);
+            @Parameter(example = "Flood Warning") @PathVariable String eventType,
+            @Parameter(description = "Maximum number of results (max 200)", example = "50")
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
+        List<WeatherData> weatherData = weatherDataSearchPort.searchByEventType(eventType, limit);
         List<WeatherDataResponse> response = weatherData.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
