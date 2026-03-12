@@ -91,6 +91,7 @@ export function AccountPage() {
   const [prefsSaved, setPrefsSaved] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [pendingPlanChange, setPendingPlanChange] = useState<BillingPlan | null>(null)
   const [preferenceDraft, setPreferenceDraft] = useState<{
     enabledChannels: Array<'EMAIL' | 'SMS' | 'PUSH'>
     preferredChannel: 'EMAIL' | 'SMS' | 'PUSH'
@@ -132,6 +133,23 @@ export function AccountPage() {
       : 'Plan pending'
   const deletePhrase = me?.id ?? ''
   const canConfirmDelete = deletePhrase.length > 0 && deleteConfirmation.trim() === deletePhrase
+  const pendingPlanDetails = pendingPlanChange == null
+    ? null
+    : PLAN_DETAILS.find((plan) => plan.id === pendingPlanChange) ?? null
+  const pendingPlanLimit = pendingPlanChange == null
+    ? maxActiveAlerts
+    : pendingPlanChange === 'FREE'
+      ? 1
+      : pendingPlanChange === 'PLUS'
+        ? 10
+        : 50
+  const excessRulesOnDowngrade = Math.max(enabledCriteriaCount - pendingPlanLimit, 0)
+  const isDowngradePlanChange = pendingPlanChange != null
+    && ((currentPlan === 'PRO' && (pendingPlanChange === 'PLUS' || pendingPlanChange === 'FREE'))
+      || (currentPlan === 'PLUS' && pendingPlanChange === 'FREE'))
+  const isUpgradePlanChange = pendingPlanChange != null
+    && ((currentPlan === 'FREE' && pendingPlanChange !== 'FREE')
+      || (currentPlan === 'PLUS' && pendingPlanChange === 'PRO'))
 
   useEffect(() => {
     if (billingFlow === 'success' && me) {
@@ -164,6 +182,20 @@ export function AccountPage() {
       setShowDeleteDialog(false)
       setDeleteConfirmation('')
       navigate('/auth?accountDeleted=1', { replace: true })
+    }
+  }
+
+  async function onConfirmPlanChange() {
+    if (pendingPlanChange == null) {
+      return
+    }
+
+    const success = billingStatus?.activeSubscription && currentPlan !== 'FREE'
+      ? await handleChangePlan(pendingPlanChange)
+      : await handleStartCheckout(pendingPlanChange)
+
+    if (success) {
+      setPendingPlanChange(null)
     }
   }
 
@@ -221,6 +253,52 @@ export function AccountPage() {
     return null
   }
 
+  function openPlanChangeDialog(planId: BillingPlan) {
+    setPendingPlanChange(planId)
+  }
+
+  function billingDialogTitle() {
+    if (pendingPlanDetails == null) {
+      return ''
+    }
+    if (isUpgradePlanChange) {
+      return `Move to ${pendingPlanDetails.name}?`
+    }
+    if (isDowngradePlanChange) {
+      return `Change to ${pendingPlanDetails.name}?`
+    }
+    return `Switch plans to ${pendingPlanDetails.name}?`
+  }
+
+  function billingDialogCopy() {
+    if (pendingPlanDetails == null) {
+      return ''
+    }
+    if (isUpgradePlanChange) {
+      if (billingStatus?.activeSubscription && currentPlan !== 'FREE') {
+        return `You’ll unlock ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} right away. Your current watches stay in place and SkyPanda will update billing immediately.`
+      }
+      return `You’ll unlock ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} and ad-free alerts as soon as Stripe checkout finishes.`
+    }
+    if (isDowngradePlanChange) {
+      return `This change happens immediately. SkyPanda will keep you within the new ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} limit and disable any extra active rules instead of deleting them.`
+    }
+    return `SkyPanda will switch your subscription to ${pendingPlanDetails.name} and keep your monitoring rules in sync with the new plan.`
+  }
+
+  function billingDialogActionLabel() {
+    if (pendingPlanDetails == null) {
+      return 'Continue'
+    }
+    if (isUpgradePlanChange) {
+      return `Yes, move to ${pendingPlanDetails.name}`
+    }
+    if (isDowngradePlanChange) {
+      return `Yes, change to ${pendingPlanDetails.name}`
+    }
+    return `Switch to ${pendingPlanDetails.name}`
+  }
+
   const THEME_OPTIONS: Array<{ id: ThemePreference; label: string; detail: string }> = [
     { id: 'system', label: 'System', detail: 'Follow your device preference automatically.' },
     { id: 'light', label: 'Light', detail: 'Use the bright daytime palette.' },
@@ -268,7 +346,6 @@ export function AccountPage() {
             <div className="billing-plan-grid">
               {PLAN_DETAILS.map((plan) => {
                 const isCurrentPlan = plan.id === currentPlan
-                const usesDirectChange = Boolean(billingStatus?.activeSubscription && currentPlan !== 'FREE' && !isCurrentPlan)
                 const disableAction = isCurrentPlan
                   ? openingBillingPortal
                   : checkoutPlan !== null || changingPlan !== null || openingBillingPortal
@@ -307,11 +384,7 @@ export function AccountPage() {
                         className={plan.id === 'PRO' ? 'primary button-inline' : 'ghost button-inline'}
                         isDisabled={disableAction}
                         onPress={() =>
-                          void (isCurrentPlan
-                            ? handleOpenBillingPortal()
-                            : usesDirectChange
-                              ? handleChangePlan(plan.id)
-                              : handleStartCheckout(plan.id))
+                          void (isCurrentPlan ? handleOpenBillingPortal() : openPlanChangeDialog(plan.id))
                         }
                       >
                         {planActionLabel(plan.id)}
@@ -532,6 +605,75 @@ export function AccountPage() {
           </section>
         </div>
       </article>
+
+      {pendingPlanDetails ? (
+        <div className="account-delete-dialog-backdrop" role="presentation" onClick={() => setPendingPlanChange(null)}>
+          <div
+            className={`account-delete-dialog billing-change-dialog${isDowngradePlanChange ? ' is-caution' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="billing-change-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="account-delete-dialog-header">
+              <div>
+                <p className="eyebrow">{isUpgradePlanChange ? 'Upgrade plan' : isDowngradePlanChange ? 'Downgrade plan' : 'Change plan'}</p>
+                <h3 id="billing-change-title">{billingDialogTitle()}</h3>
+              </div>
+              <AriaButton className="ghost button-inline" onPress={() => setPendingPlanChange(null)}>
+                Cancel
+              </AriaButton>
+            </div>
+
+            <div className="account-delete-dialog-body">
+              <p>{billingDialogCopy()}</p>
+
+              <div className="billing-change-summary">
+                <span className="badge">{pendingPlanDetails.name}</span>
+                <strong>{pendingPlanDetails.activeAlertsLabel}</strong>
+                <span className="small muted">{pendingPlanDetails.emailMode}</span>
+              </div>
+
+              {isDowngradePlanChange ? (
+                <div className="billing-change-warning">
+                  <p>
+                    You currently have {enabledCriteriaCount} active rules. The new plan allows {pendingPlanLimit}.
+                    {excessRulesOnDowngrade > 0
+                      ? ` ${excessRulesOnDowngrade} extra active ${excessRulesOnDowngrade === 1 ? 'rule will' : 'rules will'} be disabled automatically.`
+                      : ' No active rules need to be disabled.'}
+                  </p>
+                  <p className="small muted">
+                    Disabled rules stay saved in your account so you can re-enable them later if you upgrade again.
+                  </p>
+                </div>
+              ) : null}
+
+              {isUpgradePlanChange ? (
+                <p className="small muted">
+                  {billingStatus?.activeSubscription && currentPlan !== 'FREE'
+                    ? 'This keeps monitoring running without interruption.'
+                    : 'You’ll be redirected to Stripe to confirm billing details securely.'}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="account-delete-dialog-actions">
+              <AriaButton className="ghost button-inline" onPress={() => setPendingPlanChange(null)}>
+                Keep current plan
+              </AriaButton>
+              <AriaButton
+                className={isDowngradePlanChange ? 'ghost button-inline' : 'primary button-inline'}
+                isDisabled={changingPlan === pendingPlanChange || checkoutPlan === pendingPlanChange}
+                onPress={() => void onConfirmPlanChange()}
+              >
+                {changingPlan === pendingPlanChange || checkoutPlan === pendingPlanChange
+                  ? 'Working...'
+                  : billingDialogActionLabel()}
+              </AriaButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showDeleteDialog ? (
         <div className="account-delete-dialog-backdrop" role="presentation" onClick={() => setShowDeleteDialog(false)}>
