@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -53,6 +54,7 @@ public class AlertCriteriaResponse {
     private Boolean oncePerEvent;
     private Integer rearmWindowMinutes;
     private Boolean enabled;
+    private Instant createdAt;
 
     public static AlertCriteriaResponse fromDomain(AlertCriteria criteria) {
         if (criteria == null) {
@@ -94,6 +96,7 @@ public class AlertCriteriaResponse {
                 .oncePerEvent(criteria.getOncePerEvent())
                 .rearmWindowMinutes(criteria.getRearmWindowMinutes())
                 .enabled(criteria.getEnabled())
+                .createdAt(criteria.getCreatedAt())
                 .build();
     }
 

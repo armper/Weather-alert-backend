@@ -120,6 +120,89 @@
   gap: 0.5rem;
 }
 
+.monitoring-banner {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-dark-rgb), 0.12), rgba(var(--accent-bright-rgb), 0.18)),
+    var(--card-bg-elevated);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.monitoring-banner.is-alerting {
+  border-color: rgba(var(--accent-rgb), 0.32);
+  box-shadow: 0 16px 28px rgba(var(--accent-dark-rgb), 0.12);
+}
+
+.monitoring-banner-header,
+.monitoring-banner-stats,
+.monitoring-watch-context,
+.console-section-header,
+.active-alert-card-header,
+.active-alert-status-stack,
+.alert-timeline-main,
+.alert-timeline-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.monitoring-banner-header h3,
+.console-section-header h3,
+.active-alert-card h3 {
+  margin: 0.14rem 0 0;
+  font-family: var(--font-heading);
+}
+
+.monitoring-banner-stats {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.monitoring-freshness,
+.monitoring-banner-state span,
+.overview-monitoring-strip span {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.monitoring-banner-copy,
+.monitoring-banner-state {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.monitoring-banner-state strong {
+  font-size: 1rem;
+}
+
+.monitoring-watch-context {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.monitoring-watch-label {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.monitoring-watch-chips,
+.overview-watch-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.monitoring-watch-chip {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
 .alert-list {
   display: grid;
   gap: 0.5rem;
@@ -129,6 +212,45 @@
 
 .events-list-wrap {
   width: 100%;
+}
+
+.console-section {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.active-alert-grid,
+.timeline-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.console-collapsible {
+  margin-top: 1rem;
+  border-top: 1px solid var(--surface-border);
+  padding-top: 1rem;
+}
+
+.console-collapsible-summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.console-collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.console-collapsible[open] .console-collapsible-summary {
+  margin-bottom: 0.8rem;
+}
+
+.history-collapsible .timeline-list {
+  gap: 0.5rem;
 }
 
 .empty-state-panel {
@@ -156,6 +278,91 @@
   border-top: 1px solid var(--surface-border);
   color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.empty-state-clear {
+  background: rgba(var(--accent-rgb), 0.05);
+}
+
+.active-alert-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.24);
+  background: var(--card-bg-elevated);
+  box-shadow: var(--card-shadow-soft);
+}
+
+.active-alert-card.is-acknowledged {
+  opacity: 0.78;
+  border-style: dashed;
+}
+
+.active-alert-kicker,
+.active-alert-summary,
+.alert-timeline-title {
+  margin: 0;
+}
+
+.active-alert-kicker {
+  color: var(--accent-700);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.active-alert-summary {
+  color: var(--text-primary);
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.active-alert-meta,
+.overview-monitoring-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+}
+
+.active-alert-meta span,
+.alert-timeline-meta span {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.active-alert-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.alert-timeline-item {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg);
+}
+
+.alert-timeline-title {
+  font-weight: 700;
+}
+
+.alert-timeline-main {
+  align-items: center;
+}
+
+.alert-timeline-meta {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.alert-timeline-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .alert-row {
@@ -306,6 +513,10 @@
 
 .overview-status-badge {
   white-space: nowrap;
+}
+
+.overview-monitoring-strip {
+  margin-top: 0.1rem;
 }
 
 .weather-meta {

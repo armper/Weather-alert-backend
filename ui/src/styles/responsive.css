@@ -190,4 +190,19 @@
     width: 100%;
     justify-content: space-between;
   }
+
+  .monitoring-banner-header,
+  .monitoring-banner-stats,
+  .monitoring-watch-context,
+  .console-section-header,
+  .active-alert-card-header,
+  .active-alert-status-stack,
+  .alert-timeline-main {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .active-alert-actions {
+    justify-content: stretch;
+  }
 }
