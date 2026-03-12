@@ -190,5 +190,10 @@ class QueryAlertsUseCaseTest {
 
         assertEquals(1, result.getTotalElements());
         assertEquals("alert-2", result.getItems().get(0).getId());
+        assertEquals(0, result.getPage());
+        assertEquals(50, result.getSize());
+        assertEquals(1, result.getTotalPages());
+        assertEquals(false, result.isHasNext());
+        assertEquals(false, result.isHasPrevious());
     }
 }
