@@ -3,7 +3,7 @@ substitutions:
   _SERVICE_NAME: weather-alert-ui
   _AR_REPOSITORY: weather-alert-backend
   _IMAGE_NAME: weather-alert-ui
-  _BACKEND_ORIGIN: https://weather-alert-backend-4u3dah5b4q-ue.a.run.app
+  _BACKEND_ORIGIN: https://api.skypandaweather.com
 
 options:
   logging: CLOUD_LOGGING_ONLY
