@@ -4,28 +4,21 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiTarget = env.VITE_API_TARGET || 'http://localhost:8088'
+  const sharedProxy = {
+    target: apiTarget,
+    changeOrigin: true,
+    secure: false,
+  }
 
   return {
     plugins: [react()],
     server: {
       port: 5174,
       proxy: {
-        '/api': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
-        '/actuator': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
-        '/swagger-ui': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
-        '/v3': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
+        '/api': sharedProxy,
+        '/actuator': sharedProxy,
+        '/swagger-ui': sharedProxy,
+        '/v3': sharedProxy,
       },
     },
   }

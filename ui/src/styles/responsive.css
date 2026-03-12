@@ -21,7 +21,8 @@
   .rule-preview-header,
   .location-picker-toolbar,
   .manage-alerts-toolbar,
-  .criteria-section-header {
+  .criteria-section-header,
+  .overview-watch-header {
     flex-direction: column;
     align-items: stretch;
   }
@@ -154,6 +155,20 @@
   .advanced-delivery-grid,
   .advanced-coordinate-grid {
     grid-template-columns: 1fr;
+  }
+
+  .weather-map-preview {
+    height: 144px;
+  }
+
+  .overview-activity-item,
+  .overview-timeline-item {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-activity-time,
+  .overview-timeline-time {
+    justify-self: start;
   }
 
   .river-rule-header {
