@@ -38,6 +38,7 @@ public class ManageUserAccountUseCase {
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ManageChannelVerificationUseCase manageChannelVerificationUseCase;
+    private final DeleteMyAccountUseCase deleteMyAccountUseCase;
 
     @Value("${app.security.user.username:}")
     private String bootstrapUserUsername;
@@ -203,6 +204,14 @@ public class ManageUserAccountUseCase {
         User saved = userRepository.save(user);
         log.info("ACCOUNT_FORCE_PASSWORD_RESET userId={}", userId);
         return UserAccountResponse.fromDomain(saved);
+    }
+
+    @Transactional
+    public void deleteMyAccount(String userId) {
+        if (isReservedUsername(userId)) {
+            throw new InvalidUserAccountStateException("Reserved bootstrap accounts cannot be deleted");
+        }
+        deleteMyAccountUseCase.delete(userId);
     }
 
     private boolean isReservedUsername(String username) {

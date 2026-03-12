@@ -8,9 +8,15 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collection;
 
 @Repository
 public interface JpaAlertCriteriaStateRepository extends JpaRepository<AlertCriteriaStateEntity, String> {
+
+    @Transactional
+    @Modifying
+    @Query("delete from AlertCriteriaStateEntity s where s.criteriaId in :criteriaIds")
+    int deleteByCriteriaIds(@Param("criteriaIds") Collection<String> criteriaIds);
 
     @Transactional
     @Modifying

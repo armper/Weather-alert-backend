@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 
@@ -28,7 +28,9 @@ const PLAN_GLANCE = [
 
 export function AuthLandingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
+  const accountDeleted = new URLSearchParams(location.search).get('accountDeleted') === '1'
 
   function handleGetStarted(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -82,6 +84,12 @@ export function AuthLandingPage() {
             <h1>Create your first alert</h1>
             <p className="muted">Open a free account, set your first alert, and decide later if you need more coverage.</p>
           </div>
+
+          {accountDeleted ? (
+            <div className="notice notice-success">
+              Your account and saved personal data were deleted. You can create a new account at any time.
+            </div>
+          ) : null}
 
           <div className="auth-home-cta-stack">
             <form className="auth-home-signup-form" onSubmit={handleGetStarted}>

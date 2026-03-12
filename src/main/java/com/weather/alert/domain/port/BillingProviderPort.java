@@ -10,5 +10,7 @@ public interface BillingProviderPort {
 
     BillingCheckoutSession createCustomerPortalSession(String stripeCustomerId);
 
+    void cancelCustomerBilling(String stripeCustomerId, String stripeSubscriptionId);
+
     BillingWebhookEvent parseWebhookEvent(String payload, String signatureHeader);
 }

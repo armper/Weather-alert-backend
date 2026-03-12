@@ -6,6 +6,7 @@ import com.weather.alert.application.dto.RegisterUserRequest;
 import com.weather.alert.application.dto.ResendRegistrationVerificationRequest;
 import com.weather.alert.application.dto.VerifyRegistrationEmailRequest;
 import com.weather.alert.application.exception.InvalidCurrentPasswordException;
+import com.weather.alert.application.exception.InvalidUserAccountStateException;
 import com.weather.alert.domain.model.ChannelVerificationStatus;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.User;
@@ -43,6 +44,9 @@ class ManageUserAccountUseCaseTest {
     @Mock
     private ManageChannelVerificationUseCase manageChannelVerificationUseCase;
 
+    @Mock
+    private DeleteMyAccountUseCase deleteMyAccountUseCase;
+
     private ManageUserAccountUseCase useCase;
 
     @BeforeEach
@@ -50,7 +54,8 @@ class ManageUserAccountUseCaseTest {
         useCase = new ManageUserAccountUseCase(
                 userRepository,
                 passwordEncoder,
-                manageChannelVerificationUseCase);
+                manageChannelVerificationUseCase,
+                deleteMyAccountUseCase);
     }
 
     @Test
@@ -170,5 +175,25 @@ class ManageUserAccountUseCaseTest {
         when(passwordEncoder.matches("WrongPass123!", "old-hash")).thenReturn(false);
 
         assertThrows(InvalidCurrentPasswordException.class, () -> useCase.changeMyPassword("alice", request));
+    }
+
+    @Test
+    void shouldDelegateAccountDeletionForNormalUsers() {
+        useCase.deleteMyAccount("alice");
+
+        verify(deleteMyAccountUseCase).delete("alice");
+    }
+
+    @Test
+    void shouldRejectDeletionForReservedBootstrapUser() {
+        useCase = new ManageUserAccountUseCase(
+                userRepository,
+                passwordEncoder,
+                manageChannelVerificationUseCase,
+                deleteMyAccountUseCase);
+
+        org.springframework.test.util.ReflectionTestUtils.setField(useCase, "bootstrapUserUsername", "test-user");
+
+        assertThrows(InvalidUserAccountStateException.class, () -> useCase.deleteMyAccount("test-user"));
     }
 }

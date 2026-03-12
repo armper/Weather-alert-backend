@@ -72,6 +72,7 @@ export function useWeatherAppState() {
   const [loadingBilling, setLoadingBilling] = useState(false)
   const [checkoutPlan, setCheckoutPlan] = useState<BillingPlan | null>(null)
   const [openingBillingPortal, setOpeningBillingPortal] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const [busyAlertId, setBusyAlertId] = useState<string | null>(null)
   const [busyCriteriaId, setBusyCriteriaId] = useState<string | null>(null)
   const [busyAdminAction, setBusyAdminAction] = useState<string | null>(null)
@@ -723,6 +724,29 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleDeleteAccount(): Promise<boolean> {
+    if (!token) {
+      return false
+    }
+
+    setDeletingAccount(true)
+    setNotice(null)
+
+    try {
+      await apiRequest<void>('/api/users/me', {
+        method: 'DELETE',
+        token,
+      })
+      logout()
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setDeletingAccount(false)
+    }
+  }
+
   async function handleAdminAction(userId: string, action: 'suspend' | 'reactivate' | 'force-password-reset') {
     if (!token) {
       return
@@ -807,6 +831,7 @@ export function useWeatherAppState() {
     loadingBilling,
     checkoutPlan,
     openingBillingPortal,
+    deletingAccount,
     busyAlertId,
     busyCriteriaId,
     busyAdminAction,
@@ -829,6 +854,7 @@ export function useWeatherAppState() {
     handleSaveNotificationPreference,
     handleStartCheckout,
     handleOpenBillingPortal,
+    handleDeleteAccount,
     handleAdminAction,
 
     refresh,

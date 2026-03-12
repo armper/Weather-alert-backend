@@ -20,6 +20,11 @@ public interface JpaAlertRepository extends JpaRepository<AlertEntity, String> {
 
     @Transactional
     @Modifying
+    @Query("delete from AlertEntity a where a.userId = :userId")
+    int deleteByUserId(@Param("userId") String userId);
+
+    @Transactional
+    @Modifying
     @Query("delete from AlertEntity a where a.alertTime is not null and a.alertTime < :cutoff")
     int deleteByAlertTimeBefore(@Param("cutoff") Instant cutoff);
 }

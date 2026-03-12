@@ -4,6 +4,7 @@ import com.stripe.Stripe;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Customer;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.StripeObject;
@@ -85,6 +86,36 @@ public class StripeBillingAdapter implements BillingProviderPort {
                     .build();
         } catch (StripeException ex) {
             throw new StripeBillingException("Unable to create Stripe Customer Portal session", ex);
+        }
+    }
+
+    @Override
+    public void cancelCustomerBilling(String stripeCustomerId, String stripeSubscriptionId) {
+        if (!properties.isEnabled() || isBlank(properties.getSecretKey())) {
+            return;
+        }
+
+        try {
+            Stripe.apiKey = properties.getSecretKey();
+
+            if (!isBlank(stripeSubscriptionId)) {
+                Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+                if (subscription != null && subscription.getStatus() != null) {
+                    String status = subscription.getStatus();
+                    if (!"canceled".equalsIgnoreCase(status) && !"incomplete_expired".equalsIgnoreCase(status)) {
+                        subscription.cancel();
+                    }
+                }
+            }
+
+            if (!isBlank(stripeCustomerId)) {
+                Customer customer = Customer.retrieve(stripeCustomerId);
+                if (customer != null && !Boolean.TRUE.equals(customer.getDeleted())) {
+                    customer.delete();
+                }
+            }
+        } catch (StripeException ex) {
+            throw new StripeBillingException("Unable to cancel Stripe billing for account deletion", ex);
         }
     }
 

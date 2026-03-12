@@ -757,6 +757,71 @@ class ApiIntegrationContractTest {
                 .body("accessToken", notNullValue());
     }
 
+    @Test
+    void shouldDeleteOwnAccountAndInvalidateFutureLogin() {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        String username = "delete" + unique;
+        String email = username + "@example.com";
+        String password = "StrongPass123!";
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> registerResponse = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", password,
+                        "email", email,
+                        "name", "Delete User"))
+                .when()
+                .post("/api/auth/register")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract();
+
+        given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "userId", username,
+                        "verificationId", registerResponse.path("emailVerification.id"),
+                        "token", registerResponse.path("emailVerification.verificationToken")))
+                .when()
+                .post("/api/auth/register/verify-email")
+                .then()
+                .statusCode(HttpStatus.OK.value());
+
+        String userToken = given()
+                .contentType(JSON)
+                .filter(openApiValidationFilter)
+                .body(Map.of(
+                        "username", username,
+                        "password", password))
+                .when()
+                .post("/api/auth/token")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract()
+                .path("accessToken");
+
+        given()
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .delete("/api/users/me")
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
+
+        given()
+                .contentType(JSON)
+                .body(Map.of(
+                        "username", username,
+                        "password", password))
+                .when()
+                .post("/api/auth/token")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value());
+    }
+
     private String issueAdminToken() {
         return given()
                 .contentType(JSON)

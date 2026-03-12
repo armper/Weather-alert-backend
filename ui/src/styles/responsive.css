@@ -220,6 +220,13 @@
     width: 100%;
   }
 
+  .account-danger-block,
+  .account-delete-dialog-header,
+  .account-delete-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .alert-row {
     align-items: flex-start;
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { formatStatusLabel } from '../lib/formatting'
 import { AriaButton } from '../components/ui/AriaButton'
@@ -62,6 +62,7 @@ export function AccountPage() {
     loadingBilling,
     checkoutPlan,
     openingBillingPortal,
+    deletingAccount,
     profileForm,
     setProfileForm,
     passwordForm,
@@ -73,10 +74,12 @@ export function AccountPage() {
     handleSaveNotificationPreference,
     handleStartCheckout,
     handleOpenBillingPortal,
+    handleDeleteAccount,
     refresh,
   } = useAppState()
   const { theme, themePreference, setThemePreference } = useThemePreference()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
@@ -84,6 +87,8 @@ export function AccountPage() {
   const [profileSaved, setProfileSaved] = useState(false)
   const [passwordSaved, setPasswordSaved] = useState(false)
   const [prefsSaved, setPrefsSaved] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [preferenceDraft, setPreferenceDraft] = useState<{
     enabledChannels: Array<'EMAIL' | 'SMS' | 'PUSH'>
     preferredChannel: 'EMAIL' | 'SMS' | 'PUSH'
@@ -123,6 +128,8 @@ export function AccountPage() {
     : currentPlan === 'FREE'
       ? 'No paid subscription'
       : 'Plan pending'
+  const deletePhrase = me?.id ?? ''
+  const canConfirmDelete = deletePhrase.length > 0 && deleteConfirmation.trim() === deletePhrase
 
   useEffect(() => {
     if (billingFlow === 'success' && me) {
@@ -146,6 +153,15 @@ export function AccountPage() {
     setPrefsSaved(success)
     if (success) {
       setPreferenceDraft(null)
+    }
+  }
+
+  async function onDeleteAccount() {
+    const success = await handleDeleteAccount()
+    if (success) {
+      setShowDeleteDialog(false)
+      setDeleteConfirmation('')
+      navigate('/auth?accountDeleted=1', { replace: true })
     }
   }
 
@@ -480,8 +496,78 @@ export function AccountPage() {
               {prefsSaved ? <p className="inline-success">Preferences updated.</p> : null}
             </form>
           </section>
+
+          <section className="section-block account-danger-block">
+            <div className="account-danger-copy">
+              <div>
+                <p className="eyebrow">Danger zone</p>
+                <h3>Delete account</h3>
+              </div>
+              <p className="small muted">
+                Permanently delete your account, saved alert rules, alert history, notification preferences, billing
+                references, and profile details including your email address and phone number.
+              </p>
+            </div>
+            <AriaButton className="ghost danger button-inline" onPress={() => setShowDeleteDialog(true)}>
+              Delete account permanently
+            </AriaButton>
+          </section>
         </div>
       </article>
+
+      {showDeleteDialog ? (
+        <div className="account-delete-dialog-backdrop" role="presentation" onClick={() => setShowDeleteDialog(false)}>
+          <div
+            className="account-delete-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-delete-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="account-delete-dialog-header">
+              <div>
+                <p className="eyebrow">Permanent deletion</p>
+                <h3 id="account-delete-title">Delete your account forever?</h3>
+              </div>
+              <AriaButton className="ghost button-inline" onPress={() => setShowDeleteDialog(false)}>
+                Cancel
+              </AriaButton>
+            </div>
+
+            <div className="account-delete-dialog-body">
+              <p>
+                This permanently removes your account, phone number, email address, saved alert rules, notification
+                history, and associated billing/customer data from SkyPanda.
+              </p>
+              <p className="small muted">
+                If you have an active paid plan, SkyPanda will cancel it before deleting the account. Type{' '}
+                <strong>{deletePhrase}</strong> to confirm.
+              </p>
+
+              <AriaTextField
+                label="Type your username to confirm"
+                inputClassName="aria-input"
+                value={deleteConfirmation}
+                onChange={setDeleteConfirmation}
+                placeholder={deletePhrase}
+              />
+            </div>
+
+            <div className="account-delete-dialog-actions">
+              <AriaButton className="ghost button-inline" onPress={() => setShowDeleteDialog(false)}>
+                Keep my account
+              </AriaButton>
+              <AriaButton
+                className="ghost danger button-inline"
+                isDisabled={!canConfirmDelete || deletingAccount}
+                onPress={() => void onDeleteAccount()}
+              >
+                {deletingAccount ? 'Deleting account...' : 'Delete forever'}
+              </AriaButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
