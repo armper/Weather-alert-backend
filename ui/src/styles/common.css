@@ -1206,6 +1206,12 @@ button:disabled {
   border-color: rgba(148, 163, 184, 0.32);
 }
 
+.badge.is-live {
+  color: #0f172a;
+  background: rgba(var(--accent-bright-rgb), 0.85);
+  border-color: rgba(var(--accent-rgb), 0.34);
+}
+
 .create-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

@@ -109,6 +109,7 @@ export interface AlertCriteria {
   oncePerEvent?: boolean
   rearmWindowMinutes?: number
   enabled?: boolean
+  createdAt?: string
 }
 
 export interface AlertEvent {

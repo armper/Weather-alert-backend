@@ -7,10 +7,12 @@ import {
   formatTemperature,
   formatWind,
 } from '../lib/formatting'
+import { buildAlertConsoleSummary } from '../lib/alertConsole'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
   const { currentWeather, criteria, alerts } = useAppState()
+  const summary = buildAlertConsoleSummary(criteria, alerts, currentWeather)
   const activeRules = criteria.filter((item) => item.enabled !== false).length
   const defaultAlertLocation = criteria[0]?.location?.trim() ?? ''
   const resolvedConditionLocation = formatFriendlyLocation(currentWeather?.location ?? defaultAlertLocation)
@@ -30,12 +32,17 @@ export function OverviewPage() {
               <h2>Current Conditions</h2>
             </div>
             <span className="badge overview-status-badge">
-              {activeRules > 0 ? `${activeRules} active` : 'No active alerts'}
+              {summary.allClear ? 'All clear' : `${summary.activeCount} active alerts`}
             </span>
           </div>
           {currentWeather ? (
             <div className="weather-stack overview-weather-stack">
               <p className="weather-location">Watching {resolvedConditionLocation}</p>
+              <div className="overview-monitoring-strip">
+                <span>{summary.freshnessLabel}</span>
+                {summary.allClear && summary.calmStreakLabel ? <span>{`Calm streak ${summary.calmStreakLabel}`}</span> : null}
+                {!summary.allClear ? <span>{`${summary.activeCount} active alert${summary.activeCount === 1 ? '' : 's'}`}</span> : null}
+              </div>
               <Link to="/app/rules#location-picker" className="weather-map-link" aria-label="Open location picker map">
                 <StaticLocationMap
                   latitude={defaultLatitude}
@@ -59,6 +66,15 @@ export function OverviewPage() {
                 {`Pinned alert area: ${pinnedAlertLocation}. `}
                 <Link to="/app/rules#location-picker">Adjust area</Link>
               </p>
+              {summary.watchContext.length > 0 ? (
+                <div className="overview-watch-context">
+                  {summary.watchContext.slice(0, 4).map((item) => (
+                    <span key={item} className="metric-pill overview-metric-pill">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : (
             <p className="muted">No current weather snapshot available yet.</p>
@@ -99,8 +115,8 @@ export function OverviewPage() {
               <div className="overview-stats-divider" aria-hidden />
               <Link to="/app/events" className="stat-card-link overview-nav-card">
                 <p className="muted small">Triggered Alerts</p>
-                <p className="weather-temp stat-number">{alerts.length}</p>
-                <p className="muted small stat-caption">recent alerts</p>
+                <p className="weather-temp stat-number">{summary.activeCount}</p>
+                <p className="muted small stat-caption">{summary.allClear ? 'all clear now' : 'active right now'}</p>
               </Link>
             </div>
           )}
