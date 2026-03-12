@@ -91,6 +91,40 @@ export function formatRelativeTime(value?: string): string {
   return rtf.format(days, 'day')
 }
 
+export function formatRelativeTimeCompact(value?: string, now = Date.now()): string {
+  if (!value) {
+    return 'pending'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  const seconds = Math.round((now - date.getTime()) / 1000)
+  const absSeconds = Math.abs(seconds)
+
+  if (absSeconds < 15) {
+    return 'just now'
+  }
+  if (absSeconds < 60) {
+    return `${absSeconds}s ago`
+  }
+
+  const minutes = Math.round(absSeconds / 60)
+  if (minutes < 60) {
+    return `${minutes}m ago`
+  }
+
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) {
+    return `${hours}h ago`
+  }
+
+  const days = Math.round(hours / 24)
+  return `${days}d ago`
+}
+
 export function formatFriendlyLocation(location?: string): string {
   if (!location || location.trim() === '') {
     return 'Selected area'

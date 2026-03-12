@@ -15,32 +15,32 @@ const PRIMARY_NAV_ITEMS = [
   { key: 'rules', label: 'New Alert', to: '/app/rules' },
   { key: 'alerts', label: 'Monitoring Rules', to: '/app/alerts' },
   { key: 'events', label: 'Triggered Alerts', to: '/app/events' },
-]
+] as const
 
-function NavIcon({ itemKey }: { itemKey: string }) {
+function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ itemKey: string; className?: string }>) {
   switch (itemKey) {
     case 'overview':
       return (
-        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
           <path d="M3.75 10.25 10 4.75l6.25 5.5v5a1 1 0 0 1-1 1h-2.75v-4h-5v4H4.75a1 1 0 0 1-1-1v-5Z" />
         </svg>
       )
     case 'rules':
       return (
-        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
           <path d="M10 4.5v11M4.5 10h11" />
         </svg>
       )
     case 'alerts':
       return (
-        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
-          <path d="M10 3.75a4 4 0 0 0-4 4v2.4c0 .6-.2 1.18-.58 1.63L4.5 12.9v1.35h11v-1.35l-.92-1.12A2.5 2.5 0 0 1 14 10.15v-2.4a4 4 0 0 0-4-4Z" />
-          <path d="M8.25 15.25a1.75 1.75 0 0 0 3.5 0" />
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
+          <path d="M3.5 10c1.9-3.1 4.1-4.65 6.5-4.65S14.6 6.9 16.5 10c-1.9 3.1-4.1 4.65-6.5 4.65S5.4 13.1 3.5 10Z" />
+          <path d="M10 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
         </svg>
       )
     case 'events':
       return (
-        <svg viewBox="0 0 20 20" className="shell-mobile-nav-icon" aria-hidden="true" focusable="false">
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
           <path d="M4.5 11.75h2.25l1.5-4 3.25 7 1.75-4h2.25" />
           <path d="M4.5 5.75h11" />
         </svg>
@@ -125,6 +125,7 @@ export function AppShell({ children }: AppShellProps) {
         <nav className="shell-sidebar panel" aria-label="Primary navigation">
           {PRIMARY_NAV_ITEMS.map((item) => (
             <NavLink key={item.key} to={item.to} className={({ isActive }) => `shell-nav-link${isActive ? ' active' : ''}`}>
+              <NavIcon itemKey={item.key} className="shell-nav-icon" />
               {item.label}
             </NavLink>
           ))}

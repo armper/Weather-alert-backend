@@ -1,5 +1,8 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
+import { RecentActivityFeed } from '../components/features/dashboard/RecentActivityFeed'
+import { WeatherTimeline } from '../components/features/dashboard/WeatherTimeline'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import {
@@ -9,17 +12,25 @@ import {
   formatWind,
 } from '../lib/formatting'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
+import { buildOverviewDashboardSummary } from '../lib/overviewDashboard'
+import { useLiveNow } from '../lib/useLiveNow'
 import { buildRuleDashboardSummary } from '../lib/ruleDashboard'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
   const { currentWeather, criteria, alerts } = useAppState()
-  const summary = buildAlertConsoleSummary(criteria, alerts, currentWeather)
-  const ruleSummary = buildRuleDashboardSummary(criteria, alerts, currentWeather)
-  const activeRules = criteria.filter((item) => item.enabled !== false).length
+  const now = useLiveNow(20_000)
+  const summary = useMemo(() => buildAlertConsoleSummary(criteria, alerts, currentWeather, now), [criteria, alerts, currentWeather, now])
+  const dashboard = useMemo(
+    () => buildOverviewDashboardSummary(criteria, alerts, currentWeather, now),
+    [criteria, alerts, currentWeather, now],
+  )
+  const ruleSummary = useMemo(
+    () => buildRuleDashboardSummary(criteria, alerts, currentWeather, now),
+    [criteria, alerts, currentWeather, now],
+  )
   const defaultAlertLocation = criteria[0]?.location?.trim() ?? ''
   const resolvedConditionLocation = formatFriendlyLocation(currentWeather?.location ?? defaultAlertLocation)
-  const pinnedAlertLocation = formatFriendlyLocation(defaultAlertLocation || currentWeather?.location)
   const defaultLatitude = criteria[0]?.latitude ?? Number(DEFAULT_LAT)
   const defaultLongitude = criteria[0]?.longitude ?? Number(DEFAULT_LON)
   const defaultRadiusKm = criteria[0]?.radiusKm ?? 8
@@ -33,6 +44,10 @@ export function OverviewPage() {
             <div>
               <p className="eyebrow">Watch Area</p>
               <h2>Current Conditions</h2>
+              <div className="overview-monitoring-indicator" aria-live="polite">
+                <span className="overview-monitoring-dot" aria-hidden />
+                <span>{dashboard.monitoringLabel}</span>
+              </div>
             </div>
             <span className="badge overview-status-badge">
               {summary.allClear ? 'All clear' : `${summary.activeCount} active alerts`}
@@ -40,9 +55,8 @@ export function OverviewPage() {
           </div>
           {currentWeather ? (
             <div className="weather-stack overview-weather-stack">
-              <p className="weather-location">Watching {resolvedConditionLocation}</p>
               <div className="overview-monitoring-strip">
-                <span>{summary.freshnessLabel}</span>
+                <span>{dashboard.freshnessLabel}</span>
                 {summary.allClear && summary.calmStreakLabel ? <span>{`Calm streak ${summary.calmStreakLabel}`}</span> : null}
                 {!summary.allClear ? <span>{`${summary.activeCount} active alert${summary.activeCount === 1 ? '' : 's'}`}</span> : null}
               </div>
@@ -62,11 +76,13 @@ export function OverviewPage() {
                     longitude={defaultLongitude}
                     radiusKm={defaultRadiusKm}
                     className="weather-map-preview"
+                    ruleCount={dashboard.mapRuleCount}
                   />
                 )}
               </Link>
               <p className="weather-temp weather-temp-hero">{formatTemperature(currentWeather.temperature, 'F')}</p>
               <p className="overview-headline">{currentHeadline}</p>
+              <p className="weather-location">{resolvedConditionLocation}</p>
               <div className="weather-meta overview-metric-row">
                 <span className="metric-pill overview-metric-pill">{`Wind ${formatWind(currentWeather.windSpeed)}`}</span>
                 <span className="metric-pill overview-metric-pill">
@@ -76,66 +92,36 @@ export function OverviewPage() {
                   <span className="metric-pill overview-metric-pill">{`Humidity ${currentWeather.humidity}%`}</span>
                 ) : null}
               </div>
-              <p className="muted small overview-location-note">
-                {`Pinned alert area: ${pinnedAlertLocation}. `}
-                <Link to="/app/rules#location-picker">Adjust area</Link>
-              </p>
-              {summary.watchContext.length > 0 ? (
-                <div className="overview-watch-context">
-                  {summary.watchContext.slice(0, 4).map((item) => (
-                    <span key={item} className="metric-pill overview-metric-pill">
-                      {item}
-                    </span>
-                  ))}
+              <section className="overview-watch-section">
+                <div className="panel-title-row overview-watch-header">
+                  <h3>Watching for</h3>
+                  <Link to="/app/alerts" className="auth-link overview-watch-link">
+                    Manage rules
+                  </Link>
                 </div>
-              ) : null}
+                {dashboard.watchRules.length > 0 ? (
+                  <div className="overview-watch-context">
+                    {dashboard.watchRules.map((item) => (
+                      <Link key={item.id} to={item.href} className="overview-watch-chip">
+                        <span aria-hidden>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted small overview-location-note">No alert rules are watching this area yet.</p>
+                )}
+              </section>
             </div>
           ) : (
             <p className="muted">No current weather snapshot available yet.</p>
           )}
         </article>
 
-        <article className="panel overview-hub">
-          <div className="panel-title-row">
-            <h2>Your alerts</h2>
-            <Link to="/app/rules#create-custom-alert" className="primary overview-create-link">
-              <span aria-hidden className="overview-create-icon">
-                <svg viewBox="0 0 12 12" className="create-plus-svg" focusable="false">
-                  <path d="M6 2.25v7.5M2.25 6h7.5" />
-                </svg>
-              </span>
-              <span>New alert</span>
-            </Link>
-          </div>
-          {activeRules === 0 ? (
-            <div className="overview-empty-state">
-              <p className="muted">No alerts yet. Build your first alert around this area in a few seconds.</p>
-              <div className="button-row overview-empty-actions">
-                <Link to="/app/rules#create-custom-alert" className="primary overview-action-link">
-                  New alert
-                </Link>
-                <Link to="/app/alerts" className="ghost overview-action-link">
-                  My alerts
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="stats-grid overview-stats-grid">
-              <Link to="/app/alerts" className="stat-card-link overview-nav-card">
-                <p className="muted small">Monitoring Rules</p>
-                <p className="weather-temp stat-number">{activeRules}</p>
-                <p className="muted small stat-caption">live rules</p>
-              </Link>
-              <div className="overview-stats-divider" aria-hidden />
-              <Link to="/app/events" className="stat-card-link overview-nav-card">
-                <p className="muted small">Triggered Alerts</p>
-                <p className="weather-temp stat-number">{summary.activeCount}</p>
-                <p className="muted small stat-caption">{summary.allClear ? 'all clear now' : 'active right now'}</p>
-              </Link>
-            </div>
-          )}
-        </article>
+        <RecentActivityFeed items={dashboard.recentActivity} calmLabel={summary.allClear ? dashboard.calmLabel : undefined} now={now} />
       </div>
+
+      <WeatherTimeline items={dashboard.timeline} />
     </section>
   )
 }
