@@ -1585,3 +1585,260 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ── Travel Plans Page ─────────────────────────────────────────── */
+.travel-page-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.travel-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.travel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.85rem;
+}
+
+.travel-card {
+  background: var(--card-bg-elevated);
+  border: 1px solid var(--panel-border);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.5rem;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.travel-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow-soft);
+  border-color: rgba(var(--accent-rgb), 0.28);
+}
+
+.travel-card.is-upcoming {
+  border-color: rgba(var(--accent-rgb), 0.22);
+}
+
+.travel-card.is-active {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.16), 0 16px 28px rgba(var(--accent-dark-rgb), 0.1);
+}
+
+.travel-card.is-past {
+  opacity: 0.72;
+}
+
+.travel-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.travel-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-weight: 800;
+}
+
+.travel-card-destination {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.travel-card-dates {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.travel-card-notes {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.travel-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.travel-card-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.travel-status-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.travel-status-badge.is-active {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+}
+
+.travel-status-badge.is-upcoming {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.travel-status-badge.is-past {
+  background: var(--card-bg-muted);
+  color: var(--text-muted);
+}
+
+.travel-alerts-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.travel-alerts-badge.is-off {
+  background: var(--card-bg-muted);
+  color: var(--text-muted);
+}
+
+/* ── Travel Plan Form Modal ─────────────────────────────────────── */
+.travel-form-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(5, 16, 28, 0.48);
+  backdrop-filter: blur(8px);
+}
+
+.travel-form-dialog {
+  width: min(100%, 38rem);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  background: var(--card-bg-elevated);
+  box-shadow: var(--card-shadow-raised);
+}
+
+.travel-form-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.travel-form-header h3 {
+  margin: 0.1rem 0 0;
+}
+
+.travel-form-fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.travel-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.travel-form-coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.travel-form-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--card-bg-muted);
+  border-radius: 0.6rem;
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  user-select: none;
+  transition: background 120ms;
+}
+
+.travel-form-toggle input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.travel-form-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.travel-empty-state {
+  display: grid;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.travel-empty-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.travel-section-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 0.1rem;
+  flex-wrap: wrap;
+}
+
+.travel-tab-btn {
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  background: transparent;
+  border-radius: 0.5rem 0.5rem 0 0;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+
+.travel-tab-btn.is-active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+.travel-tab-btn:hover {
+  color: var(--text-primary);
+}
