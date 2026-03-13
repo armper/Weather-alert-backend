@@ -570,6 +570,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             return null;
         }
         String uom = series.getUom();
+        // NOAA visibility grid data uses wmoUnit:m (meters); the ":m" suffix identifies this unit
         if (uom != null && uom.toLowerCase().contains(":m")) {
             return interval.value() / 1000.0;
         }
@@ -993,7 +994,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
 
         return props.getPeriods().stream()
             .map(period -> WeatherData.builder()
-                .id("zone-" + zoneType + "-" + zoneId + "-" + period.getName().replaceAll("\\s+", "_"))
+                .id("zone-" + zoneType + "-" + zoneId + "-" + (period.getName() != null ? period.getName().replaceAll("\\s+", "_") : UUID.randomUUID().toString()))
                 .location(zoneId)
                 .eventType("ZONE_FORECAST")
                 .headline(period.getName())
