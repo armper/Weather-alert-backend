@@ -144,3 +144,11 @@ export function formatStatusLabel(status?: string): string {
   const lower = status.toLowerCase()
   return `${lower.charAt(0).toUpperCase()}${lower.slice(1)}`
 }
+
+const COMPASS_DIRECTIONS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+
+export function degreesToCompass(degrees: number): string {
+  const normalized = ((degrees % 360) + 360) % 360
+  const index = Math.round(normalized / 22.5) % 16
+  return COMPASS_DIRECTIONS[index]
+}
