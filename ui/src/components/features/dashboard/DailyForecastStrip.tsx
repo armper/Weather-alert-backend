@@ -6,15 +6,45 @@ interface DailyForecastStripProps {
   unit?: 'F' | 'C'
 }
 
-function formatDayLabel(timestamp?: string): string {
-  if (!timestamp) {
+function resolveDisplayTime(item: WeatherCondition): string | undefined {
+  return item.onset ?? item.timestamp
+}
+
+function formatDayLabel(item: WeatherCondition): string {
+  const displayTime = resolveDisplayTime(item)
+  if (!displayTime) {
     return '—'
   }
-  const date = new Date(timestamp)
+  const date = new Date(displayTime)
   if (Number.isNaN(date.getTime())) {
     return '—'
   }
   return date.toLocaleDateString(undefined, { weekday: 'short' })
+}
+
+function buildUniqueDailyItems(items: WeatherCondition[]): WeatherCondition[] {
+  const grouped = new Map<string, WeatherCondition[]>()
+
+  for (const item of items) {
+    const displayTime = resolveDisplayTime(item)
+    if (!displayTime) {
+      continue
+    }
+
+    const date = new Date(displayTime)
+    if (Number.isNaN(date.getTime())) {
+      continue
+    }
+
+    const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+    const existing = grouped.get(dayKey) ?? []
+    existing.push(item)
+    grouped.set(dayKey, existing)
+  }
+
+  return Array.from(grouped.values())
+    .map((group) => group.find((item) => !/(tonight|overnight|night)/i.test(item.headline ?? '')) ?? group[0])
+    .slice(0, 7)
 }
 
 function resolveWeatherIcon(item: WeatherCondition): string {
@@ -37,7 +67,9 @@ function resolveWeatherIcon(item: WeatherCondition): string {
 }
 
 export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProps) {
-  if (items.length === 0) {
+  const displayItems = buildUniqueDailyItems(items)
+
+  if (displayItems.length === 0) {
     return null
   }
 
@@ -50,9 +82,9 @@ export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProp
         </div>
       </div>
       <div className="daily-forecast-strip">
-        {items.slice(0, 7).map((item) => (
+        {displayItems.map((item) => (
           <div key={item.id} className="daily-forecast-day">
-            <span className="daily-forecast-day-label">{formatDayLabel(item.timestamp)}</span>
+            <span className="daily-forecast-day-label">{formatDayLabel(item)}</span>
             <span className="daily-forecast-day-icon" aria-hidden>
               {resolveWeatherIcon(item)}
             </span>

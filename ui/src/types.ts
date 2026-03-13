@@ -174,6 +174,8 @@ export interface WeatherCondition {
   eventType?: string
   headline?: string
   description?: string
+  onset?: string
+  expires?: string
   temperature?: number
   windSpeed?: number
   precipitationProbability?: number
