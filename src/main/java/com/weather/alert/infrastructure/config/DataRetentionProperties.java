@@ -38,4 +38,9 @@ public class DataRetentionProperties {
      * Remove criteria-state rows whose criteria no longer exists.
      */
     private boolean cleanupOrphanCriteriaState = true;
+
+    /**
+     * Retain alert delivery attempt rows for this many days. 0 disables delivery cleanup.
+     */
+    private long deliveryDays = 30;
 }

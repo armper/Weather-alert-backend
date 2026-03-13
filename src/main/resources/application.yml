@@ -129,6 +129,7 @@ app:
     cleanup-orphan-criteria-state: ${APP_RETENTION_CLEANUP_ORPHAN_CRITERIA_STATE:true}
     cleanup-fixed-delay-ms: ${APP_RETENTION_CLEANUP_FIXED_DELAY_MS:3600000}
     cleanup-initial-delay-ms: ${APP_RETENTION_CLEANUP_INITIAL_DELAY_MS:120000}
+    delivery-days: ${APP_RETENTION_DELIVERY_DAYS:30}
   security:
     user:
       username: ${APP_SECURITY_USER_USERNAME}

@@ -2,6 +2,7 @@ package com.weather.alert.infrastructure.config;
 
 import com.weather.alert.application.usecase.RunWeatherAlertProcessingUseCase;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class WeatherAlertScheduler {
     @Scheduled(
             fixedDelayString = "${app.weather.processing.fixed-delay-ms:300000}",
             initialDelayString = "${app.weather.processing.initial-delay-ms:30000}")
+    @SchedulerLock(name = "weatherAlertProcessing", lockAtLeastFor = "PT1M", lockAtMostFor = "PT10M")
     public void processWeatherAlerts() {
         runWeatherAlertProcessingUseCase.run();
     }

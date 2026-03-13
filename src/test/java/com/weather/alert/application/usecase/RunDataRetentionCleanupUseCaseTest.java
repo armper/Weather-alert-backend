@@ -2,6 +2,7 @@ package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.JobRunResponse;
 import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
+import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.infrastructure.config.DataRetentionProperties;
@@ -31,6 +32,9 @@ class RunDataRetentionCleanupUseCaseTest {
     @Mock
     private WeatherDataSearchPort weatherDataSearchPort;
 
+    @Mock
+    private AlertDeliveryRepositoryPort alertDeliveryRepository;
+
     private DataRetentionProperties properties;
     private RunDataRetentionCleanupUseCase useCase;
 
@@ -42,10 +46,12 @@ class RunDataRetentionCleanupUseCaseTest {
         properties.setWeatherDataHours(72);
         properties.setCriteriaStateDays(14);
         properties.setCleanupOrphanCriteriaState(true);
+        properties.setDeliveryDays(30);
         useCase = new RunDataRetentionCleanupUseCase(
                 alertRepository,
                 criteriaStateRepository,
                 weatherDataSearchPort,
+                alertDeliveryRepository,
                 properties);
     }
 
@@ -55,6 +61,7 @@ class RunDataRetentionCleanupUseCaseTest {
         when(criteriaStateRepository.deleteByUpdatedAtBefore(any(Instant.class))).thenReturn(2);
         when(criteriaStateRepository.deleteOrphanedStates()).thenReturn(1);
         when(weatherDataSearchPort.deleteWeatherDataOlderThan(any(Instant.class))).thenReturn(8L);
+        when(alertDeliveryRepository.deleteByCreatedAtBefore(any(Instant.class))).thenReturn(5);
 
         JobRunResponse response = useCase.run();
 
@@ -62,9 +69,11 @@ class RunDataRetentionCleanupUseCaseTest {
         verify(criteriaStateRepository).deleteByUpdatedAtBefore(any(Instant.class));
         verify(criteriaStateRepository).deleteOrphanedStates();
         verify(weatherDataSearchPort).deleteWeatherDataOlderThan(any(Instant.class));
+        verify(alertDeliveryRepository).deleteByCreatedAtBefore(any(Instant.class));
         assertEquals("COMPLETED", response.getStatus());
         assertEquals(3L, response.getMetrics().get("alertsDeleted"));
         assertEquals(8L, response.getMetrics().get("weatherDataDeleted"));
+        assertEquals(5L, response.getMetrics().get("deliveriesDeleted"));
     }
 
     @Test
@@ -77,7 +86,23 @@ class RunDataRetentionCleanupUseCaseTest {
         verify(criteriaStateRepository, never()).deleteByUpdatedAtBefore(any(Instant.class));
         verify(criteriaStateRepository, never()).deleteOrphanedStates();
         verify(weatherDataSearchPort, never()).deleteWeatherDataOlderThan(any(Instant.class));
+        verify(alertDeliveryRepository, never()).deleteByCreatedAtBefore(any(Instant.class));
         assertEquals("SKIPPED", response.getStatus());
         assertEquals("retention cleanup disabled", response.getMessage());
+    }
+
+    @Test
+    void shouldSkipDeliveryCleanupWhenDeliveryDaysIsZero() {
+        properties.setDeliveryDays(0);
+        when(alertRepository.deleteByAlertTimeBefore(any(Instant.class))).thenReturn(0);
+        when(criteriaStateRepository.deleteByUpdatedAtBefore(any(Instant.class))).thenReturn(0);
+        when(criteriaStateRepository.deleteOrphanedStates()).thenReturn(0);
+        when(weatherDataSearchPort.deleteWeatherDataOlderThan(any(Instant.class))).thenReturn(0L);
+
+        JobRunResponse response = useCase.run();
+
+        verify(alertDeliveryRepository, never()).deleteByCreatedAtBefore(any(Instant.class));
+        assertEquals("COMPLETED", response.getStatus());
+        assertEquals(0L, response.getMetrics().get("deliveriesDeleted"));
     }
 }

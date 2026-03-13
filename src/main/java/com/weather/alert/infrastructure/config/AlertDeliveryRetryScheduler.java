@@ -2,6 +2,7 @@ package com.weather.alert.infrastructure.config;
 
 import com.weather.alert.application.usecase.PublishDueAlertDeliveryTasksUseCase;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,7 @@ public class AlertDeliveryRetryScheduler {
     @Scheduled(
             fixedDelayString = "${app.notification.delivery.retry-poller-fixed-delay-ms:10000}",
             initialDelayString = "${app.notification.delivery.retry-poller-initial-delay-ms:15000}")
+    @SchedulerLock(name = "alertDeliveryRetryPoller", lockAtLeastFor = "PT5S", lockAtMostFor = "PT5M")
     public void publishDueTasks() {
         publishDueAlertDeliveryTasksUseCase.run();
     }

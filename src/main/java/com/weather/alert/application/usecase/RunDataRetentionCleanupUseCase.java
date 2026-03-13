@@ -2,6 +2,7 @@ package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.JobRunResponse;
 import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
+import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import com.weather.alert.infrastructure.config.DataRetentionProperties;
@@ -22,18 +23,20 @@ public class RunDataRetentionCleanupUseCase {
     private final AlertRepositoryPort alertRepository;
     private final AlertCriteriaStateRepositoryPort criteriaStateRepository;
     private final WeatherDataSearchPort weatherDataSearchPort;
+    private final AlertDeliveryRepositoryPort alertDeliveryRepository;
     private final DataRetentionProperties retentionProperties;
 
     public JobRunResponse run() {
         Instant startedAt = Instant.now();
         if (!retentionProperties.isEnabled()) {
-            return buildResponse(startedAt, "SKIPPED", 0, 0, 0, 0, "retention cleanup disabled");
+            return buildResponse(startedAt, "SKIPPED", 0, 0, 0, 0, 0, "retention cleanup disabled");
         }
 
         int deletedAlerts = 0;
         int deletedStatesByAge = 0;
         int deletedOrphanStates = 0;
         long deletedWeatherData = 0;
+        int deletedDeliveries = 0;
 
         if (retentionProperties.getAlertsDays() > 0) {
             try {
@@ -70,6 +73,15 @@ public class RunDataRetentionCleanupUseCase {
             }
         }
 
+        if (retentionProperties.getDeliveryDays() > 0) {
+            try {
+                Instant deliveryCutoff = Instant.now().minus(Duration.ofDays(retentionProperties.getDeliveryDays()));
+                deletedDeliveries = alertDeliveryRepository.deleteByCreatedAtBefore(deliveryCutoff);
+            } catch (Exception ex) {
+                log.error("Alert delivery retention cleanup failed", ex);
+            }
+        }
+
         return buildResponse(
                 startedAt,
                 "COMPLETED",
@@ -77,6 +89,7 @@ public class RunDataRetentionCleanupUseCase {
                 deletedStatesByAge,
                 deletedOrphanStates,
                 deletedWeatherData,
+                deletedDeliveries,
                 null);
     }
 
@@ -87,6 +100,7 @@ public class RunDataRetentionCleanupUseCase {
             int deletedStatesByAge,
             int deletedOrphanStates,
             long deletedWeatherData,
+            int deletedDeliveries,
             String reason) {
         Instant finishedAt = Instant.now();
         long durationMillis = Duration.between(startedAt, finishedAt).toMillis();
@@ -95,13 +109,15 @@ public class RunDataRetentionCleanupUseCase {
         metrics.put("criteriaStateDeletedByAge", (long) deletedStatesByAge);
         metrics.put("criteriaStateDeletedOrphan", (long) deletedOrphanStates);
         metrics.put("weatherDataDeleted", deletedWeatherData);
+        metrics.put("deliveriesDeleted", (long) deletedDeliveries);
         log.info(
-                "Retention cleanup completed in {} ms (alertsDeleted={}, criteriaStateDeletedByAge={}, criteriaStateDeletedOrphan={}, weatherDataDeleted={})",
+                "Retention cleanup completed in {} ms (alertsDeleted={}, criteriaStateDeletedByAge={}, criteriaStateDeletedOrphan={}, weatherDataDeleted={}, deliveriesDeleted={})",
                 durationMillis,
                 deletedAlerts,
                 deletedStatesByAge,
                 deletedOrphanStates,
-                deletedWeatherData);
+                deletedWeatherData,
+                deletedDeliveries);
         return JobRunResponse.builder()
                 .jobName("data-retention")
                 .status(status)
