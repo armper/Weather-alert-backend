@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +31,7 @@ public class TravelPlanController {
 
     @PostMapping
     @Operation(summary = "Create a travel plan", responses = {
-            @ApiResponse(responseCode = "200", description = "Travel plan created"),
+            @ApiResponse(responseCode = "201", description = "Travel plan created"),
             @ApiResponse(responseCode = "400", description = "Validation error")
     })
     public ResponseEntity<TravelPlanResponse> createPlan(
@@ -38,7 +39,7 @@ public class TravelPlanController {
             Authentication authentication) {
         String userId = resolveUserId(request.getUserId(), authentication);
         TravelPlan plan = manageTravelPlanUseCase.createPlan(userId, request);
-        return ResponseEntity.ok(TravelPlanResponse.fromDomain(plan));
+        return ResponseEntity.status(HttpStatus.CREATED).body(TravelPlanResponse.fromDomain(plan));
     }
 
     @PutMapping("/{planId}")

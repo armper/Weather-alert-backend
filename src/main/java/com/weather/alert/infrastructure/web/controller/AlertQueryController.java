@@ -2,8 +2,10 @@ package com.weather.alert.infrastructure.web.controller;
 
 import com.weather.alert.application.dto.AlertResponse;
 import com.weather.alert.application.dto.PagedResponse;
+import com.weather.alert.application.exception.ForbiddenOperationException;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.domain.model.Alert;
+import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.PagedResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +14,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +38,9 @@ public class AlertQueryController {
     public ResponseEntity<PagedResponse<AlertResponse>> getAlertsByUserId(
             @Parameter(example = "user-123") @PathVariable String userId,
             @Parameter(description = "Zero-based page index", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
-            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size,
+            Authentication authentication) {
+        enforceUserAccess(authentication, userId);
         PagedResult<Alert> alerts = queryAlertsUseCase.getAlertsByUserIdPaged(userId, page, size);
         return ResponseEntity.ok(toPagedResponse(alerts));
     }
@@ -43,8 +48,10 @@ public class AlertQueryController {
     @GetMapping("/{alertId}")
     @Operation(summary = "Get alert by ID")
     public ResponseEntity<AlertResponse> getAlertById(
-            @Parameter(example = "a8f1ee4d-5fd0-4b6a-a8ec-7cc7f4bced27") @PathVariable String alertId) {
+            @Parameter(example = "a8f1ee4d-5fd0-4b6a-a8ec-7cc7f4bced27") @PathVariable String alertId,
+            Authentication authentication) {
         Alert alert = queryAlertsUseCase.getAlertById(alertId);
+        enforceUserAccess(authentication, alert.getUserId());
         return ResponseEntity.ok(toResponse(alert));
     }
 
@@ -53,7 +60,10 @@ public class AlertQueryController {
     public ResponseEntity<PagedResponse<AlertResponse>> getAlertHistoryByCriteriaId(
             @Parameter(example = "ac8d5d8f-ea03-4df6-bf0a-3f56a41795e6") @PathVariable String criteriaId,
             @Parameter(description = "Zero-based page index", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
-            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size) {
+            @Parameter(description = "Page size (max 200)", example = "50") @RequestParam(defaultValue = "50") @Min(1) @Max(200) int size,
+            Authentication authentication) {
+        AlertCriteria criteria = queryAlertsUseCase.getCriteriaById(criteriaId);
+        enforceUserAccess(authentication, criteria.getUserId());
         PagedResult<Alert> alerts = queryAlertsUseCase.getAlertHistoryByCriteriaIdPaged(criteriaId, page, size);
         return ResponseEntity.ok(toPagedResponse(alerts));
     }
@@ -71,9 +81,12 @@ public class AlertQueryController {
     @PostMapping("/{alertId}/acknowledge")
     @Operation(summary = "Acknowledge an alert")
     public ResponseEntity<AlertResponse> acknowledgeAlert(
-            @Parameter(example = "a8f1ee4d-5fd0-4b6a-a8ec-7cc7f4bced27") @PathVariable String alertId) {
-        Alert alert = queryAlertsUseCase.acknowledgeAlert(alertId);
-        return ResponseEntity.ok(toResponse(alert));
+            @Parameter(example = "a8f1ee4d-5fd0-4b6a-a8ec-7cc7f4bced27") @PathVariable String alertId,
+            Authentication authentication) {
+        Alert alert = queryAlertsUseCase.getAlertById(alertId);
+        enforceUserAccess(authentication, alert.getUserId());
+        Alert acknowledged = queryAlertsUseCase.acknowledgeAlert(alertId);
+        return ResponseEntity.ok(toResponse(acknowledged));
     }
 
     @PostMapping("/{alertId}/expire")
@@ -132,5 +145,27 @@ public class AlertQueryController {
                 .hasNext(paged.isHasNext())
                 .hasPrevious(paged.isHasPrevious())
                 .build();
+    }
+
+    private void enforceUserAccess(Authentication authentication, String resourceOwnerUserId) {
+        if (isAdmin(authentication)) {
+            return;
+        }
+        String authenticatedUserId = authenticatedUserId(authentication);
+        if (!authenticatedUserId.equals(resourceOwnerUserId)) {
+            throw new ForbiddenOperationException("You do not have access to this alert");
+        }
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+    }
+
+    private String authenticatedUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new ForbiddenOperationException("Unable to resolve authenticated user");
+        }
+        return authentication.getName();
     }
 }
