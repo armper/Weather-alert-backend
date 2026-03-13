@@ -240,3 +240,18 @@ export interface BillingCheckoutSession {
   sessionId: string
   url: string
 }
+
+export interface TravelPlan {
+  id: string
+  userId: string
+  name: string
+  destination: string
+  latitude?: number
+  longitude?: number
+  startDate: string
+  endDate: string
+  notes?: string
+  alertsEnabled?: boolean
+  createdAt?: string
+  updatedAt?: string
+}

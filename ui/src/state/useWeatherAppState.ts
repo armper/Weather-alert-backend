@@ -19,6 +19,7 @@ import type {
   UserNotificationPreference,
   UsernameRecoveryResponse,
   WeatherCondition,
+  TravelPlan,
 } from '../types'
 import { buildCriteriaPayload, RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES } from '../lib/criteria'
 import {
@@ -84,6 +85,8 @@ export function useWeatherAppState() {
   const [dailyForecast, setDailyForecast] = useState<WeatherCondition[]>([])
   const [hourlyForecast, setHourlyForecast] = useState<WeatherCondition[]>([])
   const [nwsProducts, setNwsProducts] = useState<NwsProduct[]>([])
+  const [travelPlans, setTravelPlans] = useState<TravelPlan[]>([])
+  const [savingTravelPlan, setSavingTravelPlan] = useState(false)
 
   const [profileForm, setProfileForm] = useState<ProfileFormState>({ name: '', phoneNumber: '' })
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>(initialPasswordForm)
@@ -141,7 +144,7 @@ export function useWeatherAppState() {
       const lat = freshCriteria[0]?.latitude?.toString() ?? DEFAULT_LAT
       const lon = freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON
 
-      const [freshAlerts, preferences, weather, billing, adminAccounts, history, daily, hourly, products] = await Promise.all([
+      const [freshAlerts, preferences, weather, billing, adminAccounts, history, daily, hourly, products, plans] = await Promise.all([
         apiRequest<AlertEvent[] | PagedResponse<AlertEvent>>(`/api/alerts/user/${account.id}`, { token: activeToken }),
         apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }).catch(
           () => null,
@@ -167,6 +170,7 @@ export function useWeatherAppState() {
           { token: activeToken },
         ).catch(() => [] as WeatherCondition[]),
         apiRequest<NwsProduct[]>('/api/weather/products?type=AFD', { token: activeToken }).catch(() => [] as NwsProduct[]),
+        apiRequest<TravelPlan[]>(`/api/travel-plans/user/${account.id}`, { token: activeToken }).catch(() => [] as TravelPlan[]),
       ])
 
       const alertItems = unwrapCollection(freshAlerts)
@@ -182,6 +186,7 @@ export function useWeatherAppState() {
       setDailyForecast(daily)
       setHourlyForecast(hourly)
       setNwsProducts(products)
+      setTravelPlans(plans)
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {
@@ -225,6 +230,7 @@ export function useWeatherAppState() {
       setDailyForecast([])
       setHourlyForecast([])
       setNwsProducts([])
+      setTravelPlans([])
       return
     }
     void bootstrap(token)
@@ -710,6 +716,92 @@ export function useWeatherAppState() {
     }
   }
 
+  async function handleCreateTravelPlan(payload: {
+    name: string
+    destination: string
+    latitude?: number
+    longitude?: number
+    startDate: string
+    endDate: string
+    notes?: string
+    alertsEnabled: boolean
+  }): Promise<boolean> {
+    if (!token || !me) {
+      return false
+    }
+    setSavingTravelPlan(true)
+    setNotice(null)
+    try {
+      const created = await apiRequest<TravelPlan>('/api/travel-plans', {
+        method: 'POST',
+        token,
+        body: { ...payload, userId: me.id },
+      })
+      setTravelPlans((prev) => [...prev, created].sort((a, b) => a.startDate.localeCompare(b.startDate)))
+      setNotice({ kind: 'success', text: `Trip "${created.name}" added.` })
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setSavingTravelPlan(false)
+    }
+  }
+
+  async function handleUpdateTravelPlan(
+    planId: string,
+    payload: {
+      name: string
+      destination: string
+      latitude?: number
+      longitude?: number
+      startDate: string
+      endDate: string
+      notes?: string
+      alertsEnabled: boolean
+    },
+  ): Promise<boolean> {
+    if (!token || !me) {
+      return false
+    }
+    setSavingTravelPlan(true)
+    setNotice(null)
+    try {
+      const updated = await apiRequest<TravelPlan>(`/api/travel-plans/${planId}`, {
+        method: 'PUT',
+        token,
+        body: { ...payload, userId: me.id },
+      })
+      setTravelPlans((prev) =>
+        prev.map((p) => (p.id === planId ? updated : p)).sort((a, b) => a.startDate.localeCompare(b.startDate)),
+      )
+      setNotice({ kind: 'success', text: `Trip "${updated.name}" updated.` })
+      return true
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
+    } finally {
+      setSavingTravelPlan(false)
+    }
+  }
+
+  async function handleDeleteTravelPlan(planId: string): Promise<void> {
+    if (!token) {
+      return
+    }
+    setNotice(null)
+    try {
+      await apiRequest<void>(`/api/travel-plans/${planId}`, {
+        method: 'DELETE',
+        token,
+      })
+      setTravelPlans((prev) => prev.filter((p) => p.id !== planId))
+      setNotice({ kind: 'success', text: 'Trip deleted.' })
+    } catch (error) {
+      setNotice({ kind: 'error', text: toErrorMessage(error) })
+    }
+  }
+
   async function handleAcknowledgeAlert(alertId: string) {
     if (!token) {
       return
@@ -1054,6 +1146,7 @@ export function useWeatherAppState() {
     dailyForecast,
     hourlyForecast,
     nwsProducts,
+    travelPlans,
 
     profileForm,
     setProfileForm,
@@ -1067,6 +1160,7 @@ export function useWeatherAppState() {
     loadingData,
     savingCriteria,
     savingProfile,
+    savingTravelPlan,
     loadingBilling,
     checkoutPlan,
     changingPlan,
@@ -1090,6 +1184,9 @@ export function useWeatherAppState() {
     handleCreateCriteria,
     handleDeleteCriteria,
     handleToggleCriteriaEnabled,
+    handleCreateTravelPlan,
+    handleUpdateTravelPlan,
+    handleDeleteTravelPlan,
     handleAcknowledgeAlert,
     handleAcknowledgeAllAlerts,
     handleSaveProfile,

@@ -15,6 +15,7 @@ const PRIMARY_NAV_ITEMS = [
   { key: 'rules', label: 'New Alert', to: '/app/rules' },
   { key: 'alerts', label: 'Monitoring Rules', to: '/app/alerts' },
   { key: 'events', label: 'Triggered Alerts', to: '/app/events' },
+  { key: 'travel', label: 'Travel Plans', to: '/app/travel' },
 ] as const
 
 function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ itemKey: string; className?: string }>) {
@@ -43,6 +44,13 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
         <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
           <path d="M4.5 11.75h2.25l1.5-4 3.25 7 1.75-4h2.25" />
           <path d="M4.5 5.75h11" />
+        </svg>
+      )
+    case 'travel':
+      return (
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
+          <path d="M4 10h12M10 4l6 6-6 6" />
+          <circle cx="10" cy="10" r="7" strokeWidth="1.2" fill="none" />
         </svg>
       )
     case 'admin':
