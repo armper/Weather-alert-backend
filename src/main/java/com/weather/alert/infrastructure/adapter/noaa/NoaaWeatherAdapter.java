@@ -465,7 +465,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                     .humidity(humidity)
                     .precipitationProbability(precipitationProbability)
                     .precipitation(precipitationProbability)
-                    .timestamp(Instant.now())
+                    .timestamp(onset)
                     .build();
             results.add(weatherData);
         }
@@ -546,7 +546,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                     .skyCover(extractGridValue(properties.getSkyCover(), onset))
                     .precipitationProbability(extractGridValue(properties.getProbabilityOfPrecipitation(), onset))
                     .precipitationAmount(extractGridMillimeters(properties.getQuantitativePrecipitation(), onset))
-                    .timestamp(Instant.now())
+                    .timestamp(onset)
                     .build();
             weatherData.setPrecipitation(weatherData.getPrecipitationProbability());
             results.add(weatherData);
@@ -917,7 +917,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             .expires(expires)
             .temperature(tempC)
             .windSpeed(windKmh)
-            .timestamp(Instant.now())
+            .timestamp(onset != null ? onset : Instant.now())
             .build();
     }
 

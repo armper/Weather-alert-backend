@@ -190,6 +190,55 @@ class NoaaWeatherAdapterTest {
         assertEquals(42.0, period.getWindGust(), 0.01);
         assertEquals(88.0, period.getSkyCover(), 0.01);
         assertEquals(1.5, period.getPrecipitationAmount(), 0.01);
+        assertEquals(inOneHour.truncatedTo(ChronoUnit.SECONDS), period.getTimestamp().truncatedTo(ChronoUnit.SECONDS));
+        assertEquals(period.getOnset(), period.getTimestamp());
+    }
+
+    @Test
+    void shouldUseForecastPeriodStartTimeForDailyForecastTimestamp() {
+        String forecastUrl = server.url("/gridpoints/MLB/26,68/forecast").toString();
+        Instant tomorrowMorning = Instant.parse("2026-03-13T12:00:00Z");
+        Instant tomorrowEvening = Instant.parse("2026-03-13T23:00:00Z");
+
+        server.enqueue(jsonResponse("""
+                {
+                  "properties": {
+                    "forecast": "%s"
+                  }
+                }
+                """.formatted(forecastUrl)));
+
+        server.enqueue(jsonResponse("""
+                {
+                  "properties": {
+                    "periods": [
+                      {
+                        "number": 1,
+                        "name": "Friday",
+                        "startTime": "%s",
+                        "endTime": "%s",
+                        "isDaytime": true,
+                        "temperature": 77,
+                        "temperatureUnit": "F",
+                        "windSpeed": "10 mph",
+                        "windDirection": "SE",
+                        "shortForecast": "Sunny",
+                        "detailedForecast": "Sunny through the day."
+                      }
+                    ]
+                  }
+                }
+                """.formatted(tomorrowMorning, tomorrowEvening)));
+
+        NoaaWeatherAdapter adapter = newAdapter(server.url("/").toString(), 2, 0, 100);
+
+        List<WeatherData> forecast = adapter.fetchDailyForecast(28.5383, -81.3792);
+
+        assertEquals(1, forecast.size());
+        WeatherData period = forecast.get(0);
+        assertEquals(tomorrowMorning, period.getOnset());
+        assertEquals(tomorrowMorning, period.getTimestamp());
+        assertEquals("DAILY_FORECAST", period.getEventType());
     }
 
     @Test
