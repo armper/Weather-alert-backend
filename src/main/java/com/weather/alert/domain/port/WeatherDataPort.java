@@ -3,6 +3,7 @@ package com.weather.alert.domain.port;
 import com.weather.alert.domain.model.NwsProduct;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.model.HydrologyQuery;
+import com.weather.alert.domain.model.WeatherPointMetadata;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +60,20 @@ public interface WeatherDataPort {
             double longitude,
             int forecastWindowHours) {
         return WeatherFetchResult.success(fetchForecastConditions(latitude, longitude, forecastWindowHours));
+    }
+
+    /**
+     * Fetch NOAA point metadata used for alert-zone matching.
+     */
+    default Optional<WeatherPointMetadata> fetchPointMetadata(double latitude, double longitude) {
+        return Optional.empty();
+    }
+
+    /**
+     * Fetch NOAA point metadata and include provider availability status.
+     */
+    default WeatherFetchResult<Optional<WeatherPointMetadata>> fetchPointMetadataWithStatus(double latitude, double longitude) {
+        return WeatherFetchResult.success(fetchPointMetadata(latitude, longitude));
     }
 
     /**
@@ -131,4 +146,3 @@ public interface WeatherDataPort {
         return List.of();
     }
 }
-

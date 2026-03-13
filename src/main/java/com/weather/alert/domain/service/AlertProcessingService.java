@@ -5,6 +5,7 @@ import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertCriteriaState;
 import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.model.WeatherPointMetadata;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
@@ -24,6 +25,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -79,6 +81,7 @@ public class AlertProcessingService {
             HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache = new HashMap<>();
             HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyCurrentCache = new HashMap<>();
             HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyForecastCache = new HashMap<>();
+            HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherPointMetadata>>> pointMetadataCache = new HashMap<>();
 
             List<List<AlertCriteria>> batches = partition(allCriteria, CRITERIA_BATCH_SIZE);
             for (int i = 0; i < batches.size(); i++) {
@@ -95,6 +98,7 @@ public class AlertProcessingService {
                             activeAlertsResult.failureReason(),
                             currentConditionsCache,
                             forecastConditionsCache,
+                            pointMetadataCache,
                             hydrologyCurrentCache,
                             hydrologyForecastCache);
 
@@ -156,6 +160,7 @@ public class AlertProcessingService {
         HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache = new HashMap<>();
         HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyCurrentCache = new HashMap<>();
         HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyForecastCache = new HashMap<>();
+        HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherPointMetadata>>> pointMetadataCache = new HashMap<>();
 
         CriteriaEvaluation evaluation = evaluateCriteria(
                 criteria,
@@ -164,6 +169,7 @@ public class AlertProcessingService {
                 activeAlertsResult.failureReason(),
                 currentConditionsCache,
                 forecastConditionsCache,
+                pointMetadataCache,
                 hydrologyCurrentCache,
                 hydrologyForecastCache);
         List<Alert> generatedAlerts = applyStateAndMaybeNotify(criteria, evaluation, true);
@@ -197,15 +203,14 @@ public class AlertProcessingService {
             String activeAlertsFailureReason,
             HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherData>>> currentConditionsCache,
             HashMap<ForecastKey, WeatherFetchResult<List<WeatherData>>> forecastConditionsCache,
+            HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherPointMetadata>>> pointMetadataCache,
             HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyCurrentCache,
             HashMap<HydrologyKey, WeatherFetchResult<Optional<WeatherData>>> hydrologyForecastCache) {
         if (criteria == null || !Boolean.TRUE.equals(criteria.getEnabled())) {
             return CriteriaEvaluation.notMet("criteria disabled");
         }
 
-        Optional<WeatherData> activeAlertMatch = activeWeatherAlerts.stream()
-                .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
-                .findFirst();
+        Optional<WeatherData> activeAlertMatch = findMatchingActiveAlert(criteria, activeWeatherAlerts, pointMetadataCache);
         if (activeAlertMatch.isPresent()) {
             return CriteriaEvaluation.met(activeAlertMatch.get(), "active alert match");
         }
@@ -320,6 +325,67 @@ public class AlertProcessingService {
             return CriteriaEvaluation.unavailable(String.join("; ", unavailableReasons));
         }
         return CriteriaEvaluation.notMet("no condition match");
+    }
+
+    private Optional<WeatherData> findMatchingActiveAlert(
+            AlertCriteria criteria,
+            List<WeatherData> activeWeatherAlerts,
+            HashMap<CoordinateKey, WeatherFetchResult<Optional<WeatherPointMetadata>>> pointMetadataCache) {
+        Optional<WeatherData> directMatch = activeWeatherAlerts.stream()
+                .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, weatherData))
+                .findFirst();
+        if (directMatch.isPresent() || !hasCoordinateRadius(criteria)) {
+            return directMatch;
+        }
+
+        CoordinateKey key = new CoordinateKey(criteria.getLatitude(), criteria.getLongitude());
+        WeatherFetchResult<Optional<WeatherPointMetadata>> pointMetadataResult = pointMetadataCache.computeIfAbsent(
+                key,
+                coordinateKey -> weatherDataPort.fetchPointMetadataWithStatus(coordinateKey.latitude(), coordinateKey.longitude()));
+        if (!pointMetadataResult.successful()) {
+            log.debug(
+                    "Point metadata unavailable for criteria {} during active alert matching. reason={}",
+                    criteria.getId(),
+                    safeValue(pointMetadataResult.failureReason()));
+            return Optional.empty();
+        }
+
+        Optional<WeatherPointMetadata> pointMetadata = pointMetadataResult.data() == null
+                ? Optional.empty()
+                : pointMetadataResult.data();
+        if (pointMetadata.isEmpty() || pointMetadata.get().zoneIds().isEmpty()) {
+            return Optional.empty();
+        }
+
+        return activeWeatherAlerts.stream()
+                .filter(weatherData -> matchesAlertZones(pointMetadata.get(), weatherData))
+                .filter(weatherData -> criteriaRuleEvaluator.matches(criteria, withCriteriaCoordinates(criteria, weatherData)))
+                .findFirst();
+    }
+
+    private boolean matchesAlertZones(WeatherPointMetadata pointMetadata, WeatherData weatherData) {
+        return intersects(pointMetadata.zoneIds(), weatherData.getAffectedZoneIds())
+                || intersects(pointMetadata.zoneIds(), weatherData.getUgcCodes());
+    }
+
+    private boolean intersects(List<String> expected, List<String> actual) {
+        if (expected == null || expected.isEmpty() || actual == null || actual.isEmpty()) {
+            return false;
+        }
+        return actual.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .anyMatch(expected::contains);
+    }
+
+    private WeatherData withCriteriaCoordinates(AlertCriteria criteria, WeatherData weatherData) {
+        if (!hasCoordinateRadius(criteria) || weatherData == null) {
+            return weatherData;
+        }
+        return weatherData.toBuilder()
+                .latitude(criteria.getLatitude())
+                .longitude(criteria.getLongitude())
+                .build();
     }
 
     private List<Alert> applyStateAndMaybeNotify(AlertCriteria criteria, CriteriaEvaluation evaluation, boolean publish) {
@@ -583,6 +649,13 @@ public class AlertProcessingService {
             partitions.add(criteria.subList(start, end));
         }
         return partitions;
+    }
+
+    private boolean hasCoordinateRadius(AlertCriteria criteria) {
+        return criteria != null
+                && criteria.getLatitude() != null
+                && criteria.getLongitude() != null
+                && criteria.getRadiusKm() != null;
     }
 
     private enum CriteriaEvaluationStatus {

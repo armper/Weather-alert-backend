@@ -8,4 +8,8 @@ public class NoaaPointProperties {
     private String forecastHourly;
     private String forecastGridData;
     private String observationStations;
+    private String county;
+    private String forecastZone;
+    private String fireWeatherZone;
+    private String forecastOffice;
 }

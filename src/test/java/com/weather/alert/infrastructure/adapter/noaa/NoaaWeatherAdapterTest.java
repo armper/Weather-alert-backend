@@ -1,6 +1,7 @@
 package com.weather.alert.infrastructure.adapter.noaa;
 
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.model.WeatherPointMetadata;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -218,6 +219,31 @@ class NoaaWeatherAdapterTest {
     }
 
     @Test
+    void shouldFetchPointMetadataAndReuseCachedPointResponse() {
+        server.enqueue(jsonResponse("""
+                {
+                  "properties": {
+                    "county": "https://api.weather.gov/zones/county/KSC201",
+                    "forecastZone": "https://api.weather.gov/zones/forecast/KSZ009",
+                    "fireWeatherZone": "https://api.weather.gov/zones/fire/KSZ009",
+                    "forecastOffice": "https://api.weather.gov/offices/TOP"
+                  }
+                }
+                """));
+
+        NoaaWeatherAdapter adapter = newAdapter(server.url("/").toString(), 2, 0, 100);
+
+        Optional<WeatherPointMetadata> first = adapter.fetchPointMetadata(39.7456, -97.0892);
+        Optional<WeatherPointMetadata> second = adapter.fetchPointMetadata(39.7456, -97.0892);
+
+        assertTrue(first.isPresent());
+        assertEquals("KSC201", first.get().countyZoneId());
+        assertEquals(List.of("KSC201", "KSZ009"), first.get().zoneIds());
+        assertEquals(first, second);
+        assertEquals(1, server.getRequestCount());
+    }
+
+    @Test
     void shouldShortCircuitRequestsWhenOutageGuardIsOpen() {
         server.enqueue(new MockResponse().setResponseCode(500).setBody("{\"error\":\"boom\"}"));
 
@@ -239,6 +265,8 @@ class NoaaWeatherAdapterTest {
                 0,
                 100,
                 0,
+                60,
+                180,
                 1,
                 30);
 
@@ -269,6 +297,8 @@ class NoaaWeatherAdapterTest {
                 retries,
                 retryBackoffMillis,
                 0,
+                60,
+                180,
                 1000,
                 30);
     }

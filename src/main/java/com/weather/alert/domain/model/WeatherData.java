@@ -6,12 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Domain model representing weather data from NOAA
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class WeatherData {
@@ -30,6 +31,9 @@ public class WeatherData {
     private String category;
     private String urgency;
     private String certainty;
+    private List<String> affectedZoneIds;
+    private List<String> ugcCodes;
+    private List<String> sameCodes;
     private Double temperature;
     private Double windSpeed;
     private Double precipitation;

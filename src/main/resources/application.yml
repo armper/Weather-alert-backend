@@ -102,14 +102,18 @@ app:
   noaa:
     # NOAA /alerts/active responses can exceed WebClient's default 256KB buffer
     max-in-memory-size: ${APP_NOAA_MAX_IN_MEMORY_SIZE:10MB}
+    user-agent: ${APP_NOAA_USER_AGENT:Weather-Alert-Backend/1.0 (contact: support@skypanda.app)}
     request-timeout-seconds: ${APP_NOAA_REQUEST_TIMEOUT_SECONDS:8}
     retry-max-attempts: ${APP_NOAA_RETRY_MAX_ATTEMPTS:2}
     retry-backoff-millis: ${APP_NOAA_RETRY_BACKOFF_MILLIS:250}
     min-request-interval-millis: ${APP_NOAA_MIN_REQUEST_INTERVAL_MILLIS:150}
+    point-cache-ttl-minutes: ${APP_NOAA_POINT_CACHE_TTL_MINUTES:60}
+    station-cache-ttl-minutes: ${APP_NOAA_STATION_CACHE_TTL_MINUTES:180}
     outage-failure-threshold: ${APP_NOAA_OUTAGE_FAILURE_THRESHOLD:4}
     outage-open-seconds: ${APP_NOAA_OUTAGE_OPEN_SECONDS:30}
   nwps:
     max-in-memory-size: ${APP_NWPS_MAX_IN_MEMORY_SIZE:4MB}
+    user-agent: ${APP_NWPS_USER_AGENT:${APP_NOAA_USER_AGENT:Weather-Alert-Backend/1.0 (contact: support@skypanda.app)}}
     request-timeout-seconds: ${APP_NWPS_REQUEST_TIMEOUT_SECONDS:${APP_NOAA_REQUEST_TIMEOUT_SECONDS:8}}
     retry-max-attempts: ${APP_NWPS_RETRY_MAX_ATTEMPTS:${APP_NOAA_RETRY_MAX_ATTEMPTS:2}}
     retry-backoff-millis: ${APP_NWPS_RETRY_BACKOFF_MILLIS:${APP_NOAA_RETRY_BACKOFF_MILLIS:250}}

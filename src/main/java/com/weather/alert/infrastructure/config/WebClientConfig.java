@@ -11,27 +11,31 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
     
     @Bean
-    public WebClient noaaWebClient(@Value("${app.noaa.max-in-memory-size:10MB}") DataSize maxInMemorySize) {
+    public WebClient noaaWebClient(
+            @Value("${app.noaa.max-in-memory-size:10MB}") DataSize maxInMemorySize,
+            @Value("${app.noaa.user-agent:Weather-Alert-Backend/1.0 (contact: support@skypanda.app)}") String userAgent) {
         ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize((int) maxInMemorySize.toBytes()))
                 .build();
 
         return WebClient.builder()
                 .baseUrl("https://api.weather.gov")
-                .defaultHeader("User-Agent", "Weather-Alert-Backend/1.0")
+                .defaultHeader("User-Agent", userAgent)
                 .exchangeStrategies(exchangeStrategies)
                 .build();
     }
 
     @Bean
-    public WebClient nwpsWebClient(@Value("${app.nwps.max-in-memory-size:4MB}") DataSize maxInMemorySize) {
+    public WebClient nwpsWebClient(
+            @Value("${app.nwps.max-in-memory-size:4MB}") DataSize maxInMemorySize,
+            @Value("${app.nwps.user-agent:${app.noaa.user-agent:Weather-Alert-Backend/1.0 (contact: support@skypanda.app)}}") String userAgent) {
         ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize((int) maxInMemorySize.toBytes()))
                 .build();
 
         return WebClient.builder()
                 .baseUrl("https://api.water.noaa.gov/nwps/v1")
-                .defaultHeader("User-Agent", "Weather-Alert-Backend/1.0")
+                .defaultHeader("User-Agent", userAgent)
                 .exchangeStrategies(exchangeStrategies)
                 .build();
     }

@@ -3,6 +3,7 @@ package com.weather.alert.infrastructure.adapter.noaa;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.NwsProduct;
+import com.weather.alert.domain.model.WeatherPointMetadata;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherFetchResult;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -19,12 +20,15 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -43,10 +47,14 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
     private final long retryMaxAttempts;
     private final long retryBackoffMillis;
     private final long minRequestIntervalMillis;
+    private final Duration pointCacheTtl;
+    private final Duration stationCacheTtl;
     private final int outageFailureThreshold;
     private final long outageOpenSeconds;
 
     private final Object requestPacingLock = new Object();
+    private final ConcurrentMap<String, CachedValue<NoaaPointProperties>> pointPropertiesCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, CachedValue<NoaaStationProperties>> primaryStationCache = new ConcurrentHashMap<>();
     private final AtomicInteger consecutiveFailures = new AtomicInteger();
     private volatile long lastRequestAtMillis = 0L;
     private volatile Instant outageOpenUntil;
@@ -59,6 +67,8 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             @Value("${app.noaa.retry-max-attempts:2}") long retryMaxAttempts,
             @Value("${app.noaa.retry-backoff-millis:250}") long retryBackoffMillis,
             @Value("${app.noaa.min-request-interval-millis:150}") long minRequestIntervalMillis,
+            @Value("${app.noaa.point-cache-ttl-minutes:60}") long pointCacheTtlMinutes,
+            @Value("${app.noaa.station-cache-ttl-minutes:180}") long stationCacheTtlMinutes,
             @Value("${app.noaa.outage-failure-threshold:4}") int outageFailureThreshold,
             @Value("${app.noaa.outage-open-seconds:30}") long outageOpenSeconds) {
         this.noaaWebClient = noaaWebClient;
@@ -68,6 +78,8 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
         this.retryMaxAttempts = Math.max(0, retryMaxAttempts);
         this.retryBackoffMillis = Math.max(50, retryBackoffMillis);
         this.minRequestIntervalMillis = Math.max(0, minRequestIntervalMillis);
+        this.pointCacheTtl = Duration.ofMinutes(Math.max(1, pointCacheTtlMinutes));
+        this.stationCacheTtl = Duration.ofMinutes(Math.max(1, stationCacheTtlMinutes));
         this.outageFailureThreshold = Math.max(1, outageFailureThreshold);
         this.outageOpenSeconds = Math.max(5, outageOpenSeconds);
     }
@@ -225,6 +237,20 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
     }
 
     @Override
+    public Optional<WeatherPointMetadata> fetchPointMetadata(double latitude, double longitude) {
+        return fetchPointMetadataWithStatus(latitude, longitude).data();
+    }
+
+    @Override
+    public WeatherFetchResult<Optional<WeatherPointMetadata>> fetchPointMetadataWithStatus(double latitude, double longitude) {
+        RequestResult<NoaaPointProperties> pointPropertiesResult = fetchPointProperties(latitude, longitude);
+        if (!pointPropertiesResult.successful()) {
+            return WeatherFetchResult.failure(Optional.empty(), pointPropertiesResult.failureReason());
+        }
+        return WeatherFetchResult.success(Optional.ofNullable(mapPointMetadata(pointPropertiesResult.payload())));
+    }
+
+    @Override
     public Optional<WeatherData> fetchHydrologyCurrentConditions(HydrologyQuery query) {
         return nwpsHydrologyClient.fetchCurrentConditions(query);
     }
@@ -247,20 +273,33 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
     private RequestResult<NoaaPointProperties> fetchPointProperties(double latitude, double longitude) {
         String normalizedLatitude = String.format(Locale.US, "%.4f", latitude);
         String normalizedLongitude = String.format(Locale.US, "%.4f", longitude);
-        return requestWithFallback(
+        String cacheKey = normalizedLatitude + "," + normalizedLongitude;
+        NoaaPointProperties cached = getCached(pointPropertiesCache, cacheKey, "point_metadata");
+        if (cached != null) {
+            return RequestResult.success(cached);
+        }
+
+        RequestResult<NoaaPointProperties> result = requestWithFallback(
                 "point_metadata",
                 () -> noaaWebClient.get()
                         .uri("/points/{latitude},{longitude}", normalizedLatitude, normalizedLongitude)
                         .retrieve()
                         .bodyToMono(NoaaPointResponse.class))
                 .mapPayload(response -> response == null ? null : response.getProperties());
+        cacheResult(pointPropertiesCache, cacheKey, result, pointCacheTtl);
+        return result;
     }
 
     private RequestResult<NoaaStationProperties> fetchPrimaryStation(String observationStationsUrl) {
         if (observationStationsUrl == null || observationStationsUrl.isBlank()) {
             return RequestResult.success(null);
         }
-        return requestWithFallback(
+        NoaaStationProperties cached = getCached(primaryStationCache, observationStationsUrl, "observation_station");
+        if (cached != null) {
+            return RequestResult.success(cached);
+        }
+
+        RequestResult<NoaaStationProperties> result = requestWithFallback(
                 "observation_stations",
                 () -> noaaWebClient.get()
                         .uri(observationStationsUrl)
@@ -276,6 +315,8 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                             .findFirst()
                             .orElse(null);
                 });
+        cacheResult(primaryStationCache, observationStationsUrl, result, stationCacheTtl);
+        return result;
     }
 
     private RequestResult<NoaaForecastHourlyResponse> fetchHourlyForecast(String forecastHourlyUrl) {
@@ -325,6 +366,9 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                 .category(props.getCategory())
                 .urgency(props.getUrgency())
                 .certainty(props.getCertainty())
+                .affectedZoneIds(extractZoneIds(props.getAffectedZones()))
+                .ugcCodes(extractCodes(props.getGeocode() == null ? null : props.getGeocode().getUgc()))
+                .sameCodes(extractCodes(props.getGeocode() == null ? null : props.getGeocode().getSame()))
                 .timestamp(Instant.now())
                 .build();
     }
@@ -765,6 +809,12 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
     private record GridValueInterval(Instant start, Instant end, Double value) {
     }
 
+    private record CachedValue<T>(T value, Instant expiresAt) {
+        private boolean isExpired(Instant now) {
+            return expiresAt == null || !expiresAt.isAfter(now);
+        }
+    }
+
     @Override
     public List<WeatherData> fetchObservationHistory(double latitude, double longitude, int hours) {
         int normalizedHours = Math.max(1, Math.min(hours, 24));
@@ -902,6 +952,9 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             .category(props.getCategory())
             .urgency(props.getUrgency())
             .certainty(props.getCertainty())
+            .affectedZoneIds(extractZoneIds(props.getAffectedZones()))
+            .ugcCodes(extractCodes(props.getGeocode() == null ? null : props.getGeocode().getUgc()))
+            .sameCodes(extractCodes(props.getGeocode() == null ? null : props.getGeocode().getSame()))
             .timestamp(Instant.now())
             .build();
 
@@ -1004,5 +1057,97 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                 .timestamp(Instant.now())
                 .build())
             .toList();
+    }
+
+    private WeatherPointMetadata mapPointMetadata(NoaaPointProperties pointProperties) {
+        if (pointProperties == null) {
+            return null;
+        }
+        String countyZoneId = extractIdentifier(pointProperties.getCounty());
+        String forecastZoneId = extractIdentifier(pointProperties.getForecastZone());
+        String fireWeatherZoneId = extractIdentifier(pointProperties.getFireWeatherZone());
+        String forecastOfficeId = extractIdentifier(pointProperties.getForecastOffice());
+
+        List<String> zoneIds = new ArrayList<>();
+        addIfPresent(zoneIds, countyZoneId);
+        addIfPresent(zoneIds, forecastZoneId);
+        addIfPresent(zoneIds, fireWeatherZoneId);
+
+        return new WeatherPointMetadata(
+                countyZoneId,
+                forecastZoneId,
+                fireWeatherZoneId,
+                forecastOfficeId,
+                zoneIds);
+    }
+
+    private List<String> extractZoneIds(List<String> affectedZones) {
+        if (affectedZones == null || affectedZones.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> zoneIds = new LinkedHashSet<>();
+        for (String affectedZone : affectedZones) {
+            addIfPresent(zoneIds, extractIdentifier(affectedZone));
+        }
+        return List.copyOf(zoneIds);
+    }
+
+    private List<String> extractCodes(List<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> normalizedCodes = new LinkedHashSet<>();
+        for (String code : codes) {
+            addIfPresent(normalizedCodes, code);
+        }
+        return List.copyOf(normalizedCodes);
+    }
+
+    private String extractIdentifier(String urlOrCode) {
+        if (urlOrCode == null || urlOrCode.isBlank()) {
+            return null;
+        }
+        String trimmed = urlOrCode.trim();
+        int slashIndex = trimmed.lastIndexOf('/');
+        return slashIndex >= 0 ? trimmed.substring(slashIndex + 1) : trimmed;
+    }
+
+    private <T> T getCached(ConcurrentMap<String, CachedValue<T>> cache, String key, String resourceName) {
+        CachedValue<T> cachedValue = cache.get(key);
+        if (cachedValue == null) {
+            meterRegistry.counter("weather.noaa.cache", "resource", resourceName, "outcome", "miss").increment();
+            return null;
+        }
+        Instant now = Instant.now();
+        if (cachedValue.isExpired(now)) {
+            cache.remove(key, cachedValue);
+            meterRegistry.counter("weather.noaa.cache", "resource", resourceName, "outcome", "expired").increment();
+            return null;
+        }
+        meterRegistry.counter("weather.noaa.cache", "resource", resourceName, "outcome", "hit").increment();
+        return cachedValue.value();
+    }
+
+    private <T> void cacheResult(
+            ConcurrentMap<String, CachedValue<T>> cache,
+            String key,
+            RequestResult<T> result,
+            Duration ttl) {
+        if (result == null || !result.successful() || result.payload() == null) {
+            return;
+        }
+        cache.put(key, new CachedValue<>(result.payload(), Instant.now().plus(ttl)));
+    }
+
+    private void addIfPresent(List<String> values, String candidate) {
+        if (candidate != null && !candidate.isBlank()) {
+            values.add(candidate.trim());
+        }
+    }
+
+    private void addIfPresent(LinkedHashSet<String> values, String candidate) {
+        if (candidate != null && !candidate.isBlank()) {
+            values.add(candidate.trim());
+        }
     }
 }

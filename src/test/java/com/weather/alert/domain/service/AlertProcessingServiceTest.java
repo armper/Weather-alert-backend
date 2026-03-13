@@ -4,6 +4,7 @@ import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.AlertCriteriaState;
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.model.WeatherPointMetadata;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertCriteriaStateRepositoryPort;
 import com.weather.alert.domain.port.AlertRepositoryPort;
@@ -163,6 +164,51 @@ class AlertProcessingServiceTest {
     }
 
     @Test
+    void shouldGenerateAlertFromZoneMatchedActiveAlertWhenAlertHasNoCoordinates() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .id("criteria-zone-1")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(39.7456)
+                .longitude(-97.0892)
+                .radiusKm(25.0)
+                .eventType("Evacuation - Immediate")
+                .monitorCurrent(false)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData activeAlert = WeatherData.builder()
+                .id("alert-zone-1")
+                .eventType("Evacuation - Immediate")
+                .location("Merrick County")
+                .headline("Immediate evacuation order")
+                .affectedZoneIds(List.of("NEC047"))
+                .ugcCodes(List.of("NEC047"))
+                .build();
+
+        WeatherPointMetadata pointMetadata = new WeatherPointMetadata(
+                "KSC201",
+                "KSZ009",
+                "NEC047",
+                "TOP",
+                List.of("KSC201", "KSZ009", "NEC047"));
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of(activeAlert)));
+        when(weatherDataPort.fetchPointMetadataWithStatus(39.7456, -97.0892))
+                .thenReturn(WeatherFetchResult.success(Optional.of(pointMetadata)));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.processWeatherAlerts();
+
+        verify(weatherDataPort, times(1)).fetchPointMetadataWithStatus(39.7456, -97.0892);
+        verify(alertRepository, times(1)).save(any(Alert.class));
+        verify(notificationPort, times(1)).publishAlert(any(Alert.class));
+    }
+
+    @Test
     void shouldSkipConditionCallsWhenCriteriaHasNoCoordinates() {
         AlertCriteria criteria = AlertCriteria.builder()
                 .id("criteria-3")
@@ -308,6 +354,61 @@ class AlertProcessingServiceTest {
         service.processWeatherAlerts();
 
         verify(weatherDataPort, times(1)).fetchCurrentConditionsWithStatus(28.5383, -81.3792);
+        verify(alertRepository, times(2)).save(any(Alert.class));
+    }
+
+    @Test
+    void shouldReusePointMetadataFetchForCriteriaSharingCoordinates() {
+        AlertCriteria first = AlertCriteria.builder()
+                .id("criteria-zone-a")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(39.7456)
+                .longitude(-97.0892)
+                .radiusKm(25.0)
+                .eventType("Flood Warning")
+                .monitorCurrent(false)
+                .monitorForecast(false)
+                .build();
+
+        AlertCriteria second = AlertCriteria.builder()
+                .id("criteria-zone-b")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(39.7456)
+                .longitude(-97.0892)
+                .radiusKm(25.0)
+                .eventType("Flood Warning")
+                .monitorCurrent(false)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData activeAlert = WeatherData.builder()
+                .id("alert-zone-shared")
+                .eventType("Flood Warning")
+                .location("Jewell County")
+                .affectedZoneIds(List.of("KSC201"))
+                .ugcCodes(List.of("KSC201"))
+                .build();
+
+        WeatherPointMetadata pointMetadata = new WeatherPointMetadata(
+                "KSC201",
+                "KSZ009",
+                "KSZ009",
+                "TOP",
+                List.of("KSC201", "KSZ009"));
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(first, second));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of(activeAlert)));
+        when(weatherDataPort.fetchPointMetadataWithStatus(39.7456, -97.0892))
+                .thenReturn(WeatherFetchResult.success(Optional.of(pointMetadata)));
+        when(criteriaStateRepository.findByCriteriaId(anyString())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.processWeatherAlerts();
+
+        verify(weatherDataPort, times(1)).fetchPointMetadataWithStatus(39.7456, -97.0892);
         verify(alertRepository, times(2)).save(any(Alert.class));
     }
 
