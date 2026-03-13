@@ -321,7 +321,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/criteria")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .body("id", notNullValue())
                 .body("name", equalTo("Orlando Temp + Rain"))
                 .body("userId", equalTo("test-admin"))
@@ -503,7 +503,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/criteria")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .extract()
                 .path("id");
 
@@ -601,7 +601,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/auth/register")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .body("account.id", equalTo(username))
                 .body("account.approvalStatus", equalTo("ACTIVE"))
                 .body("account.emailVerified", equalTo(false))
@@ -677,7 +677,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/criteria")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .body("name", equalTo("New User First Alert"))
                 .body("userId", equalTo(username))
                 .extract()
@@ -711,7 +711,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/auth/register")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .extract();
 
         String verificationId = registerResponse.path("emailVerification.id");
@@ -812,7 +812,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/auth/register")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .extract();
 
         String verificationId = registerResponse.path("emailVerification.id");
@@ -876,7 +876,7 @@ class ApiIntegrationContractTest {
                 .when()
                 .post("/api/auth/register")
                 .then()
-                .statusCode(HttpStatus.OK.value())
+                .statusCode(HttpStatus.CREATED.value())
                 .extract();
 
         given()
