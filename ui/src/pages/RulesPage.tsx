@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom'
 import { apiRequest, toErrorMessage } from '../api'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
 import { RIVER_RULE_TYPES, RIVER_STAGE_RULE_TYPES, buildSuggestedAlertName, defaultThreshold } from '../lib/criteria'
-import { formatFriendlyLocation, formatNumber, formatTemperature, formatWind } from '../lib/formatting'
+import { formatFriendlyLocation, formatNumber, formatPercent, formatTemperature, formatWind } from '../lib/formatting'
 import {
   QUICK_START_PRESETS,
   SIMPLE_SITUATIONS,
@@ -1329,7 +1329,7 @@ function buildPreviewChips(currentWeather: WeatherCondition | null, unit: 'F' | 
   return [
     currentWeather.temperature != null ? `🌡 ${formatTemperature(currentWeather.temperature, unit)}` : null,
     currentWeather.apparentTemperature != null ? `🌡 Feels ${formatTemperature(currentWeather.apparentTemperature, unit)}` : null,
-    currentWeather.humidity != null ? `💧 ${currentWeather.humidity}%` : null,
+    currentWeather.humidity != null ? `💧 ${formatPercent(currentWeather.humidity)}` : null,
     currentWeather.precipitationProbability != null ? `🌧 ${formatNumber(currentWeather.precipitationProbability)}%` : null,
     currentWeather.windSpeed != null ? `🌬 ${formatWind(currentWeather.windSpeed)}` : null,
     currentWeather.visibility != null ? `👁 Vis ${formatNumber(currentWeather.visibility)} km` : null,

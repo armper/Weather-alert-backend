@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
@@ -6,7 +6,7 @@ import { NoticeBanner } from '../components/common/NoticeBanner'
 import { useAppState } from '../state/useAppState'
 
 export function AuthRegisterPage() {
-  const { notice, loadingAuth, registerState, setRegisterState, handleRegister } = useAppState()
+  const { notice, loadingAuth, registerState, setRegisterState, verifyState, latestVerification, handleRegister } = useAppState()
   const [showPassword, setShowPassword] = useState(false)
   const [searchParams] = useSearchParams()
   const initialEmail = searchParams.get('email')?.trim() ?? ''
@@ -17,6 +17,22 @@ export function AuthRegisterPage() {
     }
     setRegisterState((state) => (state.email ? state : { ...state, email: initialEmail }))
   }, [initialEmail, registerState.email, setRegisterState])
+
+  const verifyEmailLink = useMemo(() => {
+    const params = new URLSearchParams()
+    const userId = verifyState.userId.trim()
+    const verificationId = (verifyState.verificationId || latestVerification?.id || '').trim()
+
+    if (userId) {
+      params.set('userId', userId)
+    }
+    if (verificationId) {
+      params.set('verificationId', verificationId)
+    }
+
+    const query = params.toString()
+    return query ? `/auth/verify-email?${query}` : '/auth/verify-email'
+  }, [latestVerification?.id, verifyState.userId, verifyState.verificationId])
 
   return (
     <div className="app-shell">
@@ -93,7 +109,7 @@ export function AuthRegisterPage() {
             <Link className="auth-link" to="/auth/login">
               Back to sign in
             </Link>
-            <Link className="auth-link" to="/auth/verify-email">
+            <Link className="auth-link" to={verifyEmailLink}>
               Verify email
             </Link>
           </div>

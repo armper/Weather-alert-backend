@@ -426,13 +426,25 @@ export function useWeatherAppState() {
 
   async function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const verificationId = verifyState.verificationId.trim()
+    if (!verificationId) {
+      setNotice({
+        kind: 'error',
+        text: 'Open the verification link from your email or resend the code before confirming.',
+      })
+      return
+    }
+
     setLoadingAuth(true)
     setNotice(null)
 
     try {
       await apiRequest<UserAccount>('/api/auth/register/verify-email', {
         method: 'POST',
-        body: verifyState,
+        body: {
+          ...verifyState,
+          verificationId,
+        },
       })
       setNotice({
         kind: 'success',

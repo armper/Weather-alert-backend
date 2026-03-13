@@ -11,6 +11,7 @@ import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import {
   degreesToCompass,
   formatFriendlyLocation,
+  formatPercent,
   formatPercentOrNA,
   formatTemperature,
   formatWind,
@@ -116,7 +117,7 @@ export function OverviewPage() {
                   {`Rain ${formatPercentOrNA(currentWeather.precipitationProbability)}`}
                 </span>
                 {currentWeather.humidity != null ? (
-                  <span className="metric-pill overview-metric-pill">{`Humidity ${currentWeather.humidity}%`}</span>
+                  <span className="metric-pill overview-metric-pill">{`Humidity ${formatPercent(currentWeather.humidity)}`}</span>
                 ) : null}
                 {currentWeather.visibility != null ? (
                   <span className="metric-pill overview-metric-pill">{`👁 Vis ${currentWeather.visibility.toFixed(1)} km`}</span>
@@ -175,4 +176,3 @@ export function OverviewPage() {
     </section>
   )
 }
-

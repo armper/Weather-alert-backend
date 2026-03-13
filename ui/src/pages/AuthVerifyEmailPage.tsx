@@ -20,16 +20,17 @@ export function AuthVerifyEmailPage() {
   const queryVerificationId = searchParams.get('verificationId')?.trim() ?? ''
 
   useEffect(() => {
-    if (!queryUserId && !queryVerificationId) {
+    const fallbackVerificationId = latestVerification?.id?.trim() ?? ''
+    if (!queryUserId && !queryVerificationId && !fallbackVerificationId) {
       return
     }
 
     setVerifyState((state) => ({
       ...state,
       userId: queryUserId || state.userId,
-      verificationId: queryVerificationId || state.verificationId,
+      verificationId: queryVerificationId || state.verificationId || fallbackVerificationId,
     }))
-  }, [queryUserId, queryVerificationId, setVerifyState])
+  }, [latestVerification?.id, queryUserId, queryVerificationId, setVerifyState])
 
   return (
     <div className="app-shell">
