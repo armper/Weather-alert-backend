@@ -118,6 +118,15 @@ public class WeatherDataSearchRepositoryAdapter implements WeatherDataSearchPort
                 .riverStageUnit(domain.getRiverStageUnit())
                 .riverDistanceKm(domain.getRiverDistanceKm())
                 .recordedAt(domain.getTimestamp())
+                .apparentTemperature(domain.getApparentTemperature())
+                .windChill(domain.getWindChill())
+                .heatIndex(domain.getHeatIndex())
+                .visibility(domain.getVisibility())
+                .windDirection(domain.getWindDirection())
+                .snowfallAmount(domain.getSnowfallAmount())
+                .iceAccumulation(domain.getIceAccumulation())
+                .probabilityOfThunder(domain.getProbabilityOfThunder())
+                .ceilingHeight(domain.getCeilingHeight())
                 .build();
     }
 
@@ -157,6 +166,15 @@ public class WeatherDataSearchRepositoryAdapter implements WeatherDataSearchPort
                 .riverStageUnit(entity.getRiverStageUnit())
                 .riverDistanceKm(entity.getRiverDistanceKm())
                 .timestamp(entity.getRecordedAt())
+                .apparentTemperature(entity.getApparentTemperature())
+                .windChill(entity.getWindChill())
+                .heatIndex(entity.getHeatIndex())
+                .visibility(entity.getVisibility())
+                .windDirection(entity.getWindDirection())
+                .snowfallAmount(entity.getSnowfallAmount())
+                .iceAccumulation(entity.getIceAccumulation())
+                .probabilityOfThunder(entity.getProbabilityOfThunder())
+                .ceilingHeight(entity.getCeilingHeight())
                 .build();
     }
 }

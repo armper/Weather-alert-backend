@@ -2,6 +2,7 @@ package com.weather.alert.infrastructure.adapter.noaa;
 
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.model.HydrologyQuery;
+import com.weather.alert.domain.model.NwsProduct;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherFetchResult;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -343,6 +345,12 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
         Double windKmh = extractWindKmh(props == null ? null : props.getWindSpeed());
         Double humidity = extractValue(props == null ? null : props.getRelativeHumidity());
         Double precipitationAmount = extractPrecipitationAmountMm(props == null ? null : props.getPrecipitationLastHour());
+        Double windDirection = props == null ? null : extractValue(props.getWindDirection());
+        Double visibilityM = props == null ? null : extractValue(props.getVisibility());
+        Double visibilityKm = visibilityM != null ? visibilityM / 1000.0 : null;
+        Double dewPointC = extractCelsius(props == null ? null : props.getDewpoint());
+        Double windChillC = extractCelsius(props == null ? null : props.getWindChill());
+        Double heatIndexC = extractCelsius(props == null ? null : props.getHeatIndex());
 
         String location = stationName != null && !stationName.isBlank() ? stationName : stationId;
         String headline = props != null && props.getTextDescription() != null ? props.getTextDescription() : "Current conditions";
@@ -363,6 +371,11 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
                 .humidity(humidity)
                 .precipitationAmount(precipitationAmount)
                 .precipitation(precipitationAmount)
+                .windDirection(windDirection)
+                .visibility(visibilityKm)
+                .dewPoint(dewPointC)
+                .windChill(windChillC)
+                .heatIndex(heatIndexC)
                 .timestamp(observedAt != null ? observedAt : Instant.now())
                 .build();
     }
@@ -441,6 +454,15 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             if (weatherData.getPrecipitation() == null) {
                 weatherData.setPrecipitation(weatherData.getPrecipitationProbability());
             }
+            weatherData.setApparentTemperature(extractGridCelsius(properties.getApparentTemperature(), onset));
+            weatherData.setWindChill(extractGridCelsius(properties.getWindChill(), onset));
+            weatherData.setHeatIndex(extractGridCelsius(properties.getHeatIndex(), onset));
+            weatherData.setVisibility(extractGridKilometers(properties.getVisibility(), onset));
+            weatherData.setWindDirection(extractGridValue(properties.getWindDirection(), onset));
+            weatherData.setSnowfallAmount(extractGridMillimeters(properties.getSnowfallAmount(), onset));
+            weatherData.setIceAccumulation(extractGridMillimeters(properties.getIceAccumulation(), onset));
+            weatherData.setProbabilityOfThunder(extractGridValue(properties.getProbabilityOfThunder(), onset));
+            weatherData.setCeilingHeight(extractGridValue(properties.getCeilingHeight(), onset));
         }
     }
 
@@ -540,6 +562,18 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             return null;
         }
         return NoaaUnitConversionUtils.toMillimeters(interval.value(), series.getUom());
+    }
+
+    private Double extractGridKilometers(NoaaGridValueSeries series, Instant onset) {
+        GridValueInterval interval = findGridInterval(series, onset);
+        if (interval == null) {
+            return null;
+        }
+        String uom = series.getUom();
+        if (uom != null && uom.toLowerCase().contains(":m")) {
+            return interval.value() / 1000.0;
+        }
+        return interval.value();
     }
 
     private GridValueInterval findGridInterval(NoaaGridValueSeries series, Instant onset) {
@@ -728,5 +762,246 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
     }
 
     private record GridValueInterval(Instant start, Instant end, Double value) {
+    }
+
+    @Override
+    public List<WeatherData> fetchObservationHistory(double latitude, double longitude, int hours) {
+        int normalizedHours = Math.max(1, Math.min(hours, 24));
+        log.info("Fetching observation history for: {}, {} with {}h window", latitude, longitude, normalizedHours);
+
+        RequestResult<NoaaPointProperties> pointResult = fetchPointProperties(latitude, longitude);
+        if (!pointResult.successful() || pointResult.payload() == null) return List.of();
+
+        RequestResult<NoaaStationProperties> stationResult = fetchPrimaryStation(pointResult.payload().getObservationStations());
+        if (!stationResult.successful() || stationResult.payload() == null) return List.of();
+
+        String stationId = stationResult.payload().getStationIdentifier();
+        String stationName = stationResult.payload().getName();
+        Instant end = Instant.now();
+        Instant start = end.minus(Duration.ofHours(normalizedHours));
+
+        RequestResult<NoaaObservationListResponse> result = requestWithFallback(
+            "observation_history",
+            () -> noaaWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/stations/{stationId}/observations")
+                    .queryParam("start", start.toString())
+                    .queryParam("end", end.toString())
+                    .build(stationId))
+                .retrieve()
+                .bodyToMono(NoaaObservationListResponse.class));
+
+        if (!result.successful() || result.payload() == null || result.payload().getFeatures() == null) {
+            return List.of();
+        }
+
+        return result.payload().getFeatures().stream()
+            .map(f -> mapObservationFeatureToWeatherData(f, stationId, stationName, latitude, longitude))
+            .filter(Objects::nonNull)
+            .toList();
+    }
+
+    private WeatherData mapObservationFeatureToWeatherData(
+            NoaaObservationFeature feature,
+            String stationId,
+            String stationName,
+            double latitude,
+            double longitude) {
+        if (feature == null) return null;
+        NoaaObservationResponse wrapper = new NoaaObservationResponse();
+        wrapper.setProperties(feature.getProperties());
+        return mapObservationToWeatherData(wrapper, stationId, stationName, latitude, longitude);
+    }
+
+    @Override
+    public List<WeatherData> fetchDailyForecast(double latitude, double longitude) {
+        log.info("Fetching daily forecast for: {}, {}", latitude, longitude);
+
+        RequestResult<NoaaPointProperties> pointResult = fetchPointProperties(latitude, longitude);
+        if (!pointResult.successful() || pointResult.payload() == null) return List.of();
+
+        String forecastUrl = pointResult.payload().getForecast();
+        if (forecastUrl == null || forecastUrl.isBlank()) return List.of();
+
+        RequestResult<NoaaDailyForecastResponse> result = requestWithFallback(
+            "daily_forecast",
+            () -> noaaWebClient.get()
+                .uri(forecastUrl)
+                .retrieve()
+                .bodyToMono(NoaaDailyForecastResponse.class));
+
+        if (!result.successful() || result.payload() == null || result.payload().getProperties() == null) {
+            return List.of();
+        }
+
+        List<NoaaDailyForecastPeriod> periods = result.payload().getProperties().getPeriods();
+        if (periods == null) return List.of();
+
+        return periods.stream()
+            .map(period -> mapDailyForecastPeriodToWeatherData(period, latitude, longitude))
+            .toList();
+    }
+
+    private WeatherData mapDailyForecastPeriodToWeatherData(
+            NoaaDailyForecastPeriod period,
+            double latitude,
+            double longitude) {
+        Instant onset = parseInstantSafely(period.getStartTime());
+        Instant expires = parseInstantSafely(period.getEndTime());
+        Double tempC = NoaaUnitConversionUtils.toCelsius(
+            period.getTemperature() == null ? null : period.getTemperature().doubleValue(),
+            period.getTemperatureUnit());
+        Double windKmh = NoaaUnitConversionUtils.parseWindSpeedToKmh(period.getWindSpeed());
+
+        return WeatherData.builder()
+            .id("daily-" + latitude + "-" + longitude + "-" + (onset != null ? onset.toEpochMilli() : UUID.randomUUID()))
+            .location(String.format(Locale.US, "lat=%.4f,lon=%.4f", latitude, longitude))
+            .latitude(latitude)
+            .longitude(longitude)
+            .eventType("DAILY_FORECAST")
+            .headline(period.getName() != null ? period.getName() + ": " + period.getShortForecast() : period.getShortForecast())
+            .description(period.getDetailedForecast() != null ? period.getDetailedForecast() : period.getShortForecast())
+            .status("FORECAST")
+            .onset(onset)
+            .expires(expires)
+            .temperature(tempC)
+            .windSpeed(windKmh)
+            .timestamp(Instant.now())
+            .build();
+    }
+
+    @Override
+    public Optional<WeatherData> fetchAlertById(String alertId) {
+        log.info("Fetching alert by id: {}", alertId);
+
+        RequestResult<NoaaSingleAlertResponse> result = requestWithFallback(
+            "alert_by_id",
+            () -> noaaWebClient.get()
+                .uri("/alerts/{id}", alertId)
+                .retrieve()
+                .bodyToMono(NoaaSingleAlertResponse.class));
+
+        if (!result.successful() || result.payload() == null) return Optional.empty();
+
+        NoaaSingleAlertResponse response = result.payload();
+        NoaaAlertProperties props = response.getProperties();
+        if (props == null) return Optional.empty();
+
+        WeatherData weatherData = WeatherData.builder()
+            .id(response.getId() != null ? response.getId() : UUID.randomUUID().toString())
+            .location(props.getAreaDesc())
+            .eventType(props.getEvent())
+            .severity(props.getSeverity())
+            .headline(props.getHeadline())
+            .description(props.getDescription())
+            .onset(parseInstantSafely(props.getOnset()))
+            .expires(parseInstantSafely(props.getExpires()))
+            .status(props.getStatus())
+            .messageType(props.getMessageType())
+            .category(props.getCategory())
+            .urgency(props.getUrgency())
+            .certainty(props.getCertainty())
+            .timestamp(Instant.now())
+            .build();
+
+        return Optional.of(weatherData);
+    }
+
+    @Override
+    public List<NwsProduct> fetchProductsByType(String typeCode, String locationCode) {
+        log.info("Fetching NWS products: type={}, location={}", typeCode, locationCode);
+
+        RequestResult<NoaaProductListResponse> result = requestWithFallback(
+            "products_by_type",
+            () -> noaaWebClient.get()
+                .uri(uriBuilder -> {
+                    var builder = uriBuilder.path("/products");
+                    if (typeCode != null && !typeCode.isBlank()) builder = builder.queryParam("type", typeCode);
+                    if (locationCode != null && !locationCode.isBlank()) builder = builder.queryParam("location", locationCode);
+                    return builder.build();
+                })
+                .retrieve()
+                .bodyToMono(NoaaProductListResponse.class));
+
+        if (!result.successful() || result.payload() == null || result.payload().getGraph() == null) {
+            return List.of();
+        }
+
+        return result.payload().getGraph().stream()
+            .map(this::mapProductItemToNwsProduct)
+            .toList();
+    }
+
+    @Override
+    public Optional<NwsProduct> fetchProductById(String productId) {
+        log.info("Fetching NWS product by id: {}", productId);
+
+        RequestResult<NoaaProductResponse> result = requestWithFallback(
+            "product_by_id",
+            () -> noaaWebClient.get()
+                .uri("/products/{productId}", productId)
+                .retrieve()
+                .bodyToMono(NoaaProductResponse.class));
+
+        if (!result.successful() || result.payload() == null) return Optional.empty();
+
+        return Optional.of(mapProductResponseToNwsProduct(result.payload()));
+    }
+
+    private NwsProduct mapProductItemToNwsProduct(NoaaProductItem item) {
+        return NwsProduct.builder()
+            .id(item.getId())
+            .wmoCollectiveId(item.getWmoCollectiveId())
+            .issuingOffice(item.getIssuingOffice())
+            .issuanceTime(parseInstantSafely(item.getIssuanceTime()))
+            .productCode(item.getProductCode())
+            .productName(item.getProductName())
+            .build();
+    }
+
+    private NwsProduct mapProductResponseToNwsProduct(NoaaProductResponse response) {
+        return NwsProduct.builder()
+            .id(response.getId())
+            .wmoCollectiveId(response.getWmoCollectiveId())
+            .issuingOffice(response.getIssuingOffice())
+            .issuanceTime(parseInstantSafely(response.getIssuanceTime()))
+            .productCode(response.getProductCode())
+            .productName(response.getProductName())
+            .productText(response.getProductText())
+            .build();
+    }
+
+    @Override
+    public List<WeatherData> fetchZoneForecast(String zoneType, String zoneId) {
+        log.info("Fetching zone forecast: type={}, id={}", zoneType, zoneId);
+
+        RequestResult<NoaaZoneForecastResponse> result = requestWithFallback(
+            "zone_forecast",
+            () -> noaaWebClient.get()
+                .uri("/zones/{type}/{zoneId}/forecast", zoneType, zoneId)
+                .retrieve()
+                .bodyToMono(NoaaZoneForecastResponse.class));
+
+        if (!result.successful() || result.payload() == null || result.payload().getProperties() == null) {
+            return List.of();
+        }
+
+        NoaaZoneForecastProperties props = result.payload().getProperties();
+        if (props.getPeriods() == null) return List.of();
+
+        Instant updated = parseInstantSafely(props.getUpdated());
+
+        return props.getPeriods().stream()
+            .map(period -> WeatherData.builder()
+                .id("zone-" + zoneType + "-" + zoneId + "-" + period.getName().replaceAll("\\s+", "_"))
+                .location(zoneId)
+                .eventType("ZONE_FORECAST")
+                .headline(period.getName())
+                .description(period.getDetailedForecast())
+                .status("FORECAST")
+                .onset(updated)
+                .timestamp(Instant.now())
+                .build())
+            .toList();
     }
 }

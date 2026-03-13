@@ -1,5 +1,6 @@
 package com.weather.alert.domain.port;
 
+import com.weather.alert.domain.model.NwsProduct;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.model.HydrologyQuery;
 
@@ -87,4 +88,47 @@ public interface WeatherDataPort {
     default WeatherFetchResult<Optional<WeatherData>> fetchHydrologyForecastConditionsWithStatus(HydrologyQuery query) {
         return WeatherFetchResult.success(fetchHydrologyForecastConditions(query));
     }
+
+    /**
+     * Fetch historical observations for a coordinate over the given number of hours.
+     */
+    default List<WeatherData> fetchObservationHistory(double latitude, double longitude, int hours) {
+        return List.of();
+    }
+
+    /**
+     * Fetch the 7-day period forecast for a coordinate.
+     */
+    default List<WeatherData> fetchDailyForecast(double latitude, double longitude) {
+        return List.of();
+    }
+
+    /**
+     * Fetch a single NOAA alert by its identifier.
+     */
+    default Optional<WeatherData> fetchAlertById(String alertId) {
+        return Optional.empty();
+    }
+
+    /**
+     * Fetch NWS text products optionally filtered by type code and/or location code.
+     */
+    default List<NwsProduct> fetchProductsByType(String typeCode, String locationCode) {
+        return List.of();
+    }
+
+    /**
+     * Fetch a single NWS text product by its identifier.
+     */
+    default Optional<NwsProduct> fetchProductById(String productId) {
+        return Optional.empty();
+    }
+
+    /**
+     * Fetch a zone-based forecast from NWS.
+     */
+    default List<WeatherData> fetchZoneForecast(String zoneType, String zoneId) {
+        return List.of();
+    }
 }
+

@@ -10,4 +10,9 @@ public class NoaaObservationProperties {
     private NoaaQuantitativeValue windSpeed;
     private NoaaQuantitativeValue relativeHumidity;
     private NoaaQuantitativeValue precipitationLastHour;
+    private NoaaQuantitativeValue windDirection;
+    private NoaaQuantitativeValue visibility;
+    private NoaaQuantitativeValue dewpoint;
+    private NoaaQuantitativeValue windChill;
+    private NoaaQuantitativeValue heatIndex;
 }

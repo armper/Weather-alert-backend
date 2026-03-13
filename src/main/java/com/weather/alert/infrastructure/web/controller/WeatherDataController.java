@@ -1,8 +1,10 @@
 package com.weather.alert.infrastructure.web.controller;
 
+import com.weather.alert.application.dto.NwsProductResponse;
 import com.weather.alert.application.dto.PagedResponse;
 import com.weather.alert.application.dto.WeatherDataResponse;
 import com.weather.alert.domain.model.HydrologyQuery;
+import com.weather.alert.domain.model.NwsProduct;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.WeatherDataPort;
@@ -164,7 +166,76 @@ public class WeatherDataController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
-    
+
+    @GetMapping("/conditions/history")
+    @Operation(summary = "Get observation history for a coordinate to track trends")
+    public ResponseEntity<List<WeatherDataResponse>> getObservationHistory(
+            @Parameter(example = "47.6062") @RequestParam double latitude,
+            @Parameter(example = "-122.3321") @RequestParam double longitude,
+            @Parameter(description = "Number of hours of history (max 24)", example = "6")
+            @RequestParam(defaultValue = "6") @Min(1) @Max(24) int hours) {
+        List<WeatherData> weatherData = weatherDataPort.fetchObservationHistory(latitude, longitude, hours);
+        List<WeatherDataResponse> response = weatherData.stream().map(this::toResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/conditions/daily")
+    @Operation(summary = "Get 7-day period forecast for a coordinate")
+    public ResponseEntity<List<WeatherDataResponse>> getDailyForecast(
+            @Parameter(example = "47.6062") @RequestParam double latitude,
+            @Parameter(example = "-122.3321") @RequestParam double longitude) {
+        List<WeatherData> weatherData = weatherDataPort.fetchDailyForecast(latitude, longitude);
+        List<WeatherDataResponse> response = weatherData.stream().map(this::toResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/alerts/{alertId}")
+    @Operation(summary = "Get a specific NOAA alert by its identifier")
+    public ResponseEntity<WeatherDataResponse> getAlertById(
+            @Parameter(example = "urn:oid:2.49.0.1.840.0.abc123") @PathVariable String alertId) {
+        Optional<WeatherData> alert = weatherDataPort.fetchAlertById(alertId);
+        return alert.map(a -> ResponseEntity.ok(toResponse(a)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/products")
+    @Operation(summary = "List NWS text products by type and/or location")
+    public ResponseEntity<List<NwsProductResponse>> getProducts(
+            @Parameter(example = "AFD") @RequestParam(required = false) String type,
+            @Parameter(example = "SEW") @RequestParam(required = false) String location) {
+        List<NwsProduct> products = weatherDataPort.fetchProductsByType(type, location);
+        List<NwsProductResponse> response = products.stream().map(this::toProductResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/products/{productId}")
+    @Operation(summary = "Get a specific NWS text product by its identifier")
+    public ResponseEntity<NwsProductResponse> getProductById(
+            @Parameter(example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890") @PathVariable String productId) {
+        Optional<NwsProduct> product = weatherDataPort.fetchProductById(productId);
+        return product.map(p -> ResponseEntity.ok(toProductResponse(p)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/zones/{zoneType}/{zoneId}/forecast")
+    @Operation(summary = "Get zone-based forecast from NWS")
+    public ResponseEntity<List<WeatherDataResponse>> getZoneForecast(
+            @Parameter(example = "forecast") @PathVariable String zoneType,
+            @Parameter(example = "WAZ001") @PathVariable String zoneId) {
+        List<WeatherData> weatherData = weatherDataPort.fetchZoneForecast(zoneType, zoneId);
+        List<WeatherDataResponse> response = weatherData.stream().map(this::toResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/marine/{zoneId}/forecast")
+    @Operation(summary = "Get marine zone forecast (convenience endpoint using zone forecast infrastructure)")
+    public ResponseEntity<List<WeatherDataResponse>> getMarineForecast(
+            @Parameter(example = "AMZ630") @PathVariable String zoneId) {
+        List<WeatherData> weatherData = weatherDataPort.fetchZoneForecast("forecast", zoneId);
+        List<WeatherDataResponse> response = weatherData.stream().map(this::toResponse).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
     private WeatherDataResponse toResponse(WeatherData data) {
         return WeatherDataResponse.builder()
                 .id(data.getId())
@@ -192,7 +263,28 @@ public class WeatherDataController {
                 .riverForecastCategory(data.getRiverForecastCategory())
                 .riverStageUnit(data.getRiverStageUnit())
                 .riverDistanceKm(data.getRiverDistanceKm())
+                .apparentTemperature(data.getApparentTemperature())
+                .windChill(data.getWindChill())
+                .heatIndex(data.getHeatIndex())
+                .visibility(data.getVisibility())
+                .windDirection(data.getWindDirection())
+                .snowfallAmount(data.getSnowfallAmount())
+                .iceAccumulation(data.getIceAccumulation())
+                .probabilityOfThunder(data.getProbabilityOfThunder())
+                .ceilingHeight(data.getCeilingHeight())
                 .timestamp(data.getTimestamp() != null ? data.getTimestamp().toString() : null)
+                .build();
+    }
+
+    private NwsProductResponse toProductResponse(NwsProduct product) {
+        return NwsProductResponse.builder()
+                .id(product.getId())
+                .wmoCollectiveId(product.getWmoCollectiveId())
+                .issuingOffice(product.getIssuingOffice())
+                .issuanceTime(product.getIssuanceTime() != null ? product.getIssuanceTime().toString() : null)
+                .productCode(product.getProductCode())
+                .productName(product.getProductName())
+                .productText(product.getProductText())
                 .build();
     }
 }
