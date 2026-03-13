@@ -49,4 +49,14 @@ public class WeatherData {
     private String riverStageUnit;
     private Double riverDistanceKm;
     private Instant timestamp;
+
+    private Double apparentTemperature;
+    private Double windChill;
+    private Double heatIndex;
+    private Double visibility;
+    private Double windDirection;
+    private Double snowfallAmount;
+    private Double iceAccumulation;
+    private Double probabilityOfThunder;
+    private Double ceilingHeight;
 }

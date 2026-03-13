@@ -94,4 +94,31 @@ public class WeatherDataResponse {
 
     @Schema(example = "2026-02-24T19:10:00Z")
     private String timestamp;
+
+    @Schema(description = "Apparent (feels-like) temperature in Celsius", example = "11.5")
+    private Double apparentTemperature;
+
+    @Schema(description = "Wind chill in Celsius", example = "9.0")
+    private Double windChill;
+
+    @Schema(description = "Heat index in Celsius", example = "16.0")
+    private Double heatIndex;
+
+    @Schema(description = "Visibility in km", example = "16.0")
+    private Double visibility;
+
+    @Schema(description = "Wind direction in degrees", example = "270.0")
+    private Double windDirection;
+
+    @Schema(description = "Snowfall amount in mm", example = "0.0")
+    private Double snowfallAmount;
+
+    @Schema(description = "Ice accumulation in mm", example = "0.0")
+    private Double iceAccumulation;
+
+    @Schema(description = "Probability of thunder percentage", example = "5.0")
+    private Double probabilityOfThunder;
+
+    @Schema(description = "Ceiling height in meters", example = "3000.0")
+    private Double ceilingHeight;
 }

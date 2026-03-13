@@ -120,4 +120,31 @@ public class WeatherDataEntity {
 
     @Column(name = "recorded_at")
     private Instant recordedAt;
+
+    @Column(name = "apparent_temperature")
+    private Double apparentTemperature;
+
+    @Column(name = "wind_chill")
+    private Double windChill;
+
+    @Column(name = "heat_index")
+    private Double heatIndex;
+
+    @Column(name = "visibility")
+    private Double visibility;
+
+    @Column(name = "wind_direction")
+    private Double windDirection;
+
+    @Column(name = "snowfall_amount")
+    private Double snowfallAmount;
+
+    @Column(name = "ice_accumulation")
+    private Double iceAccumulation;
+
+    @Column(name = "probability_of_thunder")
+    private Double probabilityOfThunder;
+
+    @Column(name = "ceiling_height")
+    private Double ceilingHeight;
 }
