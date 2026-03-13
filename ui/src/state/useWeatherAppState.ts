@@ -165,10 +165,10 @@ export function useWeatherAppState() {
       setCurrentWeather(weather)
       setBillingStatus(billing)
       setAdminUsers(adminAccounts)
-      setObservationHistory(history ?? [])
-      setDailyForecast(daily ?? [])
-      setHourlyForecast(hourly ?? [])
-      setNwsProducts(products ?? [])
+      setObservationHistory(history)
+      setDailyForecast(daily)
+      setHourlyForecast(hourly)
+      setNwsProducts(products)
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {

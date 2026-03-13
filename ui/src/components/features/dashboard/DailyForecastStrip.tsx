@@ -3,6 +3,7 @@ import type { WeatherCondition } from '../../../types'
 
 interface DailyForecastStripProps {
   items: WeatherCondition[]
+  unit?: 'F' | 'C'
 }
 
 function formatDayLabel(timestamp?: string): string {
@@ -35,7 +36,7 @@ function resolveWeatherIcon(item: WeatherCondition): string {
   return '☀️'
 }
 
-export function DailyForecastStrip({ items }: DailyForecastStripProps) {
+export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProps) {
   if (items.length === 0) {
     return null
   }
@@ -55,7 +56,7 @@ export function DailyForecastStrip({ items }: DailyForecastStripProps) {
             <span className="daily-forecast-day-icon" aria-hidden>
               {resolveWeatherIcon(item)}
             </span>
-            <span className="daily-forecast-day-temp">{formatTemperature(item.temperature, 'F')}</span>
+            <span className="daily-forecast-day-temp">{formatTemperature(item.temperature, unit)}</span>
             <span className="daily-forecast-day-rain">{formatPercentOrNA(item.precipitationProbability)}</span>
           </div>
         ))}

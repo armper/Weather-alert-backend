@@ -3,6 +3,7 @@ import type { WeatherCondition } from '../../../types'
 
 interface HourlyForecastStripProps {
   items: WeatherCondition[]
+  unit?: 'F' | 'C'
 }
 
 function formatHourLabel(timestamp?: string): string {
@@ -16,7 +17,7 @@ function formatHourLabel(timestamp?: string): string {
   return date.toLocaleTimeString(undefined, { hour: 'numeric' })
 }
 
-export function HourlyForecastStrip({ items }: HourlyForecastStripProps) {
+export function HourlyForecastStrip({ items, unit = 'F' }: HourlyForecastStripProps) {
   if (items.length === 0) {
     return null
   }
@@ -28,7 +29,7 @@ export function HourlyForecastStrip({ items }: HourlyForecastStripProps) {
         {items.slice(0, 24).map((item) => (
           <div key={item.id} className="hourly-forecast-slot">
             <span className="hourly-forecast-time">{formatHourLabel(item.timestamp)}</span>
-            <span className="hourly-forecast-temp">{formatTemperature(item.temperature, 'F')}</span>
+            <span className="hourly-forecast-temp">{formatTemperature(item.temperature, unit)}</span>
             <span className="hourly-forecast-rain">{formatPercentOrNA(item.precipitationProbability)}</span>
           </div>
         ))}
