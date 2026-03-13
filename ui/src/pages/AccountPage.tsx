@@ -253,6 +253,19 @@ export function AccountPage() {
     return null
   }
 
+  function billingEmailModeCopy() {
+    if (loadingBilling) {
+      return 'Loading your plan details and current entitlements.'
+    }
+    if (currentPlan === 'FREE' || !billingStatus?.activeSubscription) {
+      return 'Your email alerts include a sponsored footer on The Basics.'
+    }
+    if (billingStatus?.adSponsoredEmails) {
+      return 'Your email alerts currently include a sponsored footer on this plan.'
+    }
+    return 'Your alert emails are ad-free on the current paid tier.'
+  }
+
   function openPlanChangeDialog(planId: BillingPlan) {
     setPendingPlanChange(planId)
   }
@@ -319,13 +332,7 @@ export function AccountPage() {
               <div>
                 <p className="eyebrow">Billing</p>
                 <h3>Current plan: {PLAN_DETAILS.find((plan) => plan.id === currentPlan)?.name ?? currentPlan}</h3>
-                <p className="account-billing-copy">
-                  {loadingBilling
-                    ? 'Loading your plan details and current entitlements.'
-                    : billingStatus?.adSponsoredEmails
-                    ? 'Your email alerts include a sponsored footer on the free tier.'
-                    : 'Your alert emails are ad-free on the current paid tier.'}
-                </p>
+                <p className="account-billing-copy">{billingEmailModeCopy()}</p>
               </div>
 
               <div className="account-plan-summary">

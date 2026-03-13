@@ -21,6 +21,16 @@ export interface ProblemDetails {
   errors?: ProblemFieldError[]
 }
 
+export interface PagedResponse<T> {
+  items: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
 export interface AuthTokenResponse {
   accessToken: string
   tokenType: 'Bearer'

@@ -12,6 +12,7 @@ import type {
   JobRunResponse,
   MessageResponse,
   NwsProduct,
+  PagedResponse,
   RecoveryRequestResponse,
   RegisterUserResponse,
   UserAccount,
@@ -43,6 +44,16 @@ import {
   type RegisterState,
   type VerifyState,
 } from './types'
+
+function unwrapCollection<T>(payload: T[] | PagedResponse<T> | null | undefined): T[] {
+  if (Array.isArray(payload)) {
+    return payload
+  }
+  if (payload && Array.isArray(payload.items)) {
+    return payload.items
+  }
+  return []
+}
 
 export function useWeatherAppState() {
   type AdminJobKey = 'weather-processing' | 'alert-delivery-retries' | 'data-retention'
@@ -131,7 +142,7 @@ export function useWeatherAppState() {
       const lon = freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON
 
       const [freshAlerts, preferences, weather, billing, adminAccounts, history, daily, hourly, products] = await Promise.all([
-        apiRequest<AlertEvent[]>(`/api/alerts/user/${account.id}`, { token: activeToken }),
+        apiRequest<AlertEvent[] | PagedResponse<AlertEvent>>(`/api/alerts/user/${account.id}`, { token: activeToken }),
         apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }).catch(
           () => null,
         ),
@@ -158,8 +169,10 @@ export function useWeatherAppState() {
         apiRequest<NwsProduct[]>('/api/weather/products?type=AFD', { token: activeToken }).catch(() => [] as NwsProduct[]),
       ])
 
+      const alertItems = unwrapCollection(freshAlerts)
+
       setAlerts(
-        [...freshAlerts].sort((a, b) => new Date(b.alertTime ?? '').getTime() - new Date(a.alertTime ?? '').getTime()),
+        [...alertItems].sort((a, b) => new Date(b.alertTime ?? '').getTime() - new Date(a.alertTime ?? '').getTime()),
       )
       setNotificationPreference(preferences)
       setCurrentWeather(weather)
@@ -276,6 +289,7 @@ export function useWeatherAppState() {
 
   function logout() {
     localStorage.removeItem(STORAGE_KEY)
+    setNotice(null)
     setToken(null)
   }
 
