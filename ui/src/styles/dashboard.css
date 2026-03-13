@@ -1293,3 +1293,295 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── Observation History: Trend Sparklines ──────────────────────────────── */
+
+.overview-trends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.72rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--panel-border);
+}
+
+.trend-sparkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.trend-sparkline-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.trend-sparkline-svg {
+  color: var(--accent, #0077b6);
+  opacity: 0.75;
+}
+
+.trend-sparkline-delta {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.trend-sparkline-delta-up {
+  color: #d62828;
+}
+
+.trend-sparkline-delta-down {
+  color: #0077b6;
+}
+
+.overview-rapid-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.16rem 0.52rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(214, 40, 40, 0.12);
+  color: #d62828;
+  border: 1px solid rgba(214, 40, 40, 0.24);
+}
+
+/* ── Extended Gridpoint Fields: Feels Like & Warnings ───────────────────── */
+
+.weather-feels-like {
+  margin: -0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.weather-warning-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.weather-warning-heat {
+  background: rgba(214, 40, 40, 0.1);
+  border: 1px solid rgba(214, 40, 40, 0.22);
+  color: #b91c1c;
+}
+
+.weather-warning-cold {
+  background: rgba(0, 119, 182, 0.1);
+  border: 1px solid rgba(0, 119, 182, 0.22);
+  color: #1d4ed8;
+}
+
+/* ── 7-Day Period Forecast: Daily Strip ─────────────────────────────────── */
+
+.daily-forecast-panel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.daily-forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.daily-forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.55rem 0.3rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg-elevated);
+  text-align: center;
+}
+
+.daily-forecast-day-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.daily-forecast-day-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.daily-forecast-day-temp {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.daily-forecast-day-rain {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ── Hourly Forecast Strip ──────────────────────────────────────────────── */
+
+.hourly-forecast-strip {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.72rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--panel-border);
+}
+
+.hourly-forecast-eyebrow {
+  margin: 0;
+}
+
+.hourly-forecast-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), 0.2) transparent;
+}
+
+.hourly-forecast-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  flex-shrink: 0;
+  min-width: 3.2rem;
+  padding: 0.38rem 0.3rem;
+  border-radius: 0.52rem;
+  border: 1px solid var(--panel-border);
+  background: var(--card-bg-elevated);
+  text-align: center;
+}
+
+.hourly-forecast-time {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.hourly-forecast-temp {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hourly-forecast-rain {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* ── NWS Text Products Panel ────────────────────────────────────────────── */
+
+.nws-products-panel {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.nws-products-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.nws-product-item {
+  border: 1px solid var(--panel-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.nws-product-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 0.78rem;
+  cursor: pointer;
+  background: var(--card-bg-elevated);
+  font-size: 0.88rem;
+  list-style: none;
+  user-select: none;
+}
+
+.nws-product-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nws-product-summary::before {
+  content: '▶';
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: transform 150ms ease;
+}
+
+.nws-product-item[open] .nws-product-summary::before {
+  transform: rotate(90deg);
+}
+
+.nws-product-icon {
+  flex-shrink: 0;
+}
+
+.nws-product-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.nws-product-office {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+}
+
+.nws-product-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.nws-product-text {
+  margin: 0;
+  padding: 0.72rem 0.78rem;
+  font-family: monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--surface-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 18rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--panel-border);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), 0.2) transparent;
+}
+
+/* ── Daily forecast responsive adjustments ──────────────────────────────── */
+
+@media (max-width: 640px) {
+  .daily-forecast-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

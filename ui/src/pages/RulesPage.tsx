@@ -1328,9 +1328,11 @@ function buildPreviewChips(currentWeather: WeatherCondition | null, unit: 'F' | 
 
   return [
     currentWeather.temperature != null ? `🌡 ${formatTemperature(currentWeather.temperature, unit)}` : null,
+    currentWeather.apparentTemperature != null ? `🌡 Feels ${formatTemperature(currentWeather.apparentTemperature, unit)}` : null,
     currentWeather.humidity != null ? `💧 ${currentWeather.humidity}%` : null,
     currentWeather.precipitationProbability != null ? `🌧 ${formatNumber(currentWeather.precipitationProbability)}%` : null,
     currentWeather.windSpeed != null ? `🌬 ${formatWind(currentWeather.windSpeed)}` : null,
+    currentWeather.visibility != null ? `👁 Vis ${formatNumber(currentWeather.visibility)} km` : null,
   ].filter((value): value is string => Boolean(value))
 }
 

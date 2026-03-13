@@ -3,9 +3,13 @@ import { Link } from 'react-router-dom'
 import { useAppState } from '../state/useAppState'
 import { RecentActivityFeed } from '../components/features/dashboard/RecentActivityFeed'
 import { WeatherTimeline } from '../components/features/dashboard/WeatherTimeline'
+import { TrendSparkline } from '../components/features/dashboard/TrendSparkline'
+import { DailyForecastStrip } from '../components/features/dashboard/DailyForecastStrip'
+import { HourlyForecastStrip } from '../components/features/dashboard/HourlyForecastStrip'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import {
+  degreesToCompass,
   formatFriendlyLocation,
   formatPercentOrNA,
   formatTemperature,
@@ -18,7 +22,7 @@ import { buildRuleDashboardSummary } from '../lib/ruleDashboard'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
-  const { currentWeather, criteria, alerts } = useAppState()
+  const { currentWeather, criteria, alerts, observationHistory, dailyForecast, hourlyForecast } = useAppState()
   const now = useLiveNow(20_000)
   const summary = useMemo(() => buildAlertConsoleSummary(criteria, alerts, currentWeather, now), [criteria, alerts, currentWeather, now])
   const dashboard = useMemo(
@@ -35,6 +39,16 @@ export function OverviewPage() {
   const defaultLongitude = criteria[0]?.longitude ?? Number(DEFAULT_LON)
   const defaultRadiusKm = criteria[0]?.radiusKm ?? 8
   const currentHeadline = currentWeather?.headline?.trim() || 'Current NOAA observation'
+
+  const tempHistory = observationHistory.map((item) => item.temperature)
+  const windHistory = observationHistory.map((item) => item.windSpeed)
+  const humidityHistory = observationHistory.map((item) => item.humidity)
+  const tempValues = tempHistory.filter((value): value is number => value != null)
+  const rapidTempChange =
+    tempValues.length >= 2 && Math.abs(tempValues[tempValues.length - 1] - tempValues[0]) > 5
+
+  const showHeatWarning = currentWeather?.heatIndex != null && currentWeather.heatIndex > 37.8
+  const showWindChillWarning = currentWeather?.windChill != null && currentWeather.windChill < -12.2
 
   return (
     <section className="page-stack">
@@ -81,6 +95,19 @@ export function OverviewPage() {
                 )}
               </Link>
               <p className="weather-temp weather-temp-hero">{formatTemperature(currentWeather.temperature, 'F')}</p>
+              {currentWeather.apparentTemperature != null ? (
+                <p className="weather-feels-like">Feels like {formatTemperature(currentWeather.apparentTemperature, 'F')}</p>
+              ) : null}
+              {showHeatWarning ? (
+                <div className="weather-warning-strip weather-warning-heat" role="alert">
+                  🔥 Heat index {formatTemperature(currentWeather.heatIndex, 'F')} — take precautions
+                </div>
+              ) : null}
+              {showWindChillWarning ? (
+                <div className="weather-warning-strip weather-warning-cold" role="alert">
+                  ❄️ Wind chill {formatTemperature(currentWeather.windChill, 'F')} — bundle up
+                </div>
+              ) : null}
               <p className="overview-headline">{currentHeadline}</p>
               <p className="weather-location">{resolvedConditionLocation}</p>
               <div className="weather-meta overview-metric-row">
@@ -91,7 +118,28 @@ export function OverviewPage() {
                 {currentWeather.humidity != null ? (
                   <span className="metric-pill overview-metric-pill">{`Humidity ${currentWeather.humidity}%`}</span>
                 ) : null}
+                {currentWeather.visibility != null ? (
+                  <span className="metric-pill overview-metric-pill">{`👁 Vis ${currentWeather.visibility.toFixed(1)} km`}</span>
+                ) : null}
+                {currentWeather.windDirection != null ? (
+                  <span className="metric-pill overview-metric-pill">{`🧭 ${degreesToCompass(currentWeather.windDirection)}`}</span>
+                ) : null}
               </div>
+              {observationHistory.length > 1 ? (
+                <div className="overview-trends">
+                  {rapidTempChange ? (
+                    <span className="overview-rapid-change-badge" title="Rapid temperature change in the past 6 hours">
+                      ⚡ Rapid change
+                    </span>
+                  ) : null}
+                  <TrendSparkline label="Temp" data={tempHistory} unit="°" />
+                  <TrendSparkline label="Wind" data={windHistory} unit=" km/h" />
+                  <TrendSparkline label="Humidity" data={humidityHistory} unit="%" />
+                </div>
+              ) : null}
+              {hourlyForecast.length > 0 ? (
+                <HourlyForecastStrip items={hourlyForecast} />
+              ) : null}
               <section className="overview-watch-section">
                 <div className="panel-title-row overview-watch-header">
                   <h3>Watching for</h3>
@@ -122,6 +170,9 @@ export function OverviewPage() {
       </div>
 
       <WeatherTimeline items={dashboard.timeline} />
+
+      {dailyForecast.length > 0 ? <DailyForecastStrip items={dailyForecast} /> : null}
     </section>
   )
 }
+

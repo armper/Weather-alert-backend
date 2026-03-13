@@ -11,6 +11,7 @@ import type {
   ChannelVerification,
   JobRunResponse,
   MessageResponse,
+  NwsProduct,
   RecoveryRequestResponse,
   RegisterUserResponse,
   UserAccount,
@@ -68,6 +69,10 @@ export function useWeatherAppState() {
   const [notificationPreference, setNotificationPreference] = useState<UserNotificationPreference | null>(null)
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
   const [adminUsers, setAdminUsers] = useState<UserAccount[]>([])
+  const [observationHistory, setObservationHistory] = useState<WeatherCondition[]>([])
+  const [dailyForecast, setDailyForecast] = useState<WeatherCondition[]>([])
+  const [hourlyForecast, setHourlyForecast] = useState<WeatherCondition[]>([])
+  const [nwsProducts, setNwsProducts] = useState<NwsProduct[]>([])
 
   const [profileForm, setProfileForm] = useState<ProfileFormState>({ name: '', phoneNumber: '' })
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>(initialPasswordForm)
@@ -122,21 +127,35 @@ export function useWeatherAppState() {
       })
       setCriteria(freshCriteria)
 
-      const [freshAlerts, preferences, weather, billing, adminAccounts] = await Promise.all([
+      const lat = freshCriteria[0]?.latitude?.toString() ?? DEFAULT_LAT
+      const lon = freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON
+
+      const [freshAlerts, preferences, weather, billing, adminAccounts, history, daily, hourly, products] = await Promise.all([
         apiRequest<AlertEvent[]>(`/api/alerts/user/${account.id}`, { token: activeToken }),
         apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }).catch(
           () => null,
         ),
         apiRequest<WeatherCondition>(
-          `/api/weather/conditions/current?latitude=${encodeURIComponent(
-            freshCriteria[0]?.latitude?.toString() ?? DEFAULT_LAT,
-          )}&longitude=${encodeURIComponent(freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON)}`,
+          `/api/weather/conditions/current?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`,
           { token: activeToken },
         ).catch(() => null),
         apiRequest<BillingStatus>('/api/billing/me', { token: activeToken }).catch(() => null),
         account.role.includes('ADMIN')
           ? apiRequest<UserAccount[]>('/api/admin/users', { token: activeToken })
           : Promise.resolve([]),
+        apiRequest<WeatherCondition[]>(
+          `/api/weather/conditions/history?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hours=6`,
+          { token: activeToken },
+        ).catch(() => [] as WeatherCondition[]),
+        apiRequest<WeatherCondition[]>(
+          `/api/weather/conditions/daily?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`,
+          { token: activeToken },
+        ).catch(() => [] as WeatherCondition[]),
+        apiRequest<WeatherCondition[]>(
+          `/api/weather/conditions/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hours=24`,
+          { token: activeToken },
+        ).catch(() => [] as WeatherCondition[]),
+        apiRequest<NwsProduct[]>('/api/weather/products?type=AFD', { token: activeToken }).catch(() => [] as NwsProduct[]),
       ])
 
       setAlerts(
@@ -146,6 +165,10 @@ export function useWeatherAppState() {
       setCurrentWeather(weather)
       setBillingStatus(billing)
       setAdminUsers(adminAccounts)
+      setObservationHistory(history)
+      setDailyForecast(daily)
+      setHourlyForecast(hourly)
+      setNwsProducts(products)
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {
@@ -185,6 +208,10 @@ export function useWeatherAppState() {
       setNotificationPreference(null)
       setBillingStatus(null)
       setAdminUsers([])
+      setObservationHistory([])
+      setDailyForecast([])
+      setHourlyForecast([])
+      setNwsProducts([])
       return
     }
     void bootstrap(token)
@@ -997,6 +1024,10 @@ export function useWeatherAppState() {
     billingStatus,
     adminUsers,
     adminJobResults,
+    observationHistory,
+    dailyForecast,
+    hourlyForecast,
+    nwsProducts,
 
     profileForm,
     setProfileForm,

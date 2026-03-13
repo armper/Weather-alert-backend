@@ -182,6 +182,25 @@ export interface WeatherCondition {
   riverStageUnit?: string
   riverDistanceKm?: number
   timestamp?: string
+  apparentTemperature?: number
+  windChill?: number
+  heatIndex?: number
+  visibility?: number
+  windDirection?: number
+  snowfallAmount?: number
+  iceAccumulation?: number
+  probabilityOfThunder?: number
+  ceilingHeight?: number
+}
+
+export interface NwsProduct {
+  id: string
+  wmoCollectiveId?: string
+  issuingOffice?: string
+  issuanceTime?: string
+  productCode?: string
+  productName?: string
+  productText?: string
 }
 
 export interface UserNotificationPreference {

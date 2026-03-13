@@ -4,11 +4,12 @@ import { useAppState } from '../state/useAppState'
 import { ActiveAlertCard } from '../components/features/dashboard/ActiveAlertCard'
 import { AlertTimelineItem } from '../components/features/dashboard/AlertTimelineItem'
 import { MonitoringBanner } from '../components/features/dashboard/MonitoringBanner'
+import { NwsProductsPanel } from '../components/features/dashboard/NwsProductsPanel'
 import { AriaButton } from '../components/ui/AriaButton'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
 
 export function EventsPage() {
-  const { alerts, busyAlertId, criteria, currentWeather, loadingData, handleAcknowledgeAlert, handleAcknowledgeAllAlerts } =
+  const { alerts, busyAlertId, criteria, currentWeather, loadingData, nwsProducts, handleAcknowledgeAlert, handleAcknowledgeAllAlerts } =
     useAppState()
   const summary = useMemo(
     () => buildAlertConsoleSummary(criteria, alerts, currentWeather),
@@ -106,6 +107,8 @@ export function EventsPage() {
             </div>
           </details>
         ) : null}
+
+        {nwsProducts.length > 0 ? <NwsProductsPanel products={nwsProducts} /> : null}
       </article>
     </section>
   )
