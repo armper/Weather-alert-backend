@@ -5,6 +5,7 @@ import com.weather.alert.application.exception.BillingStateException;
 import com.weather.alert.application.exception.TravelPlanNotFoundException;
 import com.weather.alert.application.service.BillingPlanService;
 import com.weather.alert.domain.model.BillingEntitlements;
+import com.weather.alert.domain.model.RouteWaypoint;
 import com.weather.alert.domain.model.TravelPlan;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.TravelPlanRepositoryPort;
@@ -61,6 +62,7 @@ public class ManageTravelPlansUseCase {
                 .alertCoverageMode(coverageMode)
                 .selectedAlertTopics(normalizeAlertTopics(request.getSelectedAlertTopics(), coverageMode, alertsEnabled))
                 .linkedCriteriaIds(normalizeCriteriaIds(request.getLinkedCriteriaIds(), coverageMode, alertsEnabled))
+                .waypoints(normalizeWaypoints(request.getWaypoints()))
                 .createdAt(now)
                 .updatedAt(now)
                 .build());
@@ -81,6 +83,7 @@ public class ManageTravelPlansUseCase {
         existing.setAlertCoverageMode(coverageMode);
         existing.setSelectedAlertTopics(normalizeAlertTopics(request.getSelectedAlertTopics(), coverageMode, alertsEnabled));
         existing.setLinkedCriteriaIds(normalizeCriteriaIds(request.getLinkedCriteriaIds(), coverageMode, alertsEnabled));
+        existing.setWaypoints(normalizeWaypoints(request.getWaypoints()));
         existing.setUpdatedAt(Instant.now());
         return travelPlanRepository.save(existing);
     }
@@ -158,5 +161,20 @@ public class ManageTravelPlansUseCase {
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized.replaceAll("\\s{2,}", " ");
+    }
+
+    private List<RouteWaypoint> normalizeWaypoints(List<com.weather.alert.application.dto.RouteWaypointRequest> waypoints) {
+        if (waypoints == null || waypoints.isEmpty()) {
+            return List.of();
+        }
+        return waypoints.stream()
+                .map(w -> RouteWaypoint.builder()
+                        .sequence(w.getSequence())
+                        .label(w.getLabel() != null ? w.getLabel().trim() : null)
+                        .latitude(w.getLatitude())
+                        .longitude(w.getLongitude())
+                        .build())
+                .sorted(java.util.Comparator.comparingInt(RouteWaypoint::getSequence))
+                .collect(Collectors.toList());
     }
 }

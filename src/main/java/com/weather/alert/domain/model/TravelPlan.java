@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
 
 @Data
 @Builder
@@ -28,6 +29,7 @@ public class TravelPlan {
     private String alertCoverageMode;
     private List<String> selectedAlertTopics;
     private List<String> linkedCriteriaIds;
+    private List<RouteWaypoint> waypoints;
     private Instant createdAt;
     private Instant updatedAt;
 }

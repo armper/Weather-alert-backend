@@ -1,6 +1,7 @@
 package com.weather.alert.application.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.weather.alert.domain.model.WeatherData;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -121,4 +122,44 @@ public class WeatherDataResponse {
 
     @Schema(description = "Ceiling height in meters", example = "3000.0")
     private Double ceilingHeight;
+
+    public static WeatherDataResponse fromDomain(WeatherData data) {
+        return WeatherDataResponse.builder()
+                .id(data.getId())
+                .location(data.getLocation())
+                .eventType(data.getEventType())
+                .severity(data.getSeverity())
+                .headline(data.getHeadline())
+                .description(data.getDescription())
+                .onset(data.getOnset() != null ? data.getOnset().toString() : null)
+                .expires(data.getExpires() != null ? data.getExpires().toString() : null)
+                .temperature(data.getTemperature())
+                .windSpeed(data.getWindSpeed())
+                .precipitationProbability(data.getPrecipitationProbability())
+                .precipitationAmount(data.getPrecipitationAmount())
+                .humidity(data.getHumidity())
+                .dewPoint(data.getDewPoint())
+                .windGust(data.getWindGust())
+                .skyCover(data.getSkyCover())
+                .riverGaugeId(data.getRiverGaugeId())
+                .riverObservedStage(data.getRiverObservedStage())
+                .riverForecastStage(data.getRiverForecastStage())
+                .riverFloodStage(data.getRiverFloodStage())
+                .riverActionStage(data.getRiverActionStage())
+                .riverObservedCategory(data.getRiverObservedCategory())
+                .riverForecastCategory(data.getRiverForecastCategory())
+                .riverStageUnit(data.getRiverStageUnit())
+                .riverDistanceKm(data.getRiverDistanceKm())
+                .apparentTemperature(data.getApparentTemperature())
+                .windChill(data.getWindChill())
+                .heatIndex(data.getHeatIndex())
+                .visibility(data.getVisibility())
+                .windDirection(data.getWindDirection())
+                .snowfallAmount(data.getSnowfallAmount())
+                .iceAccumulation(data.getIceAccumulation())
+                .probabilityOfThunder(data.getProbabilityOfThunder())
+                .ceilingHeight(data.getCeilingHeight())
+                .timestamp(data.getTimestamp() != null ? data.getTimestamp().toString() : null)
+                .build();
+    }
 }

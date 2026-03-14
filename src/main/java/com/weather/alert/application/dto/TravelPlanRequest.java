@@ -1,6 +1,7 @@
 package com.weather.alert.application.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -90,6 +92,11 @@ public class TravelPlanRequest {
     @Schema(description = "Saved alert criteria ids linked to this trip when alertCoverageMode is LINKED_RULES", example = "[\"criteria-1\"]")
     private List<String> linkedCriteriaIds;
 
+    @Valid
+    @Size(max = 50, message = "routes may have at most 50 waypoints")
+    @Schema(description = "Ordered list of route stops for truck route weather monitoring")
+    private List<RouteWaypointRequest> waypoints;
+
     @AssertTrue(message = "endDate must be on or after startDate")
     public boolean isDateRangeValid() {
         return startDate == null || endDate == null || !endDate.isBefore(startDate);
@@ -122,5 +129,14 @@ public class TravelPlanRequest {
             return true;
         }
         return linkedCriteriaIds.stream().allMatch(criteriaId -> criteriaId != null && !criteriaId.isBlank());
+    }
+
+    @AssertTrue(message = "waypoint sequence values must be unique")
+    public boolean areWaypointSequencesUnique() {
+        if (waypoints == null || waypoints.isEmpty()) {
+            return true;
+        }
+        long distinctCount = waypoints.stream().map(RouteWaypointRequest::getSequence).distinct().count();
+        return distinctCount == waypoints.size();
     }
 }

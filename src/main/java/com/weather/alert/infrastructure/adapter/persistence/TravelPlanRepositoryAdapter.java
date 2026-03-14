@@ -2,6 +2,7 @@ package com.weather.alert.infrastructure.adapter.persistence;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.weather.alert.domain.model.RouteWaypoint;
 import com.weather.alert.domain.model.TravelPlan;
 import com.weather.alert.domain.port.TravelPlanRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.Optional;
 public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
 
     private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() { };
+    private static final TypeReference<List<RouteWaypoint>> WAYPOINT_LIST = new TypeReference<>() { };
 
     private final JpaTravelPlanRepository jpaRepository;
     private final ObjectMapper objectMapper;
@@ -61,6 +63,7 @@ public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
                 .alertCoverageMode(travelPlan.getAlertCoverageMode() == null ? "ALL_ALERTS" : travelPlan.getAlertCoverageMode())
                 .selectedAlertTopics(serializeList(travelPlan.getSelectedAlertTopics()))
                 .linkedCriteriaIds(serializeList(travelPlan.getLinkedCriteriaIds()))
+                .waypoints(serializeWaypoints(travelPlan.getWaypoints()))
                 .createdAt(createdAt)
                 .updatedAt(updatedAt)
                 .build();
@@ -81,6 +84,7 @@ public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
                 .alertCoverageMode(entity.getAlertCoverageMode() == null ? "ALL_ALERTS" : entity.getAlertCoverageMode())
                 .selectedAlertTopics(deserializeList(entity.getSelectedAlertTopics()))
                 .linkedCriteriaIds(deserializeList(entity.getLinkedCriteriaIds()))
+                .waypoints(deserializeWaypoints(entity.getWaypoints()))
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -105,6 +109,28 @@ public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
             return objectMapper.readValue(rawValue, STRING_LIST);
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to deserialize travel plan list field", exception);
+        }
+    }
+
+    private String serializeWaypoints(List<RouteWaypoint> waypoints) {
+        if (waypoints == null || waypoints.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(waypoints);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to serialize travel plan waypoints", exception);
+        }
+    }
+
+    private List<RouteWaypoint> deserializeWaypoints(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(rawValue, WAYPOINT_LIST);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to deserialize travel plan waypoints", exception);
         }
     }
 }
