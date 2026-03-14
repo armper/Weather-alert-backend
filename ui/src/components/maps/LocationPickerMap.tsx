@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Circle, CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { MapMouseEvent } from 'react-map-gl/maplibre'
+import { Layer, Map, Marker, Source, useMap } from 'react-map-gl/maplibre'
 import type { GeocodePlace } from '../../services/geocoding'
 import { reverseGeocode, searchPlaces } from '../../services/geocoding'
 import { AriaButton } from '../ui/AriaButton'
+import { MAP_ACCENT_COLOR, circleGeoJSON, osmStyle } from './mapUtils'
 
 interface LocationPickerMapProps {
   location: string
@@ -12,22 +14,13 @@ interface LocationPickerMapProps {
   showSearchControls?: boolean
 }
 
-function RecenterMap({ center }: { center: [number, number] }) {
-  const map = useMap()
+function RecenterMap({ longitude, latitude }: { longitude: number; latitude: number }) {
+  const { current: map } = useMap()
 
   useEffect(() => {
-    map.setView(center)
-  }, [center, map])
+    map?.setCenter([longitude, latitude])
+  }, [longitude, latitude, map])
 
-  return null
-}
-
-function MapClickCapture({ onPick }: { onPick: (latitude: number, longitude: number) => void }) {
-  useMapEvents({
-    click: (event) => {
-      onPick(event.latlng.lat, event.latlng.lng)
-    },
-  })
   return null
 }
 
@@ -42,7 +35,8 @@ export function LocationPickerMap({
   const [results, setResults] = useState<GeocodePlace[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const center = useMemo<[number, number]>(() => [latitude, longitude], [latitude, longitude])
+
+  const circleData = useMemo(() => circleGeoJSON(latitude, longitude, 5), [latitude, longitude])
 
   useEffect(() => {
     setQuery(location)
@@ -75,24 +69,6 @@ export function LocationPickerMap({
     }
   }
 
-  async function handleMapPick(nextLatitude: number, nextLongitude: number) {
-    const fallbackName = `Selected point (${nextLatitude.toFixed(3)}, ${nextLongitude.toFixed(3)})`
-    onSelect({
-      location: fallbackName,
-      latitude: nextLatitude,
-      longitude: nextLongitude,
-    })
-
-    const place = await reverseGeocode(nextLatitude, nextLongitude)
-    if (place) {
-      onSelect({
-        location: place.name,
-        latitude: place.latitude,
-        longitude: place.longitude,
-      })
-    }
-  }
-
   function applyResult(place: GeocodePlace) {
     onSelect({
       location: place.name,
@@ -101,6 +77,21 @@ export function LocationPickerMap({
     })
     setResults([])
   }
+
+  const handleMapClick = useCallback(
+    (event: MapMouseEvent) => {
+      const { lat, lng } = event.lngLat
+      const fallbackName = `Selected point (${lat.toFixed(3)}, ${lng.toFixed(3)})`
+      onSelect({ location: fallbackName, latitude: lat, longitude: lng })
+
+      void reverseGeocode(lat, lng).then((place) => {
+        if (place) {
+          onSelect({ location: place.name, latitude: place.latitude, longitude: place.longitude })
+        }
+      })
+    },
+    [onSelect],
+  )
 
   return (
     <div className="location-picker-stack">
@@ -142,17 +133,30 @@ export function LocationPickerMap({
       ) : null}
 
       <div className="location-map-shell">
-        <MapContainer center={center} zoom={10} className="location-map" scrollWheelZoom>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <RecenterMap center={center} />
-          <MapClickCapture onPick={(lat, lon) => void handleMapPick(lat, lon)} />
-          <Circle center={center} radius={5000} pathOptions={{ color: '#1d6a90', weight: 1, fillOpacity: 0.1 }} />
-          <CircleMarker
-            center={center}
-            radius={7}
-            pathOptions={{ color: '#ffffff', weight: 2, fillColor: '#1d6a90', fillOpacity: 0.95 }}
-          />
-        </MapContainer>
+        <Map
+          initialViewState={{ longitude, latitude, zoom: 10 }}
+          style={{ width: '100%', height: '100%' }}
+          mapStyle={osmStyle}
+          onClick={handleMapClick}
+          attributionControl={false}
+        >
+          <RecenterMap longitude={longitude} latitude={latitude} />
+          <Source id="pick-circle" type="geojson" data={circleData}>
+            <Layer id="pick-circle-fill" type="fill" paint={{ 'fill-color': MAP_ACCENT_COLOR, 'fill-opacity': 0.1 }} />
+            <Layer id="pick-circle-line" type="line" paint={{ 'line-color': MAP_ACCENT_COLOR, 'line-width': 1 }} />
+          </Source>
+          <Marker longitude={longitude} latitude={latitude} anchor="center">
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                border: '2px solid #ffffff',
+                background: MAP_ACCENT_COLOR,
+              }}
+            />
+          </Marker>
+        </Map>
       </div>
 
       <p className="muted small location-selected-label">Selected location: {location}</p>

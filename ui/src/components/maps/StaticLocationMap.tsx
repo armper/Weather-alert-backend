@@ -1,5 +1,6 @@
-import { divIcon } from 'leaflet'
-import { Circle, MapContainer, Marker, TileLayer } from 'react-leaflet'
+import { useMemo } from 'react'
+import { Layer, Map, Marker, Source } from 'react-map-gl/maplibre'
+import { MAP_ACCENT_COLOR, circleGeoJSON, osmStyle } from './mapUtils'
 
 interface StaticLocationMapProps {
   latitude: number
@@ -18,37 +19,30 @@ export function StaticLocationMap({
   className,
   ruleCount = 1,
 }: StaticLocationMapProps) {
-  const center: [number, number] = [latitude, longitude]
-  const markerIcon = divIcon({
-    className: 'static-map-marker-wrapper',
-    html: `
-      <div class="static-map-marker">
-        <span class="static-map-marker-dot"></span>
-        ${ruleCount > 1 ? `<span class="static-map-marker-count">${ruleCount}</span>` : ''}
-      </div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-  })
+  const circleData = useMemo(() => circleGeoJSON(latitude, longitude, radiusKm), [latitude, longitude, radiusKm])
 
   return (
     <div className={['static-map-shell', className ?? ''].filter(Boolean).join(' ')} aria-label={ariaLabel}>
-      <MapContainer
-        center={center}
-        zoom={10}
+      <Map
+        initialViewState={{ longitude, latitude, zoom: 10 }}
+        style={{ width: '100%', height: '100%' }}
+        mapStyle={osmStyle}
         attributionControl={false}
-        zoomControl={false}
-        dragging={false}
-        scrollWheelZoom={false}
-        touchZoom={false}
-        doubleClickZoom={false}
-        keyboard={false}
-        className="static-map"
+        interactive={false}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <Circle center={center} radius={radiusKm * 1000} pathOptions={{ color: '#1d6a90', weight: 1, fillOpacity: 0.1 }} />
-        <Marker position={center} icon={markerIcon} />
-      </MapContainer>
+        <Source id="radius-circle" type="geojson" data={circleData}>
+          <Layer id="radius-fill" type="fill" paint={{ 'fill-color': MAP_ACCENT_COLOR, 'fill-opacity': 0.1 }} />
+          <Layer id="radius-line" type="line" paint={{ 'line-color': MAP_ACCENT_COLOR, 'line-width': 1 }} />
+        </Source>
+        <Marker longitude={longitude} latitude={latitude} anchor="center">
+          <div className="static-map-marker-wrapper">
+            <div className="static-map-marker">
+              <span className="static-map-marker-dot" />
+              {ruleCount > 1 ? <span className="static-map-marker-count">{ruleCount}</span> : null}
+            </div>
+          </div>
+        </Marker>
+      </Map>
     </div>
   )
 }
