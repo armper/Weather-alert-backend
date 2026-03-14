@@ -10,11 +10,19 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ManageTravelPlansUseCase {
+
+    private static final String ALL_ALERTS = "ALL_ALERTS";
+    private static final String TOPICS = "TOPICS";
+    private static final String LINKED_RULES = "LINKED_RULES";
+    private static final Set<String> ALLOWED_COVERAGE_MODES = Set.of(ALL_ALERTS, TOPICS, LINKED_RULES);
+    private static final Set<String> ALLOWED_ALERT_TOPICS = Set.of("RAIN", "WIND", "HEAT", "COLD", "HUMIDITY", "SKY", "RIVER");
 
     private final TravelPlanRepositoryPort travelPlanRepository;
 
@@ -29,6 +37,8 @@ public class ManageTravelPlansUseCase {
 
     public TravelPlan create(TravelPlanRequest request) {
         Instant now = Instant.now();
+        boolean alertsEnabled = defaultAlertsEnabled(request.getAlertsEnabled());
+        String coverageMode = normalizeCoverageMode(request.getAlertCoverageMode(), alertsEnabled);
         return travelPlanRepository.save(TravelPlan.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(request.getUserId())
@@ -39,7 +49,10 @@ public class ManageTravelPlansUseCase {
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .notes(normalizeOptionalText(request.getNotes()))
-                .alertsEnabled(defaultAlertsEnabled(request.getAlertsEnabled()))
+                .alertsEnabled(alertsEnabled)
+                .alertCoverageMode(coverageMode)
+                .selectedAlertTopics(normalizeAlertTopics(request.getSelectedAlertTopics(), coverageMode, alertsEnabled))
+                .linkedCriteriaIds(normalizeCriteriaIds(request.getLinkedCriteriaIds(), coverageMode, alertsEnabled))
                 .createdAt(now)
                 .updatedAt(now)
                 .build());
@@ -47,6 +60,8 @@ public class ManageTravelPlansUseCase {
 
     public TravelPlan update(String travelPlanId, TravelPlanRequest request) {
         TravelPlan existing = getById(travelPlanId);
+        boolean alertsEnabled = defaultAlertsEnabled(request.getAlertsEnabled());
+        String coverageMode = normalizeCoverageMode(request.getAlertCoverageMode(), alertsEnabled);
         existing.setName(normalizeText(request.getName()));
         existing.setDestination(normalizeText(request.getDestination()));
         existing.setStartDate(request.getStartDate());
@@ -54,7 +69,10 @@ public class ManageTravelPlansUseCase {
         existing.setLatitude(request.getLatitude());
         existing.setLongitude(request.getLongitude());
         existing.setNotes(normalizeOptionalText(request.getNotes()));
-        existing.setAlertsEnabled(defaultAlertsEnabled(request.getAlertsEnabled()));
+        existing.setAlertsEnabled(alertsEnabled);
+        existing.setAlertCoverageMode(coverageMode);
+        existing.setSelectedAlertTopics(normalizeAlertTopics(request.getSelectedAlertTopics(), coverageMode, alertsEnabled));
+        existing.setLinkedCriteriaIds(normalizeCriteriaIds(request.getLinkedCriteriaIds(), coverageMode, alertsEnabled));
         existing.setUpdatedAt(Instant.now());
         return travelPlanRepository.save(existing);
     }
@@ -66,6 +84,40 @@ public class ManageTravelPlansUseCase {
 
     private boolean defaultAlertsEnabled(Boolean alertsEnabled) {
         return alertsEnabled == null || alertsEnabled;
+    }
+
+    private String normalizeCoverageMode(String alertCoverageMode, boolean alertsEnabled) {
+        if (!alertsEnabled) {
+            return ALL_ALERTS;
+        }
+        if (alertCoverageMode == null || alertCoverageMode.isBlank()) {
+            return ALL_ALERTS;
+        }
+        String normalized = alertCoverageMode.trim().toUpperCase(Locale.ROOT);
+        return ALLOWED_COVERAGE_MODES.contains(normalized) ? normalized : ALL_ALERTS;
+    }
+
+    private List<String> normalizeAlertTopics(List<String> selectedAlertTopics, String coverageMode, boolean alertsEnabled) {
+        if (!alertsEnabled || !TOPICS.equals(coverageMode) || selectedAlertTopics == null) {
+            return List.of();
+        }
+        return selectedAlertTopics.stream()
+                .filter(topic -> topic != null && !topic.isBlank())
+                .map(topic -> topic.trim().toUpperCase(Locale.ROOT))
+                .filter(ALLOWED_ALERT_TOPICS::contains)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private List<String> normalizeCriteriaIds(List<String> linkedCriteriaIds, String coverageMode, boolean alertsEnabled) {
+        if (!alertsEnabled || !LINKED_RULES.equals(coverageMode) || linkedCriteriaIds == null) {
+            return List.of();
+        }
+        return linkedCriteriaIds.stream()
+                .filter(criteriaId -> criteriaId != null && !criteriaId.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private String normalizeText(String value) {

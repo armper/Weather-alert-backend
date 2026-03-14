@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -61,8 +61,34 @@ class ManageTravelPlansUseCaseTest {
         assertEquals("New York City", captor.getValue().getDestination());
         assertEquals("Bring layers for the evenings.", captor.getValue().getNotes());
         assertEquals(Boolean.TRUE, captor.getValue().getAlertsEnabled());
+        assertEquals("ALL_ALERTS", captor.getValue().getAlertCoverageMode());
+        assertIterableEquals(List.of(), captor.getValue().getSelectedAlertTopics());
+        assertIterableEquals(List.of(), captor.getValue().getLinkedCriteriaIds());
         assertNotNull(captor.getValue().getCreatedAt());
         assertNotNull(captor.getValue().getUpdatedAt());
+    }
+
+    @Test
+    void shouldNormalizeTopicCoverageWhenCreatingTravelPlan() {
+        TravelPlanRequest request = TravelPlanRequest.builder()
+                .userId("user-1")
+                .name("Beach weekend")
+                .destination("Tampa")
+                .startDate(LocalDate.parse("2026-07-01"))
+                .endDate(LocalDate.parse("2026-07-03"))
+                .alertsEnabled(true)
+                .alertCoverageMode("topics")
+                .selectedAlertTopics(List.of("rain", "RAIN", "wind", "unknown"))
+                .linkedCriteriaIds(List.of("criteria-1"))
+                .build();
+
+        when(travelPlanRepository.save(any(TravelPlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TravelPlan saved = useCase.create(request);
+
+        assertEquals("TOPICS", saved.getAlertCoverageMode());
+        assertIterableEquals(List.of("RAIN", "WIND"), saved.getSelectedAlertTopics());
+        assertIterableEquals(List.of(), saved.getLinkedCriteriaIds());
     }
 
     @Test
@@ -75,6 +101,9 @@ class ManageTravelPlansUseCaseTest {
                 .startDate(LocalDate.parse("2026-06-01"))
                 .endDate(LocalDate.parse("2026-06-03"))
                 .alertsEnabled(true)
+                .alertCoverageMode("ALL_ALERTS")
+                .selectedAlertTopics(List.of())
+                .linkedCriteriaIds(List.of())
                 .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
                 .build();
@@ -85,7 +114,10 @@ class ManageTravelPlansUseCaseTest {
                 .startDate(LocalDate.parse("2026-06-02"))
                 .endDate(LocalDate.parse("2026-06-04"))
                 .notes("Window seat if possible")
-                .alertsEnabled(false)
+                .alertsEnabled(true)
+                .alertCoverageMode("LINKED_RULES")
+                .selectedAlertTopics(List.of("RAIN"))
+                .linkedCriteriaIds(List.of("rule-1", " rule-1 ", "rule-2"))
                 .build();
 
         when(travelPlanRepository.findById("trip-1")).thenReturn(Optional.of(existing));
@@ -98,7 +130,10 @@ class ManageTravelPlansUseCaseTest {
         assertEquals(LocalDate.parse("2026-06-02"), updated.getStartDate());
         assertEquals(LocalDate.parse("2026-06-04"), updated.getEndDate());
         assertEquals("Window seat if possible", updated.getNotes());
-        assertFalse(updated.getAlertsEnabled());
+        assertEquals("LINKED_RULES", updated.getAlertCoverageMode());
+        assertIterableEquals(List.of(), updated.getSelectedAlertTopics());
+        assertIterableEquals(List.of("rule-1", "rule-2"), updated.getLinkedCriteriaIds());
+        assertEquals(Boolean.TRUE, updated.getAlertsEnabled());
         assertEquals(Instant.parse("2026-01-01T00:00:00Z"), updated.getCreatedAt());
     }
 

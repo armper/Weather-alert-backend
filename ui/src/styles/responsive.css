@@ -46,6 +46,22 @@
     grid-template-columns: 1fr;
   }
 
+  .travel-mode-grid,
+  .travel-topic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .travel-rule-option,
+  .travel-coverage-panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .travel-rule-side {
+    justify-items: start;
+    text-align: left;
+  }
+
   .guided-rule-layout {
     grid-template-columns: 1fr;
   }
@@ -253,6 +269,17 @@
 
   .travel-dialog .location-map-shell {
     height: 150px;
+  }
+
+  .travel-topic-button-head {
+    align-items: flex-start;
+  }
+
+  .travel-preset-chip,
+  .travel-mode-button,
+  .travel-topic-button,
+  .travel-rule-option {
+    width: 100%;
   }
 
   .alert-row {

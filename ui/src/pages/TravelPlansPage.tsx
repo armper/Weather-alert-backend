@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { describeCriteria } from '../lib/criteria'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
@@ -7,7 +8,7 @@ import { AriaTextField } from '../components/ui/AriaTextField'
 import { searchPlaces } from '../services/geocoding'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import { useAppState } from '../state/useAppState'
-import type { TravelPlan } from '../types'
+import type { AlertCriteria, TravelAlertCoverageMode, TravelAlertTopic, TravelPlan } from '../types'
 
 type TravelFilter = 'all' | 'active' | 'upcoming' | 'past'
 
@@ -20,6 +21,16 @@ interface TravelPlanDraft {
   longitude?: number
   notes: string
   alertsEnabled: boolean
+  alertCoverageMode: TravelAlertCoverageMode
+  selectedAlertTopics: TravelAlertTopic[]
+  linkedCriteriaIds: string[]
+}
+
+interface TravelCoverageSummary {
+  title: string
+  detail: string
+  chips: string[]
+  emphasis: string
 }
 
 const FILTER_OPTIONS: Array<{ id: TravelFilter; label: string }> = [
@@ -27,6 +38,52 @@ const FILTER_OPTIONS: Array<{ id: TravelFilter; label: string }> = [
   { id: 'active', label: 'Active' },
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'past', label: 'Past' },
+]
+
+const COVERAGE_MODE_OPTIONS: Array<{
+  id: TravelAlertCoverageMode
+  label: string
+  summary: string
+}> = [
+  {
+    id: 'ALL_ALERTS',
+    label: 'All alerts',
+    summary: 'Use every active saved rule you already run.',
+  },
+  {
+    id: 'TOPICS',
+    label: 'Trip topics',
+    summary: 'Pick only the weather situations that matter on this trip.',
+  },
+  {
+    id: 'LINKED_RULES',
+    label: 'Specific saved rules',
+    summary: 'Attach exact saved alerts and leave the rest out.',
+  },
+]
+
+const TOPIC_OPTIONS: Array<{
+  id: TravelAlertTopic
+  label: string
+  summary: string
+}> = [
+  { id: 'RAIN', label: 'Rain', summary: 'Wet travel days, showers, and storm timing.' },
+  { id: 'WIND', label: 'Wind', summary: 'Windy drives, gusts, and outdoor disruptions.' },
+  { id: 'HEAT', label: 'Heat', summary: 'Hot afternoons, heat stress, and sun exposure.' },
+  { id: 'COLD', label: 'Cold', summary: 'Cold snaps, chilly nights, and freeze risk.' },
+  { id: 'HUMIDITY', label: 'Humidity', summary: 'Muggy air or very dry conditions.' },
+  { id: 'SKY', label: 'Sky', summary: 'Cloud cover swings for views, photos, or solar plans.' },
+  { id: 'RIVER', label: 'River', summary: 'River rise, flood stage, and waterfront impacts.' },
+]
+
+const TOPIC_PRESETS: Array<{
+  id: string
+  label: string
+  topics: TravelAlertTopic[]
+}> = [
+  { id: 'travel-basics', label: 'Travel basics', topics: ['RAIN', 'WIND'] },
+  { id: 'outdoor-plans', label: 'Outdoor plans', topics: ['RAIN', 'WIND', 'HEAT'] },
+  { id: 'waterfront', label: 'Waterfront', topics: ['RAIN', 'WIND', 'RIVER'] },
 ]
 
 function createEmptyDraft(): TravelPlanDraft {
@@ -39,6 +96,9 @@ function createEmptyDraft(): TravelPlanDraft {
     longitude: undefined,
     notes: '',
     alertsEnabled: true,
+    alertCoverageMode: 'TOPICS',
+    selectedAlertTopics: ['RAIN', 'WIND'],
+    linkedCriteriaIds: [],
   }
 }
 
@@ -108,6 +168,156 @@ function hasCoordinates(
   return plan.latitude != null && plan.longitude != null
 }
 
+function getTopicLabel(topic: TravelAlertTopic) {
+  return TOPIC_OPTIONS.find((item) => item.id === topic)?.label ?? topic
+}
+
+function normalizeCoverageMode(plan: Pick<TravelPlan, 'alertCoverageMode'>): TravelAlertCoverageMode {
+  return plan.alertCoverageMode ?? 'ALL_ALERTS'
+}
+
+function normalizeSelectedTopics(plan: Pick<TravelPlan, 'selectedAlertTopics'>): TravelAlertTopic[] {
+  return plan.selectedAlertTopics ?? []
+}
+
+function normalizeLinkedCriteriaIds(plan: Pick<TravelPlan, 'linkedCriteriaIds'>): string[] {
+  return plan.linkedCriteriaIds ?? []
+}
+
+function deriveCriteriaTopic(criteria: AlertCriteria): TravelAlertTopic | null {
+  if (criteria.temperatureThreshold != null) {
+    return criteria.temperatureDirection === 'BELOW' ? 'COLD' : 'HEAT'
+  }
+  if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
+    return 'WIND'
+  }
+  if (criteria.rainThreshold != null) {
+    return 'RAIN'
+  }
+  if (criteria.humidityThreshold != null || criteria.dewPointThreshold != null) {
+    return 'HUMIDITY'
+  }
+  if (criteria.skyCoverThreshold != null) {
+    return 'SKY'
+  }
+  if (criteria.riverStageThreshold != null || criteria.riverFloodCategoryThreshold) {
+    return 'RIVER'
+  }
+  return null
+}
+
+function buildRuleLabel(criteria: AlertCriteria) {
+  const topic = deriveCriteriaTopic(criteria)
+  return criteria.name?.trim() || (topic ? `${getTopicLabel(topic)} rule` : 'Saved alert')
+}
+
+function buildCoverageSummary(
+  plan: TravelPlan,
+  criteriaById: Map<string, AlertCriteria>,
+  activeCriteria: AlertCriteria[],
+): TravelCoverageSummary {
+  if (plan.alertsEnabled === false) {
+    return {
+      title: 'Coverage paused',
+      detail: 'This trip is saved, but SkyPanda will not watch weather for it right now.',
+      chips: ['Paused'],
+      emphasis: 'paused',
+    }
+  }
+
+  const mode = normalizeCoverageMode(plan)
+  if (mode === 'TOPICS') {
+    const topics = normalizeSelectedTopics(plan)
+    if (topics.length === 0) {
+      return {
+        title: 'Trip topics',
+        detail: 'Choose the weather topics that matter on this trip.',
+        chips: ['Needs setup'],
+        emphasis: 'attention',
+      }
+    }
+    return {
+      title: 'Trip topics',
+      detail: `Watching ${topics.map(getTopicLabel).join(', ')} for this trip.`,
+      chips: topics.map(getTopicLabel),
+      emphasis: 'focused',
+    }
+  }
+
+  if (mode === 'LINKED_RULES') {
+    const linkedRules = normalizeLinkedCriteriaIds(plan)
+      .map((criteriaId) => criteriaById.get(criteriaId))
+      .filter((criteria): criteria is AlertCriteria => Boolean(criteria))
+
+    if (linkedRules.length === 0) {
+      return {
+        title: 'Specific saved rules',
+        detail: 'This trip is set to exact saved alerts, but none are currently linked.',
+        chips: ['Needs relink'],
+        emphasis: 'attention',
+      }
+    }
+
+    return {
+      title: 'Specific saved rules',
+      detail: `${linkedRules.length} saved rule${linkedRules.length === 1 ? '' : 's'} tied directly to this trip.`,
+      chips: linkedRules.slice(0, 3).map((item) => buildRuleLabel(item)),
+      emphasis: 'linked',
+    }
+  }
+
+  if (activeCriteria.length === 0) {
+    return {
+      title: 'All alerts',
+      detail: 'This trip will follow your active alerts once you create some saved rules.',
+      chips: ['No saved rules yet'],
+      emphasis: 'default',
+    }
+  }
+
+  return {
+    title: 'All alerts',
+    detail: `${activeCriteria.length} active saved rule${activeCriteria.length === 1 ? '' : 's'} will follow this trip.`,
+    chips: ['All active rules'],
+    emphasis: 'default',
+  }
+}
+
+function buildCoveragePreview(
+  draft: TravelPlanDraft,
+  criteriaById: Map<string, AlertCriteria>,
+  activeCriteria: AlertCriteria[],
+): string {
+  if (!draft.alertsEnabled) {
+    return 'Trip monitoring is off. SkyPanda will save the itinerary but ignore weather until you turn coverage back on.'
+  }
+
+  if (draft.alertCoverageMode === 'TOPICS') {
+    if (draft.selectedAlertTopics.length === 0) {
+      return 'Pick at least one weather topic so this trip knows what to watch.'
+    }
+    return `SkyPanda will watch ${draft.selectedAlertTopics.map(getTopicLabel).join(', ')} for this trip.`
+  }
+
+  if (draft.alertCoverageMode === 'LINKED_RULES') {
+    const linkedLabels = draft.linkedCriteriaIds
+      .map((criteriaId) => criteriaById.get(criteriaId))
+      .filter((criteria): criteria is AlertCriteria => Boolean(criteria))
+      .map((criteria) => buildRuleLabel(criteria))
+
+    if (linkedLabels.length === 0) {
+      return 'Link one or more saved rules to tell SkyPanda exactly which alerts should travel with this trip.'
+    }
+    return `This trip will use ${linkedLabels.join(', ')}.`
+  }
+
+  if (activeCriteria.length === 0) {
+    return 'All-alert coverage is selected, but there are no active saved rules yet.'
+  }
+
+  return `This trip will inherit all ${activeCriteria.length} active saved rule${activeCriteria.length === 1 ? '' : 's'}.`
+}
+
 export function TravelPlansPage() {
   const {
     criteria,
@@ -130,11 +340,32 @@ export function TravelPlansPage() {
   const baseLatitude = criteria[0]?.latitude ?? Number(DEFAULT_LAT)
   const baseLongitude = criteria[0]?.longitude ?? Number(DEFAULT_LON)
 
+  const activeCriteria = useMemo(() => criteria.filter((item) => item.enabled !== false), [criteria])
+  const criteriaById = useMemo(() => new Map(criteria.map((item) => [item.id, item])), [criteria])
+  const linkedRuleOptions = useMemo(() => activeCriteria, [activeCriteria])
+  const topicCounts = useMemo(() => {
+    const counts = new Map<TravelAlertTopic, number>()
+    activeCriteria.forEach((item) => {
+      const topic = deriveCriteriaTopic(item)
+      if (!topic) {
+        return
+      }
+      counts.set(topic, (counts.get(topic) ?? 0) + 1)
+    })
+    return counts
+  }, [activeCriteria])
+
   const summary = useMemo(() => {
     const active = travelPlans.filter((plan) => getTripStatus(plan, today) === 'active').length
     const upcoming = travelPlans.filter((plan) => getTripStatus(plan, today) === 'upcoming').length
-    const alertsOn = travelPlans.filter((plan) => plan.alertsEnabled !== false).length
-    return { active, upcoming, alertsOn }
+    const focusedCoverage = travelPlans.filter((plan) => {
+      if (plan.alertsEnabled === false) {
+        return false
+      }
+      const mode = normalizeCoverageMode(plan)
+      return mode === 'TOPICS' || mode === 'LINKED_RULES'
+    }).length
+    return { active, upcoming, focusedCoverage }
   }, [today, travelPlans])
 
   const featuredTrip = useMemo(() => {
@@ -172,6 +403,9 @@ export function TravelPlansPage() {
       longitude: plan.longitude ?? undefined,
       notes: plan.notes ?? '',
       alertsEnabled: plan.alertsEnabled !== false,
+      alertCoverageMode: normalizeCoverageMode(plan),
+      selectedAlertTopics: normalizeSelectedTopics(plan),
+      linkedCriteriaIds: normalizeLinkedCriteriaIds(plan),
     })
     setFormError(null)
     setShowDialog(true)
@@ -185,6 +419,32 @@ export function TravelPlansPage() {
 
   function updateDraft<K extends keyof TravelPlanDraft>(key: K, value: TravelPlanDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function toggleTopic(topic: TravelAlertTopic) {
+    setDraft((current) => ({
+      ...current,
+      selectedAlertTopics: current.selectedAlertTopics.includes(topic)
+        ? current.selectedAlertTopics.filter((item) => item !== topic)
+        : [...current.selectedAlertTopics, topic],
+    }))
+  }
+
+  function applyTopicPreset(topics: TravelAlertTopic[]) {
+    setDraft((current) => ({
+      ...current,
+      alertCoverageMode: 'TOPICS',
+      selectedAlertTopics: topics,
+    }))
+  }
+
+  function toggleLinkedRule(criteriaId: string) {
+    setDraft((current) => ({
+      ...current,
+      linkedCriteriaIds: current.linkedCriteriaIds.includes(criteriaId)
+        ? current.linkedCriteriaIds.filter((item) => item !== criteriaId)
+        : [...current.linkedCriteriaIds, criteriaId],
+    }))
   }
 
   async function handleLocateDestination() {
@@ -226,6 +486,14 @@ export function TravelPlansPage() {
       setFormError('End date must be on or after the start date.')
       return
     }
+    if (draft.alertsEnabled && draft.alertCoverageMode === 'TOPICS' && draft.selectedAlertTopics.length === 0) {
+      setFormError('Choose at least one trip topic, or switch to all alerts or specific saved rules.')
+      return
+    }
+    if (draft.alertsEnabled && draft.alertCoverageMode === 'LINKED_RULES' && draft.linkedCriteriaIds.length === 0) {
+      setFormError('Link at least one saved rule, or switch to trip topics or all alerts.')
+      return
+    }
 
     const payload = {
       name: draft.name.trim(),
@@ -236,6 +504,9 @@ export function TravelPlansPage() {
       longitude: draft.longitude,
       notes: draft.notes.trim() || undefined,
       alertsEnabled: draft.alertsEnabled,
+      alertCoverageMode: draft.alertCoverageMode,
+      selectedAlertTopics: draft.alertsEnabled && draft.alertCoverageMode === 'TOPICS' ? draft.selectedAlertTopics : [],
+      linkedCriteriaIds: draft.alertsEnabled && draft.alertCoverageMode === 'LINKED_RULES' ? draft.linkedCriteriaIds : [],
     }
 
     const success = editingPlan
@@ -256,6 +527,9 @@ export function TravelPlansPage() {
     }
   }
 
+  const coveragePreview = buildCoveragePreview(draft, criteriaById, activeCriteria)
+  const featuredCoverage = featuredTrip ? buildCoverageSummary(featuredTrip, criteriaById, activeCriteria) : null
+
   return (
     <section className="page-stack">
       <article className="panel travel-page">
@@ -264,7 +538,8 @@ export function TravelPlansPage() {
             <p className="eyebrow">Your Trips</p>
             <h2>Travel Plans</h2>
             <p className="muted travel-page-copy">
-              Save travel dates so SkyPanda can watch destination weather before you leave and while you are there.
+              Plan the itinerary, then decide whether this trip should inherit your full alert lineup, follow only a few
+              weather topics like rain, or use exact saved rules.
             </p>
           </div>
           <AriaButton className="primary button-inline" onPress={openCreateDialog}>
@@ -284,9 +559,9 @@ export function TravelPlansPage() {
             <span className="muted small">Trips still ahead on the calendar</span>
           </article>
           <article className="travel-summary-card">
-            <span className="travel-summary-label">Alerts on</span>
-            <strong>{summary.alertsOn}</strong>
-            <span className="muted small">Plans covered by destination weather alerts</span>
+            <span className="travel-summary-label">Focused coverage</span>
+            <strong>{summary.focusedCoverage}</strong>
+            <span className="muted small">Trips using custom topics or linked saved rules</span>
           </article>
         </div>
 
@@ -299,9 +574,17 @@ export function TravelPlansPage() {
               <p className="muted">{formatDateRange(featuredTrip.startDate, featuredTrip.endDate)}</p>
               <div className="travel-feature-badges">
                 <span className={`badge is-${getTripStatus(featuredTrip, today)}`}>{formatCountdown(featuredTrip, today)}</span>
-                <span className={`badge ${featuredTrip.alertsEnabled === false ? 'is-muted' : ''}`}>
-                  {featuredTrip.alertsEnabled === false ? 'Alerts paused' : 'Alerts active'}
-                </span>
+              </div>
+              <div className={`travel-coverage-box is-${featuredCoverage?.emphasis ?? 'default'}`}>
+                <strong>{featuredCoverage?.title}</strong>
+                <p className="muted small">{featuredCoverage?.detail}</p>
+                <div className="travel-coverage-chip-row">
+                  {featuredCoverage?.chips.map((chip) => (
+                    <span key={chip} className="travel-coverage-chip">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
               </div>
               {featuredTrip.notes ? <p className="travel-feature-notes">{featuredTrip.notes}</p> : null}
             </div>
@@ -347,7 +630,7 @@ export function TravelPlansPage() {
             <h3>No trips here yet</h3>
             <p className="muted">
               {activeFilter === 'all'
-                ? 'Add your first travel plan to track destination weather with clearer timing and better location context.'
+                ? 'Add your first trip, then tell SkyPanda whether it should watch everything, just rain and wind, or a hand-picked set of saved alerts.'
                 : `No ${activeFilter} trips right now. Switch filters or add another trip.`}
             </p>
             {activeFilter === 'all' ? (
@@ -362,6 +645,8 @@ export function TravelPlansPage() {
           <div className="travel-card-grid">
             {filteredTrips.map((plan) => {
               const status = getTripStatus(plan, today)
+              const coverage = buildCoverageSummary(plan, criteriaById, activeCriteria)
+
               return (
                 <article key={plan.id} className={`travel-card is-${status}`}>
                   <div className="travel-card-header">
@@ -387,11 +672,23 @@ export function TravelPlansPage() {
                     />
                   ) : null}
 
+                  <div className={`travel-coverage-box is-${coverage.emphasis}`}>
+                    <strong>{coverage.title}</strong>
+                    <p className="muted small">{coverage.detail}</p>
+                    <div className="travel-coverage-chip-row">
+                      {coverage.chips.map((chip) => (
+                        <span key={chip} className="travel-coverage-chip">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
                   {plan.notes ? <p className="travel-card-notes">{plan.notes}</p> : null}
 
                   <div className="travel-card-footer">
                     <span className={`badge ${plan.alertsEnabled === false ? 'is-muted' : ''}`}>
-                      {plan.alertsEnabled === false ? 'Alerts off' : 'Alerts on'}
+                      {plan.alertsEnabled === false ? 'Monitoring off' : 'Monitoring on'}
                     </span>
                     <div className="travel-card-actions">
                       <AriaButton className="ghost button-inline small" onPress={() => openEditDialog(plan)}>
@@ -482,6 +779,7 @@ export function TravelPlansPage() {
                   className="ghost button-inline"
                   onPress={() => void handleLocateDestination()}
                   isDisabled={searchingDestination}
+                  type="button"
                 >
                   {searchingDestination ? 'Searching...' : 'Find on map'}
                 </AriaButton>
@@ -512,13 +810,149 @@ export function TravelPlansPage() {
                 />
                 <div className="travel-form-switch">
                   <AriaSwitch
-                    label="Enable travel alerts"
+                    label="Watch weather for this trip"
                     isSelected={draft.alertsEnabled}
                     onChange={(value) => updateDraft('alertsEnabled', value)}
                   />
-                  <p className="muted small">Keep destination weather alerts active for this trip.</p>
+                  <p className="muted small">Turn this off if you just want the itinerary saved without trip monitoring.</p>
                 </div>
               </div>
+
+              <section className="travel-coverage-panel">
+                <div className="travel-coverage-panel-header">
+                  <div>
+                    <strong>Trip coverage</strong>
+                    <p className="muted small">
+                      Decide whether this trip should inherit all your alerts, only a few weather topics, or exact saved
+                      rules.
+                    </p>
+                  </div>
+                </div>
+
+                {draft.alertsEnabled ? (
+                  <>
+                    <div className="travel-mode-grid" role="radiogroup" aria-label="Trip coverage mode">
+                      {COVERAGE_MODE_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={draft.alertCoverageMode === option.id}
+                          className={`travel-mode-button${draft.alertCoverageMode === option.id ? ' is-active' : ''}`}
+                          onClick={() => updateDraft('alertCoverageMode', option.id)}
+                        >
+                          <strong>{option.label}</strong>
+                          <span>{option.summary}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {draft.alertCoverageMode === 'ALL_ALERTS' ? (
+                      <div className="travel-coverage-callout">
+                        <strong>Use the full alert lineup</strong>
+                        <p className="muted small">
+                          Best when this trip should follow every active saved rule you already trust day to day.
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {draft.alertCoverageMode === 'TOPICS' ? (
+                      <div className="travel-coverage-stack">
+                        <div className="travel-topic-preset-row">
+                          {TOPIC_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              className="travel-preset-chip"
+                              onClick={() => applyTopicPreset(preset.topics)}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="travel-topic-grid">
+                          {TOPIC_OPTIONS.map((topic) => {
+                            const isSelected = draft.selectedAlertTopics.includes(topic.id)
+                            const matchingRules = topicCounts.get(topic.id) ?? 0
+
+                            return (
+                              <button
+                                key={topic.id}
+                                type="button"
+                                aria-pressed={isSelected}
+                                className={`travel-topic-button${isSelected ? ' is-selected' : ''}`}
+                                onClick={() => toggleTopic(topic.id)}
+                              >
+                                <div className="travel-topic-button-head">
+                                  <strong>{topic.label}</strong>
+                                  <span className="travel-selection-indicator">{isSelected ? 'Selected' : 'Add'}</span>
+                                </div>
+                                <span>{topic.summary}</span>
+                                <span className="travel-topic-helper">
+                                  {matchingRules > 0
+                                    ? `${matchingRules} saved rule${matchingRules === 1 ? '' : 's'} already match this topic`
+                                    : 'No saved rules for this topic yet'}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {draft.alertCoverageMode === 'LINKED_RULES' ? (
+                      <div className="travel-coverage-stack">
+                        {linkedRuleOptions.length > 0 ? (
+                          <div className="travel-rule-list">
+                            {linkedRuleOptions.map((item) => {
+                              const topic = deriveCriteriaTopic(item)
+                              const isSelected = draft.linkedCriteriaIds.includes(item.id)
+
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  aria-pressed={isSelected}
+                                  className={`travel-rule-option${isSelected ? ' is-selected' : ''}`}
+                                  onClick={() => toggleLinkedRule(item.id)}
+                                >
+                                  <div className="travel-rule-copy">
+                                    <strong>{buildRuleLabel(item)}</strong>
+                                    <span className="muted small">{item.location || 'Saved alert'}</span>
+                                    <span className="muted small">{describeCriteria(item)}</span>
+                                  </div>
+                                  <div className="travel-rule-side">
+                                    {topic ? <span className="travel-coverage-chip">{getTopicLabel(topic)}</span> : null}
+                                    <span className="travel-selection-indicator">{isSelected ? 'Selected' : 'Select'}</span>
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <div className="travel-coverage-callout">
+                            <strong>No saved rules available yet</strong>
+                            <p className="muted small">
+                              Switch to trip topics now, or create a saved alert first on <a href="/app/rules">New Alert</a>.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="travel-coverage-callout is-muted">
+                    <strong>Trip monitoring is off</strong>
+                    <p className="muted small">Turn on trip monitoring when you want this itinerary to drive weather coverage.</p>
+                  </div>
+                )}
+
+                <div className="travel-coverage-preview">
+                  <strong>Coverage preview</strong>
+                  <p className="muted small">{coveragePreview}</p>
+                </div>
+              </section>
 
               {formError ? <p className="field-error">{formError}</p> : null}
 

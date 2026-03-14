@@ -6,6 +6,8 @@ export type FloodCategory = 'ACTION' | 'MINOR' | 'MODERATE' | 'MAJOR'
 export type AlertStatus = 'PENDING' | 'SENT' | 'ACKNOWLEDGED' | 'EXPIRED'
 export type UserApprovalStatus = 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'REJECTED'
 export type BillingPlan = 'FREE' | 'PLUS' | 'PRO'
+export type TravelAlertCoverageMode = 'ALL_ALERTS' | 'TOPICS' | 'LINKED_RULES'
+export type TravelAlertTopic = 'RAIN' | 'WIND' | 'HEAT' | 'COLD' | 'HUMIDITY' | 'SKY' | 'RIVER'
 
 export interface ProblemFieldError {
   field: string
@@ -252,6 +254,9 @@ export interface TravelPlan {
   longitude?: number | null
   notes?: string | null
   alertsEnabled?: boolean
+  alertCoverageMode?: TravelAlertCoverageMode | null
+  selectedAlertTopics?: TravelAlertTopic[] | null
+  linkedCriteriaIds?: string[] | null
   createdAt?: string
   updatedAt?: string
 }

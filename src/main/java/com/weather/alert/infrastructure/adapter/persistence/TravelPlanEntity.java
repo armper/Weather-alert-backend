@@ -50,6 +50,15 @@ public class TravelPlanEntity {
     @Column(name = "alerts_enabled", nullable = false)
     private Boolean alertsEnabled;
 
+    @Column(name = "alert_coverage_mode", nullable = false, length = 32)
+    private String alertCoverageMode;
+
+    @Column(name = "selected_alert_topics", columnDefinition = "TEXT")
+    private String selectedAlertTopics;
+
+    @Column(name = "linked_criteria_ids", columnDefinition = "TEXT")
+    private String linkedCriteriaIds;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

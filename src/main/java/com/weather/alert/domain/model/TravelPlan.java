@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
@@ -24,6 +25,9 @@ public class TravelPlan {
     private Double longitude;
     private String notes;
     private Boolean alertsEnabled;
+    private String alertCoverageMode;
+    private List<String> selectedAlertTopics;
+    private List<String> linkedCriteriaIds;
     private Instant createdAt;
     private Instant updatedAt;
 }

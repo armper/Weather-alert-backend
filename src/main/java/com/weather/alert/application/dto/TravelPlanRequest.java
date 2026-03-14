@@ -13,6 +13,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -30,10 +32,16 @@ import java.time.LocalDate;
                   "latitude": 40.7128,
                   "longitude": -74.0060,
                   "notes": "Pack an umbrella for afternoon events.",
-                  "alertsEnabled": true
+                  "alertsEnabled": true,
+                  "alertCoverageMode": "TOPICS",
+                  "selectedAlertTopics": ["RAIN", "WIND"],
+                  "linkedCriteriaIds": []
                 }
                 """)
 public class TravelPlanRequest {
+
+    private static final Set<String> ALLOWED_COVERAGE_MODES = Set.of("ALL_ALERTS", "TOPICS", "LINKED_RULES");
+    private static final Set<String> ALLOWED_ALERT_TOPICS = Set.of("RAIN", "WIND", "HEAT", "COLD", "HUMIDITY", "SKY", "RIVER");
 
     @Schema(description = "User identifier that owns this travel plan (optional for non-admin; inferred from JWT subject)", example = "weather-admin")
     private String userId;
@@ -73,6 +81,15 @@ public class TravelPlanRequest {
     @Schema(description = "Whether trip weather alerts are enabled", example = "true")
     private Boolean alertsEnabled;
 
+    @Schema(description = "How this trip decides which alerts matter", example = "TOPICS")
+    private String alertCoverageMode;
+
+    @Schema(description = "Weather topics watched for this trip when alertCoverageMode is TOPICS", example = "[\"RAIN\", \"WIND\"]")
+    private List<String> selectedAlertTopics;
+
+    @Schema(description = "Saved alert criteria ids linked to this trip when alertCoverageMode is LINKED_RULES", example = "[\"criteria-1\"]")
+    private List<String> linkedCriteriaIds;
+
     @AssertTrue(message = "endDate must be on or after startDate")
     public boolean isDateRangeValid() {
         return startDate == null || endDate == null || !endDate.isBefore(startDate);
@@ -81,5 +98,29 @@ public class TravelPlanRequest {
     @AssertTrue(message = "latitude and longitude must be provided together")
     public boolean isCoordinatePairValid() {
         return (latitude == null && longitude == null) || (latitude != null && longitude != null);
+    }
+
+    @AssertTrue(message = "alertCoverageMode must be ALL_ALERTS, TOPICS, or LINKED_RULES")
+    public boolean isAlertCoverageModeValid() {
+        return alertCoverageMode == null || alertCoverageMode.isBlank() || ALLOWED_COVERAGE_MODES.contains(alertCoverageMode.trim().toUpperCase());
+    }
+
+    @AssertTrue(message = "selectedAlertTopics contains an unsupported topic")
+    public boolean areSelectedAlertTopicsValid() {
+        if (selectedAlertTopics == null) {
+            return true;
+        }
+        return selectedAlertTopics.stream()
+                .filter(topic -> topic != null && !topic.isBlank())
+                .map(topic -> topic.trim().toUpperCase())
+                .allMatch(ALLOWED_ALERT_TOPICS::contains);
+    }
+
+    @AssertTrue(message = "linkedCriteriaIds contains a blank rule id")
+    public boolean areLinkedCriteriaIdsValid() {
+        if (linkedCriteriaIds == null) {
+            return true;
+        }
+        return linkedCriteriaIds.stream().allMatch(criteriaId -> criteriaId != null && !criteriaId.isBlank());
     }
 }

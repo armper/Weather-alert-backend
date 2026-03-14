@@ -28,6 +28,9 @@ public class TravelPlanResponse {
     private Double longitude;
     private String notes;
     private Boolean alertsEnabled;
+    private String alertCoverageMode;
+    private List<String> selectedAlertTopics;
+    private List<String> linkedCriteriaIds;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -43,6 +46,9 @@ public class TravelPlanResponse {
                 .longitude(travelPlan.getLongitude())
                 .notes(travelPlan.getNotes())
                 .alertsEnabled(travelPlan.getAlertsEnabled())
+                .alertCoverageMode(travelPlan.getAlertCoverageMode())
+                .selectedAlertTopics(travelPlan.getSelectedAlertTopics())
+                .linkedCriteriaIds(travelPlan.getLinkedCriteriaIds())
                 .createdAt(travelPlan.getCreatedAt())
                 .updatedAt(travelPlan.getUpdatedAt())
                 .build();

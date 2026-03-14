@@ -15,6 +15,8 @@ import type {
   PagedResponse,
   RecoveryRequestResponse,
   RegisterUserResponse,
+  TravelAlertCoverageMode,
+  TravelAlertTopic,
   TravelPlan,
   UserAccount,
   UserNotificationPreference,
@@ -732,6 +734,9 @@ export function useWeatherAppState() {
     longitude?: number
     notes?: string
     alertsEnabled: boolean
+    alertCoverageMode: TravelAlertCoverageMode
+    selectedAlertTopics: TravelAlertTopic[]
+    linkedCriteriaIds: string[]
   }): Promise<boolean> {
     if (!token || !me) {
       return false
@@ -776,6 +781,9 @@ export function useWeatherAppState() {
       longitude?: number
       notes?: string
       alertsEnabled: boolean
+      alertCoverageMode: TravelAlertCoverageMode
+      selectedAlertTopics: TravelAlertTopic[]
+      linkedCriteriaIds: string[]
     },
   ): Promise<boolean> {
     if (!token || !me) {
