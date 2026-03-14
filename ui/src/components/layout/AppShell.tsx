@@ -49,8 +49,11 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
     case 'travel':
       return (
         <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <path d="M4 10h12M10 4l6 6-6 6" />
-          <circle cx="10" cy="10" r="7" strokeWidth="1.2" fill="none" />
+          <path d="M3.75 9.25h12.5" />
+          <path d="M8 9.25 4.75 5.5" />
+          <path d="M8 9.25 4.75 13" />
+          <path d="M10.75 9.25 15.25 5.75" />
+          <path d="M10.75 9.25 15.25 12.75" />
         </svg>
       )
     case 'admin':

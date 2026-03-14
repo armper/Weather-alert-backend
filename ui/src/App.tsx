@@ -15,7 +15,7 @@ import { ManageAlertsPage } from './pages/ManageAlertsPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { RulesPage } from './pages/RulesPage'
 import { SmsConsentPage } from './pages/SmsConsentPage'
-import { TravelPage } from './pages/TravelPage'
+import { TravelPlansPage } from './pages/TravelPlansPage'
 import { AppStateProvider } from './state/AppStateContext'
 import { useAppState } from './state/useAppState'
 
@@ -86,7 +86,7 @@ function AppRoutes() {
         <Route path="rules" element={<RulesPage />} />
         <Route path="alerts" element={<ManageAlertsPage />} />
         <Route path="events" element={<EventsPage />} />
-        <Route path="travel" element={<TravelPage />} />
+        <Route path="travel" element={<TravelPlansPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>

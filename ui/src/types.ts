@@ -246,10 +246,10 @@ export interface TravelPlan {
   userId: string
   name: string
   destination: string
-  latitude?: number
-  longitude?: number
   startDate: string
   endDate: string
+  latitude?: number
+  longitude?: number
   notes?: string
   alertsEnabled?: boolean
   createdAt?: string

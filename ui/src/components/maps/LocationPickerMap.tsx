@@ -9,6 +9,7 @@ interface LocationPickerMapProps {
   latitude: number
   longitude: number
   onSelect: (selection: { location: string; latitude: number; longitude: number }) => void
+  showSearchControls?: boolean
 }
 
 function RecenterMap({ center }: { center: [number, number] }) {
@@ -30,7 +31,13 @@ function MapClickCapture({ onPick }: { onPick: (latitude: number, longitude: num
   return null
 }
 
-export function LocationPickerMap({ location, latitude, longitude, onSelect }: LocationPickerMapProps) {
+export function LocationPickerMap({
+  location,
+  latitude,
+  longitude,
+  onSelect,
+  showSearchControls = true,
+}: LocationPickerMapProps) {
   const [query, setQuery] = useState(location)
   const [results, setResults] = useState<GeocodePlace[]>([])
   const [searching, setSearching] = useState(false)
@@ -97,31 +104,33 @@ export function LocationPickerMap({ location, latitude, longitude, onSelect }: L
 
   return (
     <div className="location-picker-stack">
-      <div className="location-search-row">
-        <label className="location-search-field" htmlFor="location-search">
-          <span>Location</span>
-          <input
-            id="location-search"
-            className="aria-input"
-            value={query}
-            placeholder="Search city or place"
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void runSearch()
-              }
-            }}
-          />
-        </label>
-        <AriaButton className="ghost location-search-button" onPress={() => void runSearch()} isDisabled={searching}>
-          {searching ? 'Searching...' : 'Search'}
-        </AriaButton>
-      </div>
+      {showSearchControls ? (
+        <div className="location-search-row">
+          <label className="location-search-field" htmlFor="location-search">
+            <span>Location</span>
+            <input
+              id="location-search"
+              className="aria-input"
+              value={query}
+              placeholder="Search city or place"
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  void runSearch()
+                }
+              }}
+            />
+          </label>
+          <AriaButton className="ghost location-search-button" onPress={() => void runSearch()} isDisabled={searching}>
+            {searching ? 'Searching...' : 'Search'}
+          </AriaButton>
+        </div>
+      ) : null}
 
-      {searchError ? <p className="field-error">{searchError}</p> : null}
+      {showSearchControls && searchError ? <p className="field-error">{searchError}</p> : null}
 
-      {results.length > 0 ? (
+      {showSearchControls && results.length > 0 ? (
         <div className="location-search-results" role="listbox" aria-label="Location search results">
           {results.map((item) => (
             <AriaButton key={item.id} className="location-search-result" onPress={() => applyResult(item)}>

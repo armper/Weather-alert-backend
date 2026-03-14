@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -17,8 +16,8 @@ public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
     private final JpaTravelPlanRepository jpaRepository;
 
     @Override
-    public TravelPlan save(TravelPlan plan) {
-        TravelPlanEntity entity = toEntity(plan);
+    public TravelPlan save(TravelPlan travelPlan) {
+        TravelPlanEntity entity = toEntity(travelPlan);
         TravelPlanEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
     }
@@ -30,31 +29,32 @@ public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
 
     @Override
     public List<TravelPlan> findByUserId(String userId) {
-        return jpaRepository.findByUserIdOrderByStartDateAscCreatedAtAsc(userId).stream()
+        return jpaRepository.findByUserIdOrderByStartDateAscIdAsc(userId).stream()
                 .map(this::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
-    public void delete(String id) {
+    public void deleteById(String id) {
         jpaRepository.deleteById(id);
     }
 
-    private TravelPlanEntity toEntity(TravelPlan plan) {
-        Instant now = Instant.now();
+    private TravelPlanEntity toEntity(TravelPlan travelPlan) {
+        Instant createdAt = travelPlan.getCreatedAt() == null ? Instant.now() : travelPlan.getCreatedAt();
+        Instant updatedAt = travelPlan.getUpdatedAt() == null ? createdAt : travelPlan.getUpdatedAt();
         return TravelPlanEntity.builder()
-                .id(plan.getId())
-                .userId(plan.getUserId())
-                .name(plan.getName())
-                .destination(plan.getDestination())
-                .latitude(plan.getLatitude())
-                .longitude(plan.getLongitude())
-                .startDate(plan.getStartDate())
-                .endDate(plan.getEndDate())
-                .notes(plan.getNotes())
-                .alertsEnabled(plan.getAlertsEnabled())
-                .createdAt(plan.getCreatedAt() == null ? now : plan.getCreatedAt())
-                .updatedAt(plan.getUpdatedAt() == null ? now : plan.getUpdatedAt())
+                .id(travelPlan.getId())
+                .userId(travelPlan.getUserId())
+                .name(travelPlan.getName())
+                .destination(travelPlan.getDestination())
+                .startDate(travelPlan.getStartDate())
+                .endDate(travelPlan.getEndDate())
+                .latitude(travelPlan.getLatitude())
+                .longitude(travelPlan.getLongitude())
+                .notes(travelPlan.getNotes())
+                .alertsEnabled(travelPlan.getAlertsEnabled() == null || travelPlan.getAlertsEnabled())
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
                 .build();
     }
 
@@ -64,10 +64,10 @@ public class TravelPlanRepositoryAdapter implements TravelPlanRepositoryPort {
                 .userId(entity.getUserId())
                 .name(entity.getName())
                 .destination(entity.getDestination())
-                .latitude(entity.getLatitude())
-                .longitude(entity.getLongitude())
                 .startDate(entity.getStartDate())
                 .endDate(entity.getEndDate())
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
                 .notes(entity.getNotes())
                 .alertsEnabled(entity.getAlertsEnabled())
                 .createdAt(entity.getCreatedAt())

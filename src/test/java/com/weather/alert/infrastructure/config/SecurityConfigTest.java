@@ -5,6 +5,7 @@ import com.weather.alert.application.dto.AuthRequest;
 import com.weather.alert.application.dto.BillingCheckoutSessionResponse;
 import com.weather.alert.application.dto.BillingStatusResponse;
 import com.weather.alert.application.dto.CreateAlertCriteriaRequest;
+import com.weather.alert.application.dto.TravelPlanRequest;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
 import com.weather.alert.application.usecase.ChangeBillingPlanUseCase;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
@@ -14,11 +15,13 @@ import com.weather.alert.application.usecase.HandleStripeWebhookUseCase;
 import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.ManageNotificationPreferencesUseCase;
+import com.weather.alert.application.usecase.ManageTravelPlansUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.application.service.AuthSecurityGuardService;
 import com.weather.alert.domain.model.AlertCriteria;
 import com.weather.alert.domain.model.DeliveryFallbackStrategy;
 import com.weather.alert.domain.model.NotificationChannel;
+import com.weather.alert.domain.model.TravelPlan;
 import com.weather.alert.infrastructure.error.CorrelationIdFilter;
 import com.weather.alert.infrastructure.error.RestAccessDeniedHandler;
 import com.weather.alert.infrastructure.error.RestAuthenticationEntryPoint;
@@ -29,6 +32,7 @@ import com.weather.alert.infrastructure.web.controller.AuthController;
 import com.weather.alert.infrastructure.web.controller.BillingController;
 import com.weather.alert.infrastructure.web.controller.NotificationPreferenceController;
 import com.weather.alert.infrastructure.web.controller.StripeWebhookController;
+import com.weather.alert.infrastructure.web.controller.TravelPlanController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -62,7 +66,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         NotificationPreferenceController.class,
         AccountRecoveryController.class,
         BillingController.class,
-        StripeWebhookController.class
+        StripeWebhookController.class,
+        TravelPlanController.class
 })
 @Import({
         SecurityConfig.class,
@@ -124,6 +129,9 @@ class SecurityConfigTest {
 
     @MockBean
     private HandleStripeWebhookUseCase handleStripeWebhookUseCase;
+
+    @MockBean
+    private ManageTravelPlansUseCase manageTravelPlansUseCase;
 
     @Test
     void shouldRequireAuthenticationForApiEndpoints() throws Exception {
@@ -264,6 +272,56 @@ class SecurityConfigTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("jwt-token-value"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
+    void shouldAllowUserToReadOwnTravelPlans() throws Exception {
+        when(manageTravelPlansUseCase.getByUserId("user-1")).thenReturn(List.of(
+                TravelPlan.builder()
+                        .id("trip-1")
+                        .userId("user-1")
+                        .name("Seattle trip")
+                        .destination("Seattle")
+                        .build()));
+
+        mockMvc.perform(get("/api/travel-plans/user/user-1")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("trip-1"))
+                .andExpect(jsonPath("$[0].destination").value("Seattle"));
+    }
+
+    @Test
+    void shouldForbidTravelPlanReadForAnotherUserWhenRequesterIsNotAdmin() throws Exception {
+        mockMvc.perform(get("/api/travel-plans/user/other-user")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowUserToCreateOwnTravelPlan() throws Exception {
+        when(manageTravelPlansUseCase.create(any(TravelPlanRequest.class))).thenReturn(TravelPlan.builder()
+                .id("trip-1")
+                .userId("user-1")
+                .name("Seattle trip")
+                .destination("Seattle")
+                .build());
+
+        TravelPlanRequest request = TravelPlanRequest.builder()
+                .userId("user-1")
+                .name("Seattle trip")
+                .destination("Seattle")
+                .startDate(java.time.LocalDate.parse("2026-03-20"))
+                .endDate(java.time.LocalDate.parse("2026-03-22"))
+                .build();
+
+        mockMvc.perform(post("/api/travel-plans")
+                        .with(jwt().jwt(jwt -> jwt.subject("user-1")).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("trip-1"))
+                .andExpect(jsonPath("$.name").value("Seattle trip"));
     }
 
     @Test

@@ -5,16 +5,13 @@ import com.weather.alert.domain.model.TravelPlan;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Port for travel plan persistence.
- */
 public interface TravelPlanRepositoryPort {
 
-    TravelPlan save(TravelPlan plan);
+    TravelPlan save(TravelPlan travelPlan);
 
     Optional<TravelPlan> findById(String id);
 
     List<TravelPlan> findByUserId(String userId);
 
-    void delete(String id);
+    void deleteById(String id);
 }
