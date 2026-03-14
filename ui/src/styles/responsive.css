@@ -241,6 +241,20 @@
     align-items: stretch;
   }
 
+  .account-delete-dialog-backdrop {
+    place-items: start center;
+    padding: 0.8rem 0.8rem calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .travel-dialog {
+    width: min(100%, calc(100vw - 1.6rem));
+    max-height: none;
+  }
+
+  .travel-dialog .location-map-shell {
+    height: 150px;
+  }
+
   .alert-row {
     align-items: flex-start;
   }

@@ -31,6 +31,9 @@
   display: grid;
   place-items: center;
   padding: 1.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: rgba(5, 16, 28, 0.48);
   backdrop-filter: blur(8px);
 }

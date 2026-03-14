@@ -1760,6 +1760,11 @@
 
 .travel-dialog {
   width: min(860px, calc(100vw - 2rem));
+  max-height: min(92vh, calc(100dvh - 2rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
 }
 
 .travel-form {
@@ -1782,6 +1787,24 @@
 
 .travel-map-toolbar {
   align-items: center;
+}
+
+.travel-dialog .account-delete-dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 0.85rem;
+  background: var(--card-bg-elevated);
+}
+
+.travel-dialog .account-delete-dialog-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 0.2rem;
+  padding-top: 0.85rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0), var(--card-bg-elevated) 28%);
 }
 
 /* ── Daily forecast responsive adjustments ──────────────────────────────── */
