@@ -1400,11 +1400,22 @@
   flex-direction: column;
   align-items: center;
   gap: 0.22rem;
-  padding: 0.55rem 0.3rem;
+  padding: 0.65rem 0.3rem;
   border-radius: 0.75rem;
   border: 1px solid var(--panel-border);
   background: var(--card-bg-elevated);
   text-align: center;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.daily-forecast-day--today {
+  background: color-mix(in srgb, var(--card-bg-elevated) 82%, rgba(var(--accent-bright-rgb, 0, 180, 216), 0.18));
+  border-color: rgba(var(--accent-rgb), 0.32);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+}
+
+.daily-forecast-day--today .daily-forecast-day-label {
+  color: var(--accent-700);
 }
 
 .daily-forecast-day-label {
@@ -1416,22 +1427,28 @@
 }
 
 .daily-forecast-day-icon {
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   line-height: 1;
+  margin: 0.1rem 0;
 }
 
 .daily-forecast-day-temp {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .daily-forecast-day-rain {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
 }
 
 /* ── Hourly Forecast Strip ──────────────────────────────────────────────── */
+
+.hourly-forecast-panel {
+  display: grid;
+  gap: 0.5rem;
+}
 
 .hourly-forecast-strip {
   display: grid;
@@ -1450,7 +1467,7 @@
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 0.2rem;
+  padding-bottom: 0.35rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(var(--accent-rgb), 0.2) transparent;
 }
@@ -1461,9 +1478,9 @@
   align-items: center;
   gap: 0.18rem;
   flex-shrink: 0;
-  min-width: 3.2rem;
-  padding: 0.38rem 0.3rem;
-  border-radius: 0.52rem;
+  min-width: 3.4rem;
+  padding: 0.5rem 0.35rem;
+  border-radius: 0.62rem;
   border: 1px solid var(--panel-border);
   background: var(--card-bg-elevated);
   text-align: center;
@@ -1478,6 +1495,11 @@
   white-space: nowrap;
 }
 
+.hourly-forecast-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
 .hourly-forecast-temp {
   font-size: 0.85rem;
   font-weight: 700;
@@ -1487,6 +1509,7 @@
 .hourly-forecast-rain {
   font-size: 0.68rem;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ── NWS Text Products Panel ────────────────────────────────────────────── */
