@@ -737,7 +737,7 @@ export function useWeatherAppState() {
         token,
         body: { ...payload, userId: me.id },
       })
-      setTravelPlans((prev) => [...prev, created].sort((a, b) => a.startDate.localeCompare(b.startDate)))
+      setTravelPlans((prev) => [...prev, created].sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? '')))
       setNotice({ kind: 'success', text: `Trip "${created.name}" added.` })
       return true
     } catch (error) {
@@ -773,7 +773,7 @@ export function useWeatherAppState() {
         body: { ...payload, userId: me.id },
       })
       setTravelPlans((prev) =>
-        prev.map((p) => (p.id === planId ? updated : p)).sort((a, b) => a.startDate.localeCompare(b.startDate)),
+        prev.map((p) => (p.id === planId ? updated : p)).sort((a, b) => (a.startDate ?? '').localeCompare(b.startDate ?? '')),
       )
       setNotice({ kind: 'success', text: `Trip "${updated.name}" updated.` })
       return true

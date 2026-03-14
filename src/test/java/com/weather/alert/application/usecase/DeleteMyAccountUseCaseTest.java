@@ -7,6 +7,7 @@ import com.weather.alert.infrastructure.adapter.persistence.AlertCriteriaEntity;
 import com.weather.alert.infrastructure.adapter.persistence.JpaAlertCriteriaRepository;
 import com.weather.alert.infrastructure.adapter.persistence.JpaAlertCriteriaStateRepository;
 import com.weather.alert.infrastructure.adapter.persistence.JpaAlertRepository;
+import com.weather.alert.infrastructure.adapter.persistence.JpaTravelPlanRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,9 @@ class DeleteMyAccountUseCaseTest {
     @Mock
     private JpaAlertCriteriaStateRepository jpaAlertCriteriaStateRepository;
 
+    @Mock
+    private JpaTravelPlanRepository jpaTravelPlanRepository;
+
     private DeleteMyAccountUseCase useCase;
 
     @BeforeEach
@@ -48,7 +52,8 @@ class DeleteMyAccountUseCaseTest {
                 billingProviderPort,
                 jpaAlertRepository,
                 jpaAlertCriteriaRepository,
-                jpaAlertCriteriaStateRepository);
+                jpaAlertCriteriaStateRepository,
+                jpaTravelPlanRepository);
     }
 
     @Test
@@ -69,6 +74,7 @@ class DeleteMyAccountUseCaseTest {
         verify(jpaAlertRepository).deleteByUserId("alice");
         verify(jpaAlertCriteriaStateRepository).deleteByCriteriaIds(List.of("criteria-1", "criteria-2"));
         verify(jpaAlertCriteriaRepository).deleteByUserId("alice");
+        verify(jpaTravelPlanRepository).deleteByUserId("alice");
         verify(userRepository).delete("alice");
     }
 
@@ -86,6 +92,7 @@ class DeleteMyAccountUseCaseTest {
         verify(jpaAlertRepository).deleteByUserId("alice");
         verify(jpaAlertCriteriaStateRepository, never()).deleteByCriteriaIds(List.of());
         verify(jpaAlertCriteriaRepository).deleteByUserId("alice");
+        verify(jpaTravelPlanRepository).deleteByUserId("alice");
         verify(userRepository).delete("alice");
     }
 }
