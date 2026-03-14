@@ -248,9 +248,9 @@ export interface TravelPlan {
   destination: string
   startDate: string
   endDate: string
-  latitude?: number
-  longitude?: number
-  notes?: string
+  latitude?: number | null
+  longitude?: number | null
+  notes?: string | null
   alertsEnabled?: boolean
   createdAt?: string
   updatedAt?: string

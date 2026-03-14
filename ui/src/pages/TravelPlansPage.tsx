@@ -102,6 +102,12 @@ function formatCountdown(plan: TravelPlan, today = todayKey()) {
   return 'Scheduled'
 }
 
+function hasCoordinates(
+  plan: Pick<TravelPlan, 'latitude' | 'longitude'>,
+): plan is Pick<TravelPlan, 'latitude' | 'longitude'> & { latitude: number; longitude: number } {
+  return plan.latitude != null && plan.longitude != null
+}
+
 export function TravelPlansPage() {
   const {
     criteria,
@@ -162,8 +168,8 @@ export function TravelPlansPage() {
       destination: plan.destination,
       startDate: plan.startDate,
       endDate: plan.endDate,
-      latitude: plan.latitude,
-      longitude: plan.longitude,
+      latitude: plan.latitude ?? undefined,
+      longitude: plan.longitude ?? undefined,
       notes: plan.notes ?? '',
       alertsEnabled: plan.alertsEnabled !== false,
     })
@@ -299,7 +305,7 @@ export function TravelPlansPage() {
               </div>
               {featuredTrip.notes ? <p className="travel-feature-notes">{featuredTrip.notes}</p> : null}
             </div>
-            {featuredTrip.latitude !== undefined && featuredTrip.longitude !== undefined ? (
+            {hasCoordinates(featuredTrip) ? (
               <StaticLocationMap
                 latitude={featuredTrip.latitude}
                 longitude={featuredTrip.longitude}
@@ -371,7 +377,7 @@ export function TravelPlansPage() {
                     <span>{formatCountdown(plan, today)}</span>
                   </div>
 
-                  {plan.latitude !== undefined && plan.longitude !== undefined ? (
+                  {hasCoordinates(plan) ? (
                     <StaticLocationMap
                       latitude={plan.latitude}
                       longitude={plan.longitude}
