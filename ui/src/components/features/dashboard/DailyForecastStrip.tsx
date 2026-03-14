@@ -10,6 +10,18 @@ function resolveDisplayTime(item: WeatherCondition): string | undefined {
   return item.onset ?? item.timestamp
 }
 
+function isToday(item: WeatherCondition, now: Date): boolean {
+  const displayTime = resolveDisplayTime(item)
+  if (!displayTime) return false
+  const date = new Date(displayTime)
+  if (Number.isNaN(date.getTime())) return false
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  )
+}
+
 function formatDayLabel(item: WeatherCondition): string {
   const displayTime = resolveDisplayTime(item)
   if (!displayTime) {
@@ -66,8 +78,18 @@ function resolveWeatherIcon(item: WeatherCondition): string {
   return '☀️'
 }
 
+function resolveWeatherLabel(item: WeatherCondition): string {
+  if (item.probabilityOfThunder != null && item.probabilityOfThunder > 30) return 'Thunderstorm'
+  if ((item.precipitationProbability ?? 0) > 60) return 'Rain'
+  if ((item.precipitationProbability ?? 0) > 30) return 'Partly rainy'
+  if ((item.skyCover ?? 0) > 75) return 'Cloudy'
+  if ((item.skyCover ?? 0) > 40) return 'Partly cloudy'
+  return 'Sunny'
+}
+
 export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProps) {
   const displayItems = buildUniqueDailyItems(items)
+  const now = new Date()
 
   if (displayItems.length === 0) {
     return null
@@ -82,16 +104,19 @@ export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProp
         </div>
       </div>
       <div className="daily-forecast-strip">
-        {displayItems.map((item) => (
-          <div key={item.id} className="daily-forecast-day">
-            <span className="daily-forecast-day-label">{formatDayLabel(item)}</span>
-            <span className="daily-forecast-day-icon" aria-hidden>
-              {resolveWeatherIcon(item)}
-            </span>
-            <span className="daily-forecast-day-temp">{formatTemperature(item.temperature, unit)}</span>
-            <span className="daily-forecast-day-rain">{formatPercentOrNA(item.precipitationProbability)}</span>
-          </div>
-        ))}
+        {displayItems.map((item) => {
+          const today = isToday(item, now)
+          return (
+            <div key={item.id} className={`daily-forecast-day${today ? ' daily-forecast-day--today' : ''}`}>
+              <span className="daily-forecast-day-label">{today ? 'Today' : formatDayLabel(item)}</span>
+              <span className="daily-forecast-day-icon" role="img" aria-label={resolveWeatherLabel(item)}>
+                {resolveWeatherIcon(item)}
+              </span>
+              <span className="daily-forecast-day-temp">{formatTemperature(item.temperature, unit)}</span>
+              <span className="daily-forecast-day-rain">💧 {formatPercentOrNA(item.precipitationProbability)}</span>
+            </div>
+          )
+        })}
       </div>
     </article>
   )

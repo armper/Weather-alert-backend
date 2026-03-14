@@ -138,9 +138,7 @@ export function OverviewPage() {
                   <TrendSparkline label="Humidity" data={humidityHistory} unit="%" />
                 </div>
               ) : null}
-              {hourlyForecast.length > 0 ? (
-                <HourlyForecastStrip items={hourlyForecast} />
-              ) : null}
+
               <section className="overview-watch-section">
                 <div className="panel-title-row overview-watch-header">
                   <h3>Watching for</h3>
@@ -170,9 +168,11 @@ export function OverviewPage() {
         <RecentActivityFeed items={dashboard.recentActivity} calmLabel={summary.allClear ? dashboard.calmLabel : undefined} now={now} />
       </div>
 
-      <WeatherTimeline items={dashboard.timeline} />
+      {hourlyForecast.length > 0 ? <HourlyForecastStrip items={hourlyForecast} /> : null}
 
       {dailyForecast.length > 0 ? <DailyForecastStrip items={dailyForecast} /> : null}
+
+      <WeatherTimeline items={dashboard.timeline} />
     </section>
   )
 }
