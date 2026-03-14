@@ -437,15 +437,16 @@
   box-shadow: 0 6px 14px rgba(var(--accent-dark-rgb), 0.18);
 }
 
-.monitoring-map-popup .leaflet-popup-content-wrapper {
+.monitoring-map-popup .maplibregl-popup-content {
   border-radius: 1rem;
   background: var(--panel-bg-popover);
   color: var(--text-primary);
   box-shadow: var(--card-shadow-raised);
+  padding: 0;
 }
 
-.monitoring-map-popup .leaflet-popup-tip {
-  background: var(--panel-bg-popover);
+.monitoring-map-popup .maplibregl-popup-tip {
+  border-top-color: var(--panel-bg-popover);
 }
 
 .monitoring-map-popup-content {
