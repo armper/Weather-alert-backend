@@ -3,10 +3,10 @@ package com.weather.alert.application.usecase;
 import com.weather.alert.application.dto.TravelPlanRequest;
 import com.weather.alert.application.exception.BillingStateException;
 import com.weather.alert.application.exception.TravelPlanNotFoundException;
-import com.weather.alert.application.exception.UserNotFoundException;
 import com.weather.alert.application.service.BillingPlanService;
 import com.weather.alert.domain.model.BillingEntitlements;
 import com.weather.alert.domain.model.TravelPlan;
+import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.TravelPlanRepositoryPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -99,9 +99,8 @@ public class ManageTravelPlansUseCase {
             return;
         }
 
-        BillingEntitlements entitlements = billingPlanService.resolveEntitlements(
-                userRepository.findById(userId)
-                        .orElseThrow(() -> new UserNotFoundException(userId)));
+        User user = userRepository.findById(userId).orElse(null);
+        BillingEntitlements entitlements = billingPlanService.resolveEntitlements(user);
         int maxTravelPlans = entitlements.getMaxTravelPlans();
         int existingTravelPlanCount = travelPlanRepository.findByUserId(userId).size();
 
