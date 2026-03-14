@@ -923,6 +923,132 @@ class ApiIntegrationContractTest {
                 .statusCode(HttpStatus.UNAUTHORIZED.value());
     }
 
+    @Test
+    void shouldCreateReadUpdateAndDeleteTravelPlanWithOpenApiValidation() {
+        String unique = UUID.randomUUID().toString().substring(0, 8);
+        String username = "travel" + unique;
+        String email = username + "@example.com";
+        String password = "StrongPass123!";
+
+        io.restassured.response.ExtractableResponse<io.restassured.response.Response> registerResponse = given()
+                .contentType(JSON)
+                .body(Map.of(
+                        "username", username,
+                        "password", password,
+                        "email", email,
+                        "name", "Travel User"))
+                .when()
+                .post("/api/auth/register")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .extract();
+
+        given()
+                .contentType(JSON)
+                .body(Map.of(
+                        "userId", username,
+                        "verificationId", registerResponse.path("emailVerification.id"),
+                        "token", registerResponse.path("emailVerification.verificationToken")))
+                .when()
+                .post("/api/auth/register/verify-email")
+                .then()
+                .statusCode(HttpStatus.OK.value());
+
+        String userToken = given()
+                .contentType(JSON)
+                .body(Map.of("username", username, "password", password))
+                .when()
+                .post("/api/auth/token")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .extract()
+                .path("accessToken");
+
+        // Create a travel plan — startDate and endDate must come back as ISO strings, not arrays
+        String planId = given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .body(Map.ofEntries(
+                        Map.entry("userId", username),
+                        Map.entry("name", "NYC Conference"),
+                        Map.entry("destination", "New York City"),
+                        Map.entry("startDate", "2026-06-15"),
+                        Map.entry("endDate", "2026-06-20"),
+                        Map.entry("alertsEnabled", true)))
+                .when()
+                .post("/api/travel-plans")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .body("id", notNullValue())
+                .body("userId", equalTo(username))
+                .body("name", equalTo("NYC Conference"))
+                .body("destination", equalTo("New York City"))
+                .body("startDate", equalTo("2026-06-15"))
+                .body("endDate", equalTo("2026-06-20"))
+                .body("alertsEnabled", equalTo(true))
+                .extract()
+                .path("id");
+
+        // Read the plan
+        given()
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .get("/api/travel-plans/{planId}", planId)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("id", equalTo(planId))
+                .body("startDate", equalTo("2026-06-15"));
+
+        // List plans for user
+        given()
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .get("/api/travel-plans/user/{userId}", username)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("$", hasSize(greaterThan(0)))
+                .body("[0].startDate", equalTo("2026-06-15"));
+
+        // Update the plan
+        given()
+                .contentType(JSON)
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .body(Map.ofEntries(
+                        Map.entry("name", "NYC Conference (Updated)"),
+                        Map.entry("destination", "New York City"),
+                        Map.entry("startDate", "2026-06-16"),
+                        Map.entry("endDate", "2026-06-21"),
+                        Map.entry("alertsEnabled", false)))
+                .when()
+                .put("/api/travel-plans/{planId}", planId)
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("name", equalTo("NYC Conference (Updated)"))
+                .body("startDate", equalTo("2026-06-16"))
+                .body("alertsEnabled", equalTo(false));
+
+        // Delete the plan
+        given()
+                .header("Authorization", "Bearer " + userToken)
+                .filter(openApiValidationFilter)
+                .when()
+                .delete("/api/travel-plans/{planId}", planId)
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
+
+        // Clean up the test user
+        given()
+                .header("Authorization", "Bearer " + userToken)
+                .when()
+                .delete("/api/users/me")
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
     private String issueAdminToken() {
         return given()
                 .contentType(JSON)

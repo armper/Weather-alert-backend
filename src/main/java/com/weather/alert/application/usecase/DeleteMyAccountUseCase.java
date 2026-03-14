@@ -8,6 +8,7 @@ import com.weather.alert.domain.port.UserRepositoryPort;
 import com.weather.alert.infrastructure.adapter.persistence.JpaAlertCriteriaRepository;
 import com.weather.alert.infrastructure.adapter.persistence.JpaAlertCriteriaStateRepository;
 import com.weather.alert.infrastructure.adapter.persistence.JpaAlertRepository;
+import com.weather.alert.infrastructure.adapter.persistence.JpaTravelPlanRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ public class DeleteMyAccountUseCase {
     private final JpaAlertRepository jpaAlertRepository;
     private final JpaAlertCriteriaRepository jpaAlertCriteriaRepository;
     private final JpaAlertCriteriaStateRepository jpaAlertCriteriaStateRepository;
+    private final JpaTravelPlanRepository jpaTravelPlanRepository;
 
     @Transactional
     public void delete(String userId) {
@@ -43,6 +45,7 @@ public class DeleteMyAccountUseCase {
             jpaAlertCriteriaStateRepository.deleteByCriteriaIds(criteriaIds);
         }
         jpaAlertCriteriaRepository.deleteByUserId(userId);
+        jpaTravelPlanRepository.deleteByUserId(userId);
         userRepository.delete(userId);
 
         log.info("ACCOUNT_DELETED userId={}", userId);
