@@ -229,6 +229,7 @@ export interface BillingStatus {
   plan: BillingPlan
   paidPlan: boolean
   maxActiveAlerts: number
+  maxTravelPlans: number
   adSponsoredEmails: boolean
   stripeCustomerId?: string
   stripeSubscriptionId?: string

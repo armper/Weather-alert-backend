@@ -17,6 +17,7 @@ class BillingStatusResponseJsonTest {
                 .userId("user-1")
                 .plan(BillingPlan.FREE)
                 .maxActiveAlerts(1)
+                .maxTravelPlans(0)
                 .adSponsoredEmails(true)
                 .activeSubscription(false)
                 .build();
@@ -26,6 +27,7 @@ class BillingStatusResponseJsonTest {
         assertTrue(json.contains("\"userId\":\"user-1\""));
         assertTrue(json.contains("\"plan\":\"FREE\""));
         assertTrue(json.contains("\"maxActiveAlerts\":1"));
+        assertTrue(json.contains("\"maxTravelPlans\":0"));
         assertTrue(json.contains("\"adSponsoredEmails\":true"));
         assertTrue(json.contains("\"activeSubscription\":false"));
         assertFalse(json.contains("stripeCustomerId"));

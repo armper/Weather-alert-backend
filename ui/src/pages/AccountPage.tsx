@@ -25,6 +25,7 @@ const PLAN_DETAILS: Array<{
   name: string
   monthlyPrice: string
   activeAlertsLabel: string
+  travelPlansLabel: string
   emailMode: string
   highlight: string
 }> = [
@@ -33,6 +34,7 @@ const PLAN_DETAILS: Array<{
     name: 'The Basics',
     monthlyPrice: '$0',
     activeAlertsLabel: '1 active alert',
+    travelPlansLabel: 'No travel plans',
     emailMode: 'Includes a small sponsored link',
     highlight: 'Perfect for your home or daily commute.',
   },
@@ -41,14 +43,16 @@ const PLAN_DETAILS: Array<{
     name: 'The Family Plan',
     monthlyPrice: '$9',
     activeAlertsLabel: '10 active alerts',
+    travelPlansLabel: '3 travel plans',
     emailMode: 'Ad-free',
-    highlight: 'Keep an eye on home, work, the kids’ school, and weekend sports.',
+    highlight: 'Keep an eye on home, work, the kids’ school, weekend sports, and upcoming trips.',
   },
   {
     id: 'PRO',
     name: 'The Globetrotter',
     monthlyPrice: '$19',
     activeAlertsLabel: '50 active alerts',
+    travelPlansLabel: '15 travel plans',
     emailMode: 'Ad-free',
     highlight: 'Ideal for frequent travelers, RVers, or keeping tabs on extended family across the country.',
   },
@@ -58,6 +62,7 @@ export function AccountPage() {
   const {
     me,
     criteria,
+    travelPlans,
     billingStatus,
     loadingBilling,
     checkoutPlan,
@@ -125,7 +130,10 @@ export function AccountPage() {
   const currentPlan = billingStatus?.plan ?? 'FREE'
   const enabledCriteriaCount = criteria.filter((item) => item.enabled !== false).length
   const maxActiveAlerts = billingStatus?.maxActiveAlerts ?? 1
+  const maxTravelPlans = billingStatus?.maxTravelPlans ?? 0
   const remainingAlerts = Math.max(maxActiveAlerts - enabledCriteriaCount, 0)
+  const currentTripCount = travelPlans.length
+  const remainingTrips = Math.max(maxTravelPlans - currentTripCount, 0)
   const billingStatusLabel = billingStatus?.activeSubscription
     ? formatStatusLabel(billingStatus.stripeSubscriptionStatus)
     : currentPlan === 'FREE'
@@ -143,7 +151,15 @@ export function AccountPage() {
       : pendingPlanChange === 'PLUS'
         ? 10
         : 50
+  const pendingPlanTravelLimit = pendingPlanChange == null
+    ? maxTravelPlans
+    : pendingPlanChange === 'FREE'
+      ? 0
+      : pendingPlanChange === 'PLUS'
+        ? 3
+        : 15
   const excessRulesOnDowngrade = Math.max(enabledCriteriaCount - pendingPlanLimit, 0)
+  const excessTripsOnDowngrade = Math.max(currentTripCount - pendingPlanTravelLimit, 0)
   const isDowngradePlanChange = pendingPlanChange != null
     && ((currentPlan === 'PRO' && (pendingPlanChange === 'PLUS' || pendingPlanChange === 'FREE'))
       || (currentPlan === 'PLUS' && pendingPlanChange === 'FREE'))
@@ -289,12 +305,12 @@ export function AccountPage() {
     }
     if (isUpgradePlanChange) {
       if (billingStatus?.activeSubscription && currentPlan !== 'FREE') {
-        return `You’ll unlock ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} right away. Your current watches stay in place and SkyPanda will update billing immediately.`
+        return `You’ll unlock ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} and ${pendingPlanDetails.travelPlansLabel.toLowerCase()} right away. Your current watches stay in place and SkyPanda will update billing immediately.`
       }
-      return `You’ll unlock ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} and ad-free alerts as soon as Stripe checkout finishes.`
+      return `You’ll unlock ${pendingPlanDetails.activeAlertsLabel.toLowerCase()}, ${pendingPlanDetails.travelPlansLabel.toLowerCase()}, and ad-free alerts as soon as Stripe checkout finishes.`
     }
     if (isDowngradePlanChange) {
-      return `This change happens immediately. SkyPanda will keep you within the new ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} limit and disable any extra active rules instead of deleting them.`
+      return `This change happens immediately. SkyPanda will keep you within the new ${pendingPlanDetails.activeAlertsLabel.toLowerCase()} limit and stop any extra trip creation until you are back under the ${pendingPlanDetails.travelPlansLabel.toLowerCase()} limit.`
     }
     return `SkyPanda will switch your subscription to ${pendingPlanDetails.name} and keep your monitoring rules in sync with the new plan.`
   }
@@ -341,6 +357,14 @@ export function AccountPage() {
                   {enabledCriteriaCount}/{maxActiveAlerts} active alerts in use
                 </strong>
                 <span className="muted small">{remainingAlerts} slots remaining before you hit the plan limit.</span>
+                <strong>
+                  {currentTripCount}/{maxTravelPlans} travel plans in use
+                </strong>
+                <span className="muted small">
+                  {maxTravelPlans === 0
+                    ? 'Travel plans start on The Family Plan.'
+                    : `${remainingTrips} travel slot${remainingTrips === 1 ? '' : 's'} remaining on this tier.`}
+                </span>
               </div>
             </div>
 
@@ -375,6 +399,7 @@ export function AccountPage() {
                       <p>{plan.highlight}</p>
                       <ul className="billing-plan-list">
                         <li>{plan.activeAlertsLabel}</li>
+                        <li>{plan.travelPlansLabel}</li>
                         <li>{plan.emailMode}</li>
                         <li>Billing shows up in your account before checkout redirect.</li>
                       </ul>
@@ -383,7 +408,7 @@ export function AccountPage() {
                     {plan.id === 'FREE' && !billingStatus?.activeSubscription ? (
                       <div className="billing-plan-note">
                         <span className="small muted">
-                          The Basics includes one live alert and full email or SMS delivery.
+                          The Basics includes one live alert, no travel plans, and full email or SMS delivery.
                         </span>
                       </div>
                     ) : (
@@ -415,10 +440,11 @@ export function AccountPage() {
               )}
               {currentPlan === 'FREE' ? (
                 <p className="small muted">
-                  You are at {enabledCriteriaCount}/{maxActiveAlerts} active alerts. Create or edit rules on{' '}
+                  You are at {enabledCriteriaCount}/{maxActiveAlerts} active alerts and {currentTripCount}/{maxTravelPlans} travel plans. Create or edit rules on{' '}
                   <Link to="/app/rules" className="auth-link">
                     New Alert
                   </Link>
+                  , and upgrade here when you want trip monitoring
                   .
                 </p>
               ) : null}
@@ -638,6 +664,7 @@ export function AccountPage() {
               <div className="billing-change-summary">
                 <span className="badge">{pendingPlanDetails.name}</span>
                 <strong>{pendingPlanDetails.activeAlertsLabel}</strong>
+                <span className="small muted">{pendingPlanDetails.travelPlansLabel}</span>
                 <span className="small muted">{pendingPlanDetails.emailMode}</span>
               </div>
 
@@ -651,6 +678,12 @@ export function AccountPage() {
                   </p>
                   <p className="small muted">
                     Disabled rules stay saved in your account so you can re-enable them later if you upgrade again.
+                  </p>
+                  <p className="small muted">
+                    You currently have {currentTripCount} saved trips. The new plan includes {pendingPlanTravelLimit}.
+                    {excessTripsOnDowngrade > 0
+                      ? ` You will keep the extra ${excessTripsOnDowngrade} trip${excessTripsOnDowngrade === 1 ? '' : 's'}, but you will not be able to add more until you are back under the limit.`
+                      : ' Your current trip count already fits inside the new limit.'}
                   </p>
                 </div>
               ) : null}

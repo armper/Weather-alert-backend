@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { describeCriteria } from '../lib/criteria'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
@@ -320,6 +321,7 @@ function buildCoveragePreview(
 
 export function TravelPlansPage() {
   const {
+    billingStatus,
     criteria,
     savingTravelPlan,
     travelPlans,
@@ -341,6 +343,10 @@ export function TravelPlansPage() {
   const baseLongitude = criteria[0]?.longitude ?? Number(DEFAULT_LON)
 
   const activeCriteria = useMemo(() => criteria.filter((item) => item.enabled !== false), [criteria])
+  const maxTravelPlans = billingStatus?.maxTravelPlans ?? null
+  const tripLimitReached = maxTravelPlans != null && maxTravelPlans > 0 && travelPlans.length >= maxTravelPlans
+  const travelLockedOnPlan = maxTravelPlans === 0
+  const canCreateTrips = maxTravelPlans == null || (!travelLockedOnPlan && !tripLimitReached)
   const criteriaById = useMemo(() => new Map(criteria.map((item) => [item.id, item])), [criteria])
   const linkedRuleOptions = useMemo(() => activeCriteria, [activeCriteria])
   const topicCounts = useMemo(() => {
@@ -386,6 +392,9 @@ export function TravelPlansPage() {
   }, [activeFilter, today, travelPlans])
 
   function openCreateDialog() {
+    if (!canCreateTrips) {
+      return
+    }
     setEditingPlan(null)
     setDraft(createEmptyDraft())
     setFormError(null)
@@ -542,10 +551,45 @@ export function TravelPlansPage() {
               weather topics like rain, or use exact saved rules.
             </p>
           </div>
-          <AriaButton className="primary button-inline" onPress={openCreateDialog}>
+          <AriaButton className="primary button-inline" onPress={openCreateDialog} isDisabled={!canCreateTrips}>
             Add trip
           </AriaButton>
         </div>
+
+        {travelLockedOnPlan ? (
+          <div className="travel-coverage-callout">
+            <strong>Travel monitoring starts on The Family Plan</strong>
+            <p className="muted small">
+              The free tier is built for one home-base alert. Upgrade on{' '}
+              <Link to="/app/account" className="auth-link">
+                Account
+              </Link>{' '}
+              to unlock trip planning, destination weather tracking, and focused trip coverage.
+            </p>
+          </div>
+        ) : null}
+
+        {tripLimitReached ? (
+          <div className="travel-coverage-callout">
+            <strong>Trip limit reached</strong>
+            <p className="muted small">
+              You are using {travelPlans.length} of {maxTravelPlans} trip slot{maxTravelPlans === 1 ? '' : 's'}. Upgrade on{' '}
+              <Link to="/app/account" className="auth-link">
+                Account
+              </Link>{' '}
+              to add more trips.
+            </p>
+          </div>
+        ) : null}
+
+        {maxTravelPlans != null && maxTravelPlans > 0 ? (
+          <div className="travel-coverage-preview">
+            <strong>{travelPlans.length}/{maxTravelPlans} trip slots used</strong>
+            <p className="muted small">
+              The Family Plan includes 3 trips. The Globetrotter includes 15 for heavier travel coverage.
+            </p>
+          </div>
+        ) : null}
 
         <div className="travel-summary-grid">
           <article className="travel-summary-card">
@@ -635,7 +679,7 @@ export function TravelPlansPage() {
             </p>
             {activeFilter === 'all' ? (
               <div className="button-row empty-state-actions">
-                <AriaButton className="primary button-inline" onPress={openCreateDialog}>
+                <AriaButton className="primary button-inline" onPress={openCreateDialog} isDisabled={!canCreateTrips}>
                   Add trip
                 </AriaButton>
               </div>

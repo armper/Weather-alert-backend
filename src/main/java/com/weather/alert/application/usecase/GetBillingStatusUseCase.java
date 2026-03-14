@@ -30,6 +30,7 @@ public class GetBillingStatusUseCase {
                 .plan(entitlements.getPlan())
                 .paidPlan(entitlements.isPaidPlan())
                 .maxActiveAlerts(entitlements.getMaxActiveAlerts())
+                .maxTravelPlans(entitlements.getMaxTravelPlans())
                 .adSponsoredEmails(entitlements.isAdSponsoredEmails())
                 .stripeCustomerId(user.getStripeCustomerId())
                 .stripeSubscriptionId(user.getStripeSubscriptionId())

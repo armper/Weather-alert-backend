@@ -13,5 +13,6 @@ public class BillingEntitlements {
     private BillingPlan plan;
     private boolean paidPlan;
     private int maxActiveAlerts;
+    private int maxTravelPlans;
     private boolean adSponsoredEmails;
 }

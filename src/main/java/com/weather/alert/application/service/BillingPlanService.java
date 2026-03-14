@@ -36,18 +36,21 @@ public class BillingPlanService {
                     .plan(BillingPlan.FREE)
                     .paidPlan(false)
                     .maxActiveAlerts(1)
+                    .maxTravelPlans(0)
                     .adSponsoredEmails(true)
                     .build();
             case PLUS -> BillingEntitlements.builder()
                     .plan(BillingPlan.PLUS)
                     .paidPlan(true)
                     .maxActiveAlerts(10)
+                    .maxTravelPlans(3)
                     .adSponsoredEmails(false)
                     .build();
             case PRO -> BillingEntitlements.builder()
                     .plan(BillingPlan.PRO)
                     .paidPlan(true)
                     .maxActiveAlerts(50)
+                    .maxTravelPlans(15)
                     .adSponsoredEmails(false)
                     .build();
         };

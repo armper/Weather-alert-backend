@@ -1,9 +1,15 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.TravelPlanRequest;
+import com.weather.alert.application.exception.BillingStateException;
 import com.weather.alert.application.exception.TravelPlanNotFoundException;
+import com.weather.alert.application.service.BillingPlanService;
+import com.weather.alert.domain.model.BillingEntitlements;
+import com.weather.alert.domain.model.BillingPlan;
 import com.weather.alert.domain.model.TravelPlan;
 import com.weather.alert.domain.port.TravelPlanRepositoryPort;
+import com.weather.alert.domain.port.UserRepositoryPort;
+import com.weather.alert.domain.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +37,17 @@ class ManageTravelPlansUseCaseTest {
     @Mock
     private TravelPlanRepositoryPort travelPlanRepository;
 
+    @Mock
+    private UserRepositoryPort userRepository;
+
+    @Mock
+    private BillingPlanService billingPlanService;
+
     private ManageTravelPlansUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ManageTravelPlansUseCase(travelPlanRepository);
+        useCase = new ManageTravelPlansUseCase(travelPlanRepository, userRepository, billingPlanService);
     }
 
     @Test
@@ -49,6 +61,15 @@ class ManageTravelPlansUseCaseTest {
                 .notes("  Bring layers for the evenings.  ")
                 .build();
 
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(User.builder().id("user-1").build()));
+        when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.PLUS)
+                .paidPlan(true)
+                .maxActiveAlerts(10)
+                .maxTravelPlans(3)
+                .adSponsoredEmails(false)
+                .build());
+        when(travelPlanRepository.findByUserId("user-1")).thenReturn(List.of());
         when(travelPlanRepository.save(any(TravelPlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TravelPlan saved = useCase.create(request);
@@ -82,6 +103,15 @@ class ManageTravelPlansUseCaseTest {
                 .linkedCriteriaIds(List.of("criteria-1"))
                 .build();
 
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(User.builder().id("user-1").build()));
+        when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.PLUS)
+                .paidPlan(true)
+                .maxActiveAlerts(10)
+                .maxTravelPlans(3)
+                .adSponsoredEmails(false)
+                .build());
+        when(travelPlanRepository.findByUserId("user-1")).thenReturn(List.of());
         when(travelPlanRepository.save(any(TravelPlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TravelPlan saved = useCase.create(request);
@@ -135,6 +165,31 @@ class ManageTravelPlansUseCaseTest {
         assertIterableEquals(List.of("rule-1", "rule-2"), updated.getLinkedCriteriaIds());
         assertEquals(Boolean.TRUE, updated.getAlertsEnabled());
         assertEquals(Instant.parse("2026-01-01T00:00:00Z"), updated.getCreatedAt());
+    }
+
+    @Test
+    void shouldRejectTripCreationWhenFreePlanHasNoTravelEntitlement() {
+        TravelPlanRequest request = TravelPlanRequest.builder()
+                .userId("user-1")
+                .name("Weekend")
+                .destination("Austin")
+                .startDate(LocalDate.parse("2026-04-10"))
+                .endDate(LocalDate.parse("2026-04-12"))
+                .build();
+
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(User.builder().id("user-1").build()));
+        when(billingPlanService.resolveEntitlements(any(User.class))).thenReturn(BillingEntitlements.builder()
+                .plan(BillingPlan.FREE)
+                .paidPlan(false)
+                .maxActiveAlerts(1)
+                .maxTravelPlans(0)
+                .adSponsoredEmails(true)
+                .build());
+        when(travelPlanRepository.findByUserId("user-1")).thenReturn(List.of());
+
+        BillingStateException exception = assertThrows(BillingStateException.class, () -> useCase.create(request));
+
+        assertEquals("Travel plans start on the plus plan. Upgrade to add trips.", exception.getMessage());
     }
 
     @Test

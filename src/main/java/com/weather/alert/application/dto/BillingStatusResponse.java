@@ -19,6 +19,7 @@ public class BillingStatusResponse {
     private BillingPlan plan;
     private boolean paidPlan;
     private Integer maxActiveAlerts;
+    private Integer maxTravelPlans;
     private Boolean adSponsoredEmails;
     private String stripeCustomerId;
     private String stripeSubscriptionId;

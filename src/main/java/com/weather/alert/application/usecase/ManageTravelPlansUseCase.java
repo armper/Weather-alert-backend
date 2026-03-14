@@ -1,9 +1,14 @@
 package com.weather.alert.application.usecase;
 
 import com.weather.alert.application.dto.TravelPlanRequest;
+import com.weather.alert.application.exception.BillingStateException;
 import com.weather.alert.application.exception.TravelPlanNotFoundException;
+import com.weather.alert.application.exception.UserNotFoundException;
+import com.weather.alert.application.service.BillingPlanService;
+import com.weather.alert.domain.model.BillingEntitlements;
 import com.weather.alert.domain.model.TravelPlan;
 import com.weather.alert.domain.port.TravelPlanRepositoryPort;
+import com.weather.alert.domain.port.UserRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +30,8 @@ public class ManageTravelPlansUseCase {
     private static final Set<String> ALLOWED_ALERT_TOPICS = Set.of("RAIN", "WIND", "HEAT", "COLD", "HUMIDITY", "SKY", "RIVER");
 
     private final TravelPlanRepositoryPort travelPlanRepository;
+    private final UserRepositoryPort userRepository;
+    private final BillingPlanService billingPlanService;
 
     public List<TravelPlan> getByUserId(String userId) {
         return travelPlanRepository.findByUserId(userId);
@@ -36,6 +43,7 @@ public class ManageTravelPlansUseCase {
     }
 
     public TravelPlan create(TravelPlanRequest request) {
+        enforceTravelPlanLimit(request.getUserId());
         Instant now = Instant.now();
         boolean alertsEnabled = defaultAlertsEnabled(request.getAlertsEnabled());
         String coverageMode = normalizeCoverageMode(request.getAlertCoverageMode(), alertsEnabled);
@@ -84,6 +92,27 @@ public class ManageTravelPlansUseCase {
 
     private boolean defaultAlertsEnabled(Boolean alertsEnabled) {
         return alertsEnabled == null || alertsEnabled;
+    }
+
+    private void enforceTravelPlanLimit(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+
+        BillingEntitlements entitlements = billingPlanService.resolveEntitlements(
+                userRepository.findById(userId)
+                        .orElseThrow(() -> new UserNotFoundException(userId)));
+        int maxTravelPlans = entitlements.getMaxTravelPlans();
+        int existingTravelPlanCount = travelPlanRepository.findByUserId(userId).size();
+
+        if (existingTravelPlanCount >= maxTravelPlans) {
+            if (maxTravelPlans == 0) {
+                throw new BillingStateException("Travel plans start on the plus plan. Upgrade to add trips.");
+            }
+            throw new BillingStateException("Your " + entitlements.getPlan().name().toLowerCase(Locale.ROOT)
+                    + " plan allows up to " + maxTravelPlans
+                    + " travel plan" + (maxTravelPlans == 1 ? "" : "s") + ".");
+        }
     }
 
     private String normalizeCoverageMode(String alertCoverageMode, boolean alertsEnabled) {
