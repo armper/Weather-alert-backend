@@ -299,7 +299,7 @@
   }
 
   .overview-page-content-fresh {
-    padding: 1.05rem 0.95rem calc(1.95rem + env(safe-area-inset-bottom));
+    padding: 1.05rem 0.95rem calc(10.9rem + env(safe-area-inset-bottom));
   }
 
   .overview-minimal-greeting {
@@ -315,9 +315,17 @@
   }
 
   .overview-minimal-forecast-strip {
-    margin-bottom: calc(-1.95rem + env(safe-area-inset-bottom));
+    margin-bottom: 0;
     padding: 0.6rem;
     border-radius: 1.15rem;
+  }
+
+  .app-shell.is-overview-route .overview-minimal-forecast-strip {
+    position: fixed;
+    left: 0.95rem;
+    right: 0.95rem;
+    bottom: calc(3.95rem + env(safe-area-inset-bottom));
+    z-index: 30;
   }
 
   .overview-minimal-forecast-row {
@@ -555,7 +563,7 @@
 
 @media (max-width: 420px) {
   .overview-page-content-fresh {
-    padding: 0.9rem 0.7rem calc(1.75rem + env(safe-area-inset-bottom));
+    padding: 0.9rem 0.7rem calc(10.5rem + env(safe-area-inset-bottom));
   }
 
   .overview-minimal-temperature {
@@ -563,9 +571,15 @@
   }
 
   .overview-minimal-forecast-strip {
-    margin-bottom: calc(-2.1rem + env(safe-area-inset-bottom));
+    margin-bottom: 0;
     padding: 0.5rem;
     border-radius: 1rem;
+  }
+
+  .app-shell.is-overview-route .overview-minimal-forecast-strip {
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: calc(3.85rem + env(safe-area-inset-bottom));
   }
 
   .overview-minimal-forecast-row {
