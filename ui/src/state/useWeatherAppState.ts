@@ -191,7 +191,10 @@ export function useWeatherAppState() {
           `/api/weather/conditions/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hours=24`,
           { token: activeToken },
         ).catch(() => [] as WeatherCondition[]),
-        apiRequest<NwsProduct[]>('/api/weather/products?type=AFD', { token: activeToken }).catch(() => [] as NwsProduct[]),
+        apiRequest<NwsProduct[]>(
+          `/api/weather/products?type=AFD&latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`,
+          { token: activeToken },
+        ).catch(() => [] as NwsProduct[]),
         apiRequest<TravelPlan[] | PagedResponse<TravelPlan>>(`/api/travel-plans/user/${account.id}`, {
           token: activeToken,
         }).catch(() => [] as TravelPlan[]),

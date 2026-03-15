@@ -7,6 +7,7 @@ import com.weather.alert.domain.model.HydrologyQuery;
 import com.weather.alert.domain.model.NwsProduct;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.model.WeatherData;
+import com.weather.alert.domain.model.WeatherPointMetadata;
 import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.port.WeatherDataSearchPort;
 import io.swagger.v3.oas.annotations.Operation;
@@ -202,8 +203,11 @@ public class WeatherDataController {
     @Operation(summary = "List NWS text products by type and/or location")
     public ResponseEntity<List<NwsProductResponse>> getProducts(
             @Parameter(example = "AFD") @RequestParam(required = false) String type,
-            @Parameter(example = "SEW") @RequestParam(required = false) String location) {
-        List<NwsProduct> products = weatherDataPort.fetchProductsByType(type, location);
+            @Parameter(example = "SEW") @RequestParam(required = false) String location,
+            @Parameter(example = "28.5383") @RequestParam(required = false) Double latitude,
+            @Parameter(example = "-81.3792") @RequestParam(required = false) Double longitude) {
+        String resolvedLocation = resolveProductLocationCode(location, latitude, longitude);
+        List<NwsProduct> products = weatherDataPort.fetchProductsByType(type, resolvedLocation);
         List<NwsProductResponse> response = products.stream().map(this::toProductResponse).collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
@@ -286,5 +290,19 @@ public class WeatherDataController {
                 .productName(product.getProductName())
                 .productText(product.getProductText())
                 .build();
+    }
+
+    private String resolveProductLocationCode(String location, Double latitude, Double longitude) {
+        if (location != null && !location.isBlank()) {
+            return location.trim();
+        }
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+        Optional<WeatherPointMetadata> pointMetadata = weatherDataPort.fetchPointMetadata(latitude, longitude);
+        return pointMetadata
+                .map(WeatherPointMetadata::forecastOfficeId)
+                .filter(value -> value != null && !value.isBlank())
+                .orElse(null);
     }
 }
