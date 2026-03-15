@@ -1,15 +1,29 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import { PublicPosterLayout } from '../components/layout/PublicPosterLayout'
+import backgroundLoginImage from '../assets/background-login.png'
 import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthRegisterPage() {
   const { notice } = useNoticeState()
-  const { loadingAuth, registerState, setRegisterState, verifyState, latestVerification, handleRegister } = useAuthState()
+  const { loadingAuth, registerState, setRegisterState, handleRegister } = useAuthState()
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [searchParams] = useSearchParams()
   const initialEmail = searchParams.get('email')?.trim() ?? ''
+  const trimmedEmail = registerState.email.trim()
+  const trimmedPhone = registerState.phoneNumber.trim()
+  const phoneDigits = trimmedPhone.replace(/\D/g, '')
+  const usernameReady = registerState.username.trim().length >= 3
+  const passwordLength = registerState.password.length
+  const passwordReady = passwordLength >= 8
+  const showPasswordHint = passwordLength > 0 && !passwordReady
+  const emailReady = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+  const showEmailHint = trimmedEmail.length > 0 && !emailReady
+  const phoneReady =
+    trimmedPhone.length === 0 || (/^[+()\-\s.\d]+$/.test(trimmedPhone) && phoneDigits.length >= 10 && phoneDigits.length <= 15)
+  const showPhoneHint = trimmedPhone.length > 0 && !phoneReady
+  const registerReady = usernameReady && passwordReady && emailReady && phoneReady
 
   useEffect(() => {
     if (!initialEmail || registerState.email) {
@@ -18,94 +32,126 @@ export function AuthRegisterPage() {
     setRegisterState((state) => (state.email ? state : { ...state, email: initialEmail }))
   }, [initialEmail, registerState.email, setRegisterState])
 
-  const verifyEmailLink = useMemo(() => {
-    const params = new URLSearchParams()
-    const userId = verifyState.userId.trim()
-    const verificationId = (verifyState.verificationId || latestVerification?.id || '').trim()
+  async function handleRegisterSubmit(event: FormEvent<HTMLFormElement>) {
+    const success = await handleRegister(event)
 
-    if (userId) {
-      params.set('userId', userId)
+    if (success) {
+      navigate('/auth/login')
     }
-    if (verificationId) {
-      params.set('verificationId', verificationId)
-    }
-
-    const query = params.toString()
-    return query ? `/auth/verify-email?${query}` : '/auth/verify-email'
-  }, [latestVerification?.id, verifyState.userId, verifyState.verificationId])
+  }
 
   return (
-    <PublicPosterLayout
-      eyebrow="Account"
-      title="Create account"
-      summary="Set up a SkyPanda account and start with the weather alerts that matter to you."
-      notice={notice ? <NoticeBanner notice={notice} /> : null}
-    >
-      <form onSubmit={handleRegister} className="grid-form two-col public-poster-card-form">
-        <label>
-          Username
+    <main className="auth-login-stage">
+      <div className="auth-login-background" aria-hidden="true">
+        <img className="auth-login-background-image" src={backgroundLoginImage} alt="" />
+      </div>
+
+      <section className="auth-login-shell auth-register-shell">
+        {notice ? (
+          <div className="auth-login-notice">
+            <NoticeBanner notice={notice} />
+          </div>
+        ) : null}
+
+        <form onSubmit={handleRegisterSubmit} className="auth-register-form">
           <input
+            className="auth-login-input"
             type="text"
             minLength={3}
             required
+            autoComplete="username"
+            aria-label="Username"
+            placeholder="Username"
             value={registerState.username}
             onChange={(event) => setRegisterState((state) => ({ ...state, username: event.target.value }))}
           />
-        </label>
-        <label>
-          Password
-          <div className="input-with-action">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              minLength={8}
-              required
-              value={registerState.password}
-              onChange={(event) => setRegisterState((state) => ({ ...state, password: event.target.value }))}
-            />
-            <button type="button" className="input-inline-action" onClick={() => setShowPassword((value) => !value)}>
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
-          </div>
-        </label>
-        <label>
-          Email
+
           <input
+            className="auth-login-input"
             type="email"
             required
+            autoComplete="email"
+            aria-label="Email address"
+            aria-invalid={showEmailHint}
+            placeholder="Email address"
             value={registerState.email}
             onChange={(event) => setRegisterState((state) => ({ ...state, email: event.target.value }))}
           />
-        </label>
-        <label>
-          Phone
+          {showEmailHint ? (
+            <p className="auth-register-helper" aria-live="polite">
+              Enter a valid email address
+            </p>
+          ) : null}
+
+          <div className="auth-login-password-shell">
+            <input
+              className="auth-login-input auth-login-input-password"
+              type={showPassword ? 'text' : 'password'}
+              minLength={8}
+              required
+              autoComplete="new-password"
+              aria-label="Password"
+              placeholder="Password"
+              value={registerState.password}
+              onChange={(event) => setRegisterState((state) => ({ ...state, password: event.target.value }))}
+            />
+            <button type="button" className="auth-login-toggle" onClick={() => setShowPassword((value) => !value)}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {showPasswordHint ? (
+            <p className="auth-register-helper" aria-live="polite">
+              Use at least 8 characters
+            </p>
+          ) : null}
+
           <input
+            className="auth-login-input"
             type="text"
-            placeholder="+14075551234"
-            value={registerState.phoneNumber}
-            onChange={(event) => setRegisterState((state) => ({ ...state, phoneNumber: event.target.value }))}
-          />
-        </label>
-        <label className="full-row">
-          Name
-          <input
-            type="text"
+            autoComplete="name"
+            aria-label="Name"
+            placeholder="Name"
             value={registerState.name}
             onChange={(event) => setRegisterState((state) => ({ ...state, name: event.target.value }))}
           />
-        </label>
-        <button type="submit" className="action-bubble action-bubble-wide action-bubble-accent full-row" disabled={loadingAuth}>
-          {loadingAuth ? 'Creating account...' : 'Create account'}
-        </button>
-      </form>
 
-      <div className="auth-link-row public-poster-link-row">
-        <Link className="auth-link" to="/auth/login">
-          Back to sign in
+          <input
+            className="auth-login-input"
+            type="tel"
+            autoComplete="tel"
+            aria-label="Phone number"
+            aria-invalid={showPhoneHint}
+            placeholder="Phone number"
+            value={registerState.phoneNumber}
+            onChange={(event) => setRegisterState((state) => ({ ...state, phoneNumber: event.target.value }))}
+          />
+          {showPhoneHint ? (
+            <p className="auth-register-helper" aria-live="polite">
+              Enter a valid phone number or leave it blank
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            className="action-bubble action-bubble-wide action-bubble-accent auth-login-primary"
+            disabled={loadingAuth || !registerReady}
+          >
+            {loadingAuth ? 'Creating account...' : 'Create account'}
+          </button>
+        </form>
+      </section>
+
+      <nav className="auth-home-footer-links auth-login-footer" aria-label="Public information">
+        <Link className="auth-home-footer-link" to="/about">
+          About us
         </Link>
-        <Link className="auth-link" to={verifyEmailLink}>
-          Verify email
+        <Link className="auth-home-footer-link" to="/privacy-policy">
+          Privacy policy
         </Link>
-      </div>
-    </PublicPosterLayout>
+        <Link className="auth-home-footer-link" to="/sms-consent">
+          SMS policy
+        </Link>
+      </nav>
+    </main>
   )
 }

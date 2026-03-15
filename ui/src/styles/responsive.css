@@ -157,6 +157,11 @@
     transform: translateY(2rem);
   }
 
+  .auth-register-shell {
+    width: min(100%, 31rem);
+    padding-top: 7.5rem;
+  }
+
   .auth-login-input {
     min-height: 4.2rem;
     font-size: 1rem;
@@ -390,6 +395,10 @@
     width: 100%;
     padding: 8rem 0.9rem calc(8.25rem + env(safe-area-inset-bottom));
     transform: translateY(2.25rem);
+  }
+
+  .auth-register-shell {
+    padding-top: 7rem;
   }
 
   .auth-login-input {

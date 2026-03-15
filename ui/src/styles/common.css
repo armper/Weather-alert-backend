@@ -480,6 +480,30 @@
   gap: 1rem;
 }
 
+.auth-register-shell {
+  width: min(100%, 34rem);
+  padding-top: clamp(9rem, 20vh, 11.5rem);
+}
+
+.auth-register-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-register-helper {
+  margin: -0.4rem 0 0.1rem;
+  text-align: center;
+  color: rgba(73, 111, 203, 0.82);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-shadow: 0 8px 24px rgba(255, 255, 255, 0.18);
+}
+
+.auth-register-helper.is-valid {
+  color: rgba(255, 255, 255, 0.94);
+}
+
 .auth-login-input {
   min-height: 4.6rem;
   padding: 0 1.4rem;
@@ -606,6 +630,14 @@
 }
 
 .auth-login-bottom-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.auth-register-links {
   display: flex;
   align-items: center;
   justify-content: center;

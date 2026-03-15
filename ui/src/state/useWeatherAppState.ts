@@ -464,11 +464,13 @@ export function useWeatherAppState() {
 
       setNotice({
         kind: 'success',
-        text: `Account ${response.account.id} created. Check your email for your verification code.`,
+        text: `Account ${response.account.id} created. Check your email to verify your account, then sign in.`,
       })
       setRegisterState(initialRegister)
+      return true
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
     } finally {
       setLoadingAuth(false)
     }
