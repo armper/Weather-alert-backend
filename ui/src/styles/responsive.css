@@ -299,7 +299,7 @@
   }
 
   .overview-page-content-fresh {
-    padding: 1.05rem 0.95rem calc(5.8rem + env(safe-area-inset-bottom));
+    padding: 1.05rem 0.95rem calc(1.95rem + env(safe-area-inset-bottom));
   }
 
   .overview-minimal-greeting {
@@ -315,7 +315,7 @@
   }
 
   .overview-minimal-forecast-strip {
-    margin-bottom: calc(0.35rem + env(safe-area-inset-bottom));
+    margin-bottom: calc(-1.95rem + env(safe-area-inset-bottom));
     padding: 0.6rem;
     border-radius: 1.15rem;
   }
@@ -555,7 +555,7 @@
 
 @media (max-width: 420px) {
   .overview-page-content-fresh {
-    padding: 0.9rem 0.7rem calc(5.5rem + env(safe-area-inset-bottom));
+    padding: 0.9rem 0.7rem calc(1.75rem + env(safe-area-inset-bottom));
   }
 
   .overview-minimal-temperature {
@@ -563,7 +563,7 @@
   }
 
   .overview-minimal-forecast-strip {
-    margin-bottom: calc(0.25rem + env(safe-area-inset-bottom));
+    margin-bottom: calc(-2.1rem + env(safe-area-inset-bottom));
     padding: 0.5rem;
     border-radius: 1rem;
   }

@@ -67,12 +67,13 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
 export function AppShell({ children }: AppShellProps) {
   const { isAdmin } = useSessionState()
   const location = useLocation()
+  const isOverviewRoute = location.pathname.startsWith('/app/overview')
   const desktopNavItems = isAdmin
     ? [...PRIMARY_NAV_ITEMS, { key: 'admin', label: 'Admin', to: '/app/admin' as const }]
     : PRIMARY_NAV_ITEMS
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isOverviewRoute ? ' is-overview-route' : ''}`}>
       <div className="shell-body">
         <nav className="shell-sidebar panel" aria-label="Primary navigation">
           {desktopNavItems.map((item) => (

@@ -872,22 +872,24 @@
 .overview-page-stack {
   position: relative;
   isolation: isolate;
+  height: 100%;
+  overflow: hidden;
 }
 
 .overview-page-background {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: #d7e5ff;
+  background: #223f73;
 }
 
 .overview-page-background::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(78, 99, 146, 0.18));
+  background: transparent;
 }
 
 .overview-page-background-image {
@@ -908,8 +910,7 @@
 }
 
 .overview-page-content-fresh {
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   padding: clamp(1.6rem, 4vw, 2.75rem);
