@@ -299,7 +299,7 @@ export function RulesPage() {
             return (
               <button
                 key={preset.id}
-                className={`rules-tile${isEnabled ? ' is-enabled' : ''}${isBusy ? ' is-busy' : ''}`}
+                className={`rules-tile${isEnabled ? ' is-enabled' : ''}`}
                 type="button"
                 aria-pressed={isEnabled}
                 onClick={() => toggle(preset)}
