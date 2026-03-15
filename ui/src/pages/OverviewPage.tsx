@@ -17,6 +17,9 @@ function resolveDisplayTime(item: WeatherCondition): string | undefined {
 }
 
 function resolveWeatherIcon(item: Partial<WeatherCondition>): string {
+  if ((item.snowfallAmount ?? 0) > 0) {
+    return '❄️'
+  }
   if ((item.probabilityOfThunder ?? 0) > 30) {
     return '⛈️'
   }
@@ -33,6 +36,16 @@ function resolveWeatherIcon(item: Partial<WeatherCondition>): string {
     return '⛅'
   }
   return '☀️'
+}
+
+function resolveConditionLabel(item: Partial<WeatherCondition>): string {
+  if ((item.snowfallAmount ?? 0) > 0) return 'Snow'
+  if ((item.probabilityOfThunder ?? 0) > 30) return 'Thunderstorms'
+  if ((item.precipitationProbability ?? 0) > 65) return 'Rainy'
+  if ((item.precipitationProbability ?? 0) > 35) return 'Chance of rain'
+  if ((item.skyCover ?? 0) > 75) return 'Cloudy'
+  if ((item.skyCover ?? 0) > 40) return 'Partly cloudy'
+  return 'Sunny'
 }
 
 function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherCondition[] {
@@ -77,6 +90,8 @@ export function OverviewPage() {
   const locationLabel = formatFriendlyLocation(currentWeather?.location ?? 'Orlando')
   const temperatureLabel =
     currentWeather?.temperature != null ? formatTemperature(currentWeather.temperature, 'F') : '--'
+  const conditionIcon = resolveWeatherIcon(currentWeather ?? {})
+  const conditionLabel = resolveConditionLabel(currentWeather ?? {})
   const greetingLabel = useMemo(() => {
     const hour = now.getHours()
     if (hour < 12) {
@@ -132,6 +147,9 @@ export function OverviewPage() {
         <div className="overview-minimal-readout" aria-live="polite">
           <p className="overview-minimal-location">{locationLabel}</p>
           <p className="overview-minimal-temperature">{temperatureLabel}</p>
+          <p className="overview-minimal-condition" title={conditionLabel}>
+            <span className="overview-minimal-condition-icon">{conditionIcon}</span>
+          </p>
         </div>
 
         <section

@@ -957,6 +957,27 @@
   text-shadow: 0 20px 44px rgba(31, 58, 112, 0.34);
 }
 
+.overview-minimal-condition {
+  margin: 0.3rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.overview-minimal-condition-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.overview-minimal-condition-label {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: clamp(0.92rem, 2.4vw, 1.1rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-shadow: 0 8px 20px rgba(31, 58, 112, 0.3);
+}
+
 .overview-minimal-forecast-strip {
   position: relative;
   margin-top: auto;
