@@ -69,7 +69,7 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { me, criteria, logout, isAdmin } = useAppState()
+  const { me, criteria, logout, isAdmin, initialDataLoading } = useAppState()
   const location = useLocation()
   const navigate = useNavigate()
   const desktopNavItems = useMemo(
@@ -114,7 +114,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="shell-header-right">
           <Link to="/app/rules#location-picker" className="shell-location-chip" aria-label={`Current location ${locationLabel}`}>
             <span aria-hidden>📍</span>
-            <span>{locationLabel}</span>
+            <span>{initialDataLoading ? 'Loading watch area…' : locationLabel}</span>
           </Link>
 
           <Link to="/app/rules#create-custom-alert" className="primary overview-create-link shell-create-link">

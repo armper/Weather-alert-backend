@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { useAppState } from '../state/useAppState'
 import { formatStatusLabel } from '../lib/formatting'
 import { AriaButton } from '../components/ui/AriaButton'
@@ -64,6 +65,7 @@ export function AccountPage() {
     criteria,
     travelPlans,
     billingStatus,
+    initialDataLoading,
     loadingBilling,
     checkoutPlan,
     changingPlan,
@@ -339,26 +341,36 @@ export function AccountPage() {
       <article className="panel">
         <div className="panel-title-row">
           <h2>Account</h2>
-          <span className="badge">{formatStatusLabel(me?.approvalStatus)}</span>
+          <span className="badge">{initialDataLoading ? 'Loading…' : formatStatusLabel(me?.approvalStatus)}</span>
         </div>
+
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading account details"
+            copy="Fetching your billing status, saved limits, profile, and delivery preferences."
+            lineCount={5}
+          />
+        ) : null}
 
         <div className="account-stack">
           <section className="section-block account-billing-block">
             <div className="account-billing-hero">
               <div>
                 <p className="eyebrow">Billing</p>
-                <h3>Current plan: {PLAN_DETAILS.find((plan) => plan.id === currentPlan)?.name ?? currentPlan}</h3>
+                <h3>Current plan: {initialDataLoading ? 'Loading…' : PLAN_DETAILS.find((plan) => plan.id === currentPlan)?.name ?? currentPlan}</h3>
                 <p className="account-billing-copy">{billingEmailModeCopy()}</p>
               </div>
 
               <div className="account-plan-summary">
-                <span className={`badge ${billingStatus?.activeSubscription ? '' : 'is-muted'}`}>{billingStatusLabel}</span>
+                <span className={`badge ${initialDataLoading || !billingStatus?.activeSubscription ? 'is-muted' : ''}`}>
+                  {initialDataLoading ? 'Loading…' : billingStatusLabel}
+                </span>
                 <strong>
-                  {enabledCriteriaCount}/{maxActiveAlerts} active alerts in use
+                  {initialDataLoading ? 'Loading alert usage…' : `${enabledCriteriaCount}/${maxActiveAlerts} active alerts in use`}
                 </strong>
                 <span className="muted small">{remainingAlerts} slots remaining before you hit the plan limit.</span>
                 <strong>
-                  {currentTripCount}/{maxTravelPlans} travel plans in use
+                  {initialDataLoading ? 'Loading trip usage…' : `${currentTripCount}/${maxTravelPlans} travel plans in use`}
                 </strong>
                 <span className="muted small">
                   {maxTravelPlans === 0
@@ -374,7 +386,7 @@ export function AccountPage() {
               </div>
             ) : null}
 
-            <div className="billing-plan-grid">
+            {!initialDataLoading ? <div className="billing-plan-grid">
               {PLAN_DETAILS.map((plan) => {
                 const isCurrentPlan = plan.id === currentPlan
                 const disableAction = isCurrentPlan
@@ -425,7 +437,7 @@ export function AccountPage() {
                   </article>
                 )
               })}
-            </div>
+            </div> : null}
 
             <div className="billing-footnote">
               {billingStatus?.activeSubscription ? (
@@ -451,7 +463,7 @@ export function AccountPage() {
             </div>
           </section>
 
-          <section className="section-block">
+          {!initialDataLoading ? <section className="section-block">
             <h3>Profile</h3>
             <form onSubmit={onSaveProfile} className="grid-form">
               <AriaTextField
@@ -471,9 +483,9 @@ export function AccountPage() {
               </AriaButton>
               {profileSaved ? <p className="inline-success">Profile updated.</p> : null}
             </form>
-          </section>
+          </section> : null}
 
-          <section className="section-block">
+          {!initialDataLoading ? <section className="section-block">
             <h3>Password</h3>
             <form onSubmit={onChangePassword} className="grid-form">
               <AriaTextField
@@ -533,9 +545,9 @@ export function AccountPage() {
               </AriaButton>
               {passwordSaved ? <p className="inline-success">Password updated.</p> : null}
             </form>
-          </section>
+          </section> : null}
 
-          <section className="section-block">
+          {!initialDataLoading ? <section className="section-block">
             <h3>Appearance</h3>
             <div className="theme-settings-block">
               <p className="muted small">
@@ -558,9 +570,9 @@ export function AccountPage() {
                 })}
               </div>
             </div>
-          </section>
+          </section> : null}
 
-          <section className="section-block">
+          {!initialDataLoading ? <section className="section-block">
             <h3>Delivery preferences</h3>
             <form onSubmit={onSavePreferences} className="grid-form">
               <div className="toggle-row">
@@ -619,9 +631,9 @@ export function AccountPage() {
               </AriaButton>
               {prefsSaved ? <p className="inline-success">Preferences updated.</p> : null}
             </form>
-          </section>
+          </section> : null}
 
-          <section className="section-block account-danger-block">
+          {!initialDataLoading ? <section className="section-block account-danger-block">
             <div className="account-danger-copy">
               <div>
                 <p className="eyebrow">Danger zone</p>
@@ -635,7 +647,7 @@ export function AccountPage() {
             <AriaButton className="ghost danger button-inline" onPress={() => setShowDeleteDialog(true)}>
               Delete account permanently
             </AriaButton>
-          </section>
+          </section> : null}
         </div>
       </article>
 

@@ -21,6 +21,7 @@ import {
   type SimpleSituationId,
 } from '../lib/ruleBuilder'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
@@ -67,6 +68,7 @@ export function RulesPage() {
     criteria,
     criteriaForm,
     currentWeather,
+    initialDataLoading,
     setCriteriaForm,
     canSubmitCriteria,
     savingCriteria,
@@ -1114,24 +1116,35 @@ export function RulesPage() {
 
               <aside className="guided-rule-aside">
                 <section className={`sky-status-card${alertConsoleSummary.allClear ? ' is-calm' : ' is-live'}`}>
-                  <div className="rule-preview-header">
-                    <div>
-                      <p className="eyebrow">Sky Status</p>
-                      <h3>{alertConsoleSummary.allClear ? 'Stable' : 'Changing'}</h3>
-                    </div>
-                    <span className={`badge ${alertConsoleSummary.allClear ? '' : 'is-live'}`}>
-                      {alertConsoleSummary.allClear ? 'All clear' : `${alertConsoleSummary.activeCount} active`}
-                    </span>
-                  </div>
-                  <p className="rule-preview-copy">
-                    {alertConsoleSummary.allClear
-                      ? `${alertConsoleSummary.watchLocation} has been calm${alertConsoleSummary.calmStreakLabel ? ` for ${alertConsoleSummary.calmStreakLabel}` : ''}.`
-                      : `${alertConsoleSummary.watchLocation} has active weather changes being tracked now.`}
-                  </p>
-                  <div className="rule-preview-pills">
-                    <span className="metric-pill">{alertConsoleSummary.freshnessLabel}</span>
-                    {alertConsoleSummary.lastAlertLabel ? <span className="metric-pill">{alertConsoleSummary.lastAlertLabel}</span> : null}
-                  </div>
+                  {initialDataLoading ? (
+                    <LoadingPlaceholder
+                      title="Loading sky status"
+                      copy="Checking active alerts and current weather before showing this watch summary."
+                      lineCount={3}
+                      compact
+                    />
+                  ) : (
+                    <>
+                      <div className="rule-preview-header">
+                        <div>
+                          <p className="eyebrow">Sky Status</p>
+                          <h3>{alertConsoleSummary.allClear ? 'Stable' : 'Changing'}</h3>
+                        </div>
+                        <span className={`badge ${alertConsoleSummary.allClear ? '' : 'is-live'}`}>
+                          {alertConsoleSummary.allClear ? 'All clear' : `${alertConsoleSummary.activeCount} active`}
+                        </span>
+                      </div>
+                      <p className="rule-preview-copy">
+                        {alertConsoleSummary.allClear
+                          ? `${alertConsoleSummary.watchLocation} has been calm${alertConsoleSummary.calmStreakLabel ? ` for ${alertConsoleSummary.calmStreakLabel}` : ''}.`
+                          : `${alertConsoleSummary.watchLocation} has active weather changes being tracked now.`}
+                      </p>
+                      <div className="rule-preview-pills">
+                        <span className="metric-pill">{alertConsoleSummary.freshnessLabel}</span>
+                        {alertConsoleSummary.lastAlertLabel ? <span className="metric-pill">{alertConsoleSummary.lastAlertLabel}</span> : null}
+                      </div>
+                    </>
+                  )}
                 </section>
 
                 <section className="sample-alert-card">

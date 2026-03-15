@@ -5,12 +5,22 @@ import { ActiveAlertCard } from '../components/features/dashboard/ActiveAlertCar
 import { AlertTimelineItem } from '../components/features/dashboard/AlertTimelineItem'
 import { MonitoringBanner } from '../components/features/dashboard/MonitoringBanner'
 import { NwsProductsPanel } from '../components/features/dashboard/NwsProductsPanel'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { AriaButton } from '../components/ui/AriaButton'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
 
 export function EventsPage() {
-  const { alerts, busyAlertId, criteria, currentWeather, loadingData, nwsProducts, handleAcknowledgeAlert, handleAcknowledgeAllAlerts } =
-    useAppState()
+  const {
+    alerts,
+    busyAlertId,
+    criteria,
+    currentWeather,
+    initialDataLoading,
+    loadingData,
+    nwsProducts,
+    handleAcknowledgeAlert,
+    handleAcknowledgeAllAlerts,
+  } = useAppState()
   const summary = useMemo(
     () => buildAlertConsoleSummary(criteria, alerts, currentWeather),
     [criteria, alerts, currentWeather],
@@ -20,13 +30,21 @@ export function EventsPage() {
   return (
     <section className="page-stack">
       <article className="panel">
-        <MonitoringBanner summary={summary} />
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading monitoring status"
+            copy="Fetching your watch area and current alert state."
+            lineCount={3}
+          />
+        ) : (
+          <MonitoringBanner summary={summary} />
+        )}
 
         <div className="panel-title-row">
           <h2>Triggered Alerts</h2>
           <div className="alert-toolbar">
             <span className="badge">
-              {summary.activeAlerts.length + summary.recentAlerts.length + summary.alertHistory.length} events
+              {initialDataLoading ? 'Loading…' : `${summary.activeAlerts.length + summary.recentAlerts.length + summary.alertHistory.length} events`}
             </span>
             {sentCount > 0 ? (
               <AriaButton
@@ -46,12 +64,18 @@ export function EventsPage() {
               <h3>Active Alerts</h3>
               <p className="muted small">Weather events currently in play for this watch area.</p>
             </div>
-            <span className={`badge ${summary.allClear ? '' : 'is-live'}`}>
-              {summary.activeAlerts.length} active
+            <span className={`badge ${initialDataLoading || summary.allClear ? '' : 'is-live'}`}>
+              {initialDataLoading ? 'Loading…' : `${summary.activeAlerts.length} active`}
             </span>
           </div>
 
-          {summary.activeAlerts.length === 0 ? (
+          {initialDataLoading ? (
+            <LoadingPlaceholder
+              title="Loading alert activity"
+              copy="Checking active weather events, recent resolutions, and NOAA products."
+              lineCount={4}
+            />
+          ) : summary.activeAlerts.length === 0 ? (
             <div className="empty-state-panel empty-state-clear">
               <h3>All clear</h3>
               <p className="muted">No active alerts for {summary.watchLocation}. The system is still watching in the background.</p>
@@ -80,7 +104,7 @@ export function EventsPage() {
           )}
         </section>
 
-        {summary.recentAlerts.length > 0 ? (
+        {!initialDataLoading && summary.recentAlerts.length > 0 ? (
           <details className="console-collapsible">
             <summary className="console-collapsible-summary">
               <span>Recent Alerts</span>
@@ -94,7 +118,7 @@ export function EventsPage() {
           </details>
         ) : null}
 
-        {summary.alertHistory.length > 0 ? (
+        {!initialDataLoading && summary.alertHistory.length > 0 ? (
           <details className="console-collapsible history-collapsible">
             <summary className="console-collapsible-summary">
               <span>Alert History</span>
@@ -108,7 +132,7 @@ export function EventsPage() {
           </details>
         ) : null}
 
-        {nwsProducts.length > 0 ? <NwsProductsPanel products={nwsProducts} /> : null}
+        {!initialDataLoading && nwsProducts.length > 0 ? <NwsProductsPanel products={nwsProducts} /> : null}
       </article>
     </section>
   )

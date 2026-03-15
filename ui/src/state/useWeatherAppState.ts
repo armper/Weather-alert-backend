@@ -62,6 +62,7 @@ export function useWeatherAppState() {
   type AdminJobKey = 'weather-processing' | 'alert-delivery-retries' | 'data-retention'
 
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY))
+  const [hasResolvedInitialData, setHasResolvedInitialData] = useState(() => localStorage.getItem(STORAGE_KEY) == null)
   const [notice, setNotice] = useState<NoticeState | null>(null)
 
   const [loginState, setLoginState] = useState<LoginState>(initialLogin)
@@ -113,6 +114,7 @@ export function useWeatherAppState() {
   const [passwordRetryAfterSeconds, setPasswordRetryAfterSeconds] = useState<number>(0)
 
   const isAdmin = useMemo(() => Boolean(me?.role?.includes('ADMIN')), [me?.role])
+  const initialDataLoading = token != null && !hasResolvedInitialData
 
   const canSubmitCriteria = useMemo(() => {
     if (!criteriaForm.location.trim()) {
@@ -220,6 +222,7 @@ export function useWeatherAppState() {
         setToken(null)
         setNotice({ kind: 'error', text: `Session expired. ${toErrorMessage(error)}` })
       } finally {
+        setHasResolvedInitialData(true)
         setLoadingData(false)
       }
     },
@@ -228,6 +231,7 @@ export function useWeatherAppState() {
 
   useEffect(() => {
     if (!token) {
+      setHasResolvedInitialData(true)
       setMe(null)
       setCriteria([])
       setAlerts([])
@@ -242,6 +246,7 @@ export function useWeatherAppState() {
       setTravelPlans([])
       return
     }
+    setHasResolvedInitialData(false)
     void bootstrap(token)
   }, [token, bootstrap])
 
@@ -299,12 +304,14 @@ export function useWeatherAppState() {
 
   const persistToken = useCallback((accessToken: string) => {
     localStorage.setItem(STORAGE_KEY, accessToken)
+    setHasResolvedInitialData(false)
     setToken(accessToken)
   }, [])
 
   function logout() {
     localStorage.removeItem(STORAGE_KEY)
     setNotice(null)
+    setHasResolvedInitialData(true)
     setToken(null)
   }
 
@@ -1149,6 +1156,7 @@ export function useWeatherAppState() {
     notice,
     setNotice,
     isAdmin,
+    initialDataLoading,
     canSubmitCriteria,
 
     loginState,

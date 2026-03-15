@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { describeCriteria } from '../lib/criteria'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
@@ -323,6 +324,7 @@ export function TravelPlansPage() {
   const {
     billingStatus,
     criteria,
+    initialDataLoading,
     savingTravelPlan,
     travelPlans,
     handleCreateTravelPlan,
@@ -551,7 +553,7 @@ export function TravelPlansPage() {
               weather topics like rain, or use exact saved rules.
             </p>
           </div>
-          <AriaButton className="primary button-inline" onPress={openCreateDialog} isDisabled={!canCreateTrips}>
+          <AriaButton className="primary button-inline" onPress={openCreateDialog} isDisabled={initialDataLoading || !canCreateTrips}>
             Add trip
           </AriaButton>
         </div>
@@ -584,32 +586,40 @@ export function TravelPlansPage() {
 
         {maxTravelPlans != null && maxTravelPlans > 0 ? (
           <div className="travel-coverage-preview">
-            <strong>{travelPlans.length}/{maxTravelPlans} trip slots used</strong>
+            <strong>{initialDataLoading ? 'Loading trip usage…' : `${travelPlans.length}/${maxTravelPlans} trip slots used`}</strong>
             <p className="muted small">
               The Family Plan includes 3 trips. The Globetrotter includes 15 for heavier travel coverage.
             </p>
           </div>
         ) : null}
 
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading trips"
+            copy="Fetching saved itineraries, travel coverage, and current plan limits."
+            lineCount={4}
+          />
+        ) : null}
+
         <div className="travel-summary-grid">
           <article className="travel-summary-card">
             <span className="travel-summary-label">Active now</span>
-            <strong>{summary.active}</strong>
+            <strong>{initialDataLoading ? '...' : summary.active}</strong>
             <span className="muted small">Trips already underway</span>
           </article>
           <article className="travel-summary-card">
             <span className="travel-summary-label">Upcoming</span>
-            <strong>{summary.upcoming}</strong>
+            <strong>{initialDataLoading ? '...' : summary.upcoming}</strong>
             <span className="muted small">Trips still ahead on the calendar</span>
           </article>
           <article className="travel-summary-card">
             <span className="travel-summary-label">Focused coverage</span>
-            <strong>{summary.focusedCoverage}</strong>
+            <strong>{initialDataLoading ? '...' : summary.focusedCoverage}</strong>
             <span className="muted small">Trips using custom topics or linked saved rules</span>
           </article>
         </div>
 
-        {featuredTrip ? (
+        {!initialDataLoading && featuredTrip ? (
           <section className="travel-feature-panel">
             <div className="travel-feature-copy">
               <p className="eyebrow">Trip Spotlight</p>
@@ -663,13 +673,19 @@ export function TravelPlansPage() {
                 onClick={() => setActiveFilter(option.id)}
               >
                 <span>{option.label}</span>
-                <span className="travel-filter-count">{count}</span>
+                <span className="travel-filter-count">{initialDataLoading ? '...' : count}</span>
               </button>
             )
           })}
         </div>
 
-        {filteredTrips.length === 0 ? (
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading trip list"
+            copy="Sorting your itineraries and coverage settings for this page."
+            lineCount={5}
+          />
+        ) : filteredTrips.length === 0 ? (
           <div className="empty-state-panel travel-empty-panel">
             <h3>No trips here yet</h3>
             <p className="muted">

@@ -6,6 +6,7 @@ import { WeatherTimeline } from '../components/features/dashboard/WeatherTimelin
 import { TrendSparkline } from '../components/features/dashboard/TrendSparkline'
 import { DailyForecastStrip } from '../components/features/dashboard/DailyForecastStrip'
 import { HourlyForecastStrip } from '../components/features/dashboard/HourlyForecastStrip'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import {
@@ -23,7 +24,7 @@ import { buildRuleDashboardSummary } from '../lib/ruleDashboard'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
-  const { currentWeather, criteria, alerts, observationHistory, dailyForecast, hourlyForecast } = useAppState()
+  const { currentWeather, criteria, alerts, observationHistory, dailyForecast, hourlyForecast, initialDataLoading } = useAppState()
   const now = useLiveNow(20_000)
   const summary = useMemo(() => buildAlertConsoleSummary(criteria, alerts, currentWeather, now), [criteria, alerts, currentWeather, now])
   const dashboard = useMemo(
@@ -50,6 +51,29 @@ export function OverviewPage() {
 
   const showHeatWarning = currentWeather?.heatIndex != null && currentWeather.heatIndex > 37.8
   const showWindChillWarning = currentWeather?.windChill != null && currentWeather.windChill < -12.2
+
+  if (initialDataLoading) {
+    return (
+      <section className="page-stack">
+        <div className="page-grid overview-grid">
+          <article className="panel">
+            <LoadingPlaceholder
+              title="Loading current conditions"
+              copy="Fetching your watch area, live weather snapshot, and alert summaries."
+              lineCount={3}
+            />
+          </article>
+          <article className="panel overview-activity-panel">
+            <LoadingPlaceholder
+              title="Loading recent activity"
+              copy="SkyPanda is gathering your latest alerts and timeline events."
+              lineCount={4}
+            />
+          </article>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="page-stack">

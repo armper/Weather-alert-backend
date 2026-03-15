@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
 import { RuleHeartbeatStrip } from '../components/features/dashboard/RuleHeartbeatStrip'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import {
@@ -20,7 +21,7 @@ const SORT_OPTIONS = [
 ] as const
 
 export function ManageAlertsPage() {
-  const { alerts, busyCriteriaId, criteria, currentWeather, handleDeleteCriteria, handleToggleCriteriaEnabled } =
+  const { alerts, busyCriteriaId, criteria, currentWeather, handleDeleteCriteria, handleToggleCriteriaEnabled, initialDataLoading } =
     useAppState()
   const [sortMode, setSortMode] = useState<RuleSortMode>('attention')
   const [pinnedGroupId, setPinnedGroupId] = useState<string | null>(null)
@@ -110,12 +111,20 @@ export function ManageAlertsPage() {
       <article className="panel">
         <div className="panel-title-row">
           <h2>Monitoring Rules</h2>
-          <span className="badge">{criteria.length} total</span>
+          <span className="badge">{initialDataLoading ? 'Loading…' : `${criteria.length} total`}</span>
         </div>
 
-        <RuleHeartbeatStrip summary={summary.heartbeat} />
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading monitoring rules"
+            copy="Fetching your saved watches, map groups, and latest rule heartbeat."
+            lineCount={4}
+          />
+        ) : (
+          <RuleHeartbeatStrip summary={summary.heartbeat} />
+        )}
 
-        {summary.locationGroups.length > 0 ? (
+        {!initialDataLoading && summary.locationGroups.length > 0 ? (
           <section className="rule-monitoring-map-panel">
             <div className="panel-title-row rule-monitoring-map-header">
               <div>
@@ -172,11 +181,11 @@ export function ManageAlertsPage() {
 
         <div className="manage-alerts-toolbar">
           <div className="manage-alerts-badges">
-            <span className="badge">{summary.heartbeat.activeRules} monitoring</span>
-            <span className="badge">{summary.heartbeat.pausedRules} paused</span>
-            <span className="badge">{summary.heartbeat.recentRules} recently alerted</span>
+            <span className="badge">{initialDataLoading ? 'Loading…' : `${summary.heartbeat.activeRules} monitoring`}</span>
+            <span className="badge">{initialDataLoading ? 'Loading…' : `${summary.heartbeat.pausedRules} paused`}</span>
+            <span className="badge">{initialDataLoading ? 'Loading…' : `${summary.heartbeat.recentRules} recently alerted`}</span>
           </div>
-          {criteria.length > 1 ? (
+          {!initialDataLoading && criteria.length > 1 ? (
             <AriaSelect
               label="Sort rules"
               buttonClassName="aria-select-trigger"
@@ -189,7 +198,13 @@ export function ManageAlertsPage() {
           ) : null}
         </div>
 
-        {criteria.length === 0 ? (
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading rule cards"
+            copy="SkyPanda is matching each saved rule with the latest live weather state."
+            lineCount={5}
+          />
+        ) : criteria.length === 0 ? (
           <div className="empty-state-panel">
             <h3>No monitoring rules yet</h3>
             <p className="muted">

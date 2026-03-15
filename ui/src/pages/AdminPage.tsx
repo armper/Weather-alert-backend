@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { AdminUserRow } from '../components/features/dashboard/AdminUserRow'
+import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { formatFriendlyLocation, formatRelativeTime } from '../lib/formatting'
 import { useAppState } from '../state/useAppState'
 
@@ -81,6 +82,7 @@ export function AdminPage() {
     alerts,
     currentWeather,
     adminUsers,
+    initialDataLoading,
     busyAdminAction,
     busyAdminJob,
     adminJobResults,
@@ -120,22 +122,22 @@ export function AdminPage() {
         <div className="admin-summary-grid">
           <article className="admin-summary-card">
             <span className="admin-summary-label">Accounts</span>
-            <strong>{adminUsers.length}</strong>
+            <strong>{initialDataLoading ? '...' : adminUsers.length}</strong>
             <span className="muted">Total users in the system</span>
           </article>
           <article className="admin-summary-card">
             <span className="admin-summary-label">Suspended</span>
-            <strong>{suspendedUsers}</strong>
+            <strong>{initialDataLoading ? '...' : suspendedUsers}</strong>
             <span className="muted">Accounts currently blocked from access</span>
           </article>
           <article className="admin-summary-card">
             <span className="admin-summary-label">Password resets</span>
-            <strong>{forcedResetUsers}</strong>
+            <strong>{initialDataLoading ? '...' : forcedResetUsers}</strong>
             <span className="muted">Users forced to set a new password next sign-in</span>
           </article>
           <article className="admin-summary-card">
             <span className="admin-summary-label">Live monitoring</span>
-            <strong>{activeAlerts > 0 ? `${activeAlerts} active alerts` : `${activeRules} active rules`}</strong>
+            <strong>{initialDataLoading ? 'Loading monitoring…' : activeAlerts > 0 ? `${activeAlerts} active alerts` : `${activeRules} active rules`}</strong>
             <span className="muted">
               {watchLocation === 'your watch area' ? freshnessLabel : `Watching ${watchLocation}. ${freshnessLabel}`}
             </span>
@@ -221,13 +223,19 @@ export function AdminPage() {
             <p className="eyebrow">Accounts</p>
             <h2>Account admin</h2>
           </div>
-          <span className="badge">{adminUsers.length} users</span>
+          <span className="badge">{initialDataLoading ? 'Loading…' : `${adminUsers.length} users`}</span>
         </div>
         <p className="muted admin-panel-intro">
           Use these controls to suspend abusive accounts, reactivate access, or force a password reset without leaving
           the deployed admin panel.
         </p>
-        {adminUsers.length === 0 ? (
+        {initialDataLoading ? (
+          <LoadingPlaceholder
+            title="Loading account directory"
+            copy="Fetching the admin user list and current account states."
+            lineCount={5}
+          />
+        ) : adminUsers.length === 0 ? (
           <p className="muted">No users found.</p>
         ) : (
           <div className="alert-list">
