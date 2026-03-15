@@ -16,36 +16,54 @@ function resolveDisplayTime(item: WeatherCondition): string | undefined {
   return item.onset ?? item.timestamp
 }
 
+function resolveFromHeadline(headline?: string): { icon: string; label: string } | null {
+  if (!headline) return null
+  const h = headline.toLowerCase()
+  if (h.includes('snow') || h.includes('blizzard') || h.includes('ice') || h.includes('sleet') || h.includes('freezing'))
+    return { icon: '❄️', label: 'Snow' }
+  if (h.includes('thunder') || h.includes('tstms'))
+    return { icon: '⛈️', label: 'Thunderstorms' }
+  if (h.includes('rain') || h.includes('drizzle') || h.includes('shower'))
+    return { icon: '🌧️', label: 'Rainy' }
+  if (h.includes('fog') || h.includes('mist') || h.includes('haze'))
+    return { icon: '🌫️', label: 'Foggy' }
+  if (h.includes('overcast'))
+    return { icon: '☁️', label: 'Cloudy' }
+  if (h.includes('cloud') || h.includes('mostly cloudy') || h.includes('broken'))
+    return { icon: '☁️', label: 'Cloudy' }
+  if (h.includes('partly') || h.includes('few clouds') || h.includes('scattered'))
+    return { icon: '⛅', label: 'Partly cloudy' }
+  if (h.includes('fair') || h.includes('sunny') || h.includes('clear'))
+    return { icon: '☀️', label: 'Sunny' }
+  return null
+}
+
+function resolveFromNumeric(item: Partial<WeatherCondition>): { icon: string; label: string } {
+  if ((item.iceAccumulation ?? 0) > 0 || (item.snowfallAmount ?? 0) > 0)
+    return { icon: '❄️', label: 'Snow' }
+  if ((item.probabilityOfThunder ?? 0) > 30)
+    return { icon: '⛈️', label: 'Thunderstorms' }
+  if ((item.precipitationAmount ?? 0) > 0 || (item.precipitationProbability ?? 0) > 65)
+    return { icon: '🌧️', label: 'Rainy' }
+  if ((item.precipitationProbability ?? 0) > 35)
+    return { icon: '🌦️', label: 'Chance of rain' }
+  if ((item.skyCover ?? 0) > 75)
+    return { icon: '☁️', label: 'Cloudy' }
+  if ((item.skyCover ?? 0) > 40)
+    return { icon: '⛅', label: 'Partly cloudy' }
+  return { icon: '☀️', label: 'Sunny' }
+}
+
+function resolveCondition(item: Partial<WeatherCondition>): { icon: string; label: string } {
+  return resolveFromHeadline(item.headline) ?? resolveFromNumeric(item)
+}
+
 function resolveWeatherIcon(item: Partial<WeatherCondition>): string {
-  if ((item.snowfallAmount ?? 0) > 0) {
-    return '❄️'
-  }
-  if ((item.probabilityOfThunder ?? 0) > 30) {
-    return '⛈️'
-  }
-  if ((item.precipitationProbability ?? 0) > 65) {
-    return '🌧️'
-  }
-  if ((item.precipitationProbability ?? 0) > 35) {
-    return '🌦️'
-  }
-  if ((item.skyCover ?? 0) > 75) {
-    return '☁️'
-  }
-  if ((item.skyCover ?? 0) > 40) {
-    return '⛅'
-  }
-  return '☀️'
+  return resolveCondition(item).icon
 }
 
 function resolveConditionLabel(item: Partial<WeatherCondition>): string {
-  if ((item.snowfallAmount ?? 0) > 0) return 'Snow'
-  if ((item.probabilityOfThunder ?? 0) > 30) return 'Thunderstorms'
-  if ((item.precipitationProbability ?? 0) > 65) return 'Rainy'
-  if ((item.precipitationProbability ?? 0) > 35) return 'Chance of rain'
-  if ((item.skyCover ?? 0) > 75) return 'Cloudy'
-  if ((item.skyCover ?? 0) > 40) return 'Partly cloudy'
-  return 'Sunny'
+  return resolveCondition(item).label
 }
 
 function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherCondition[] {
