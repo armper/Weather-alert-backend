@@ -80,7 +80,6 @@
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
-    touch-action: none;
   }
 
   .app-shell.is-overview-route .shell-body,
@@ -89,7 +88,12 @@
     overflow: hidden;
   }
 
-  .app-shell.is-overview-route .overview-page-stack,
+  .app-shell.is-overview-route .overview-page-stack {
+    height: 100%;
+    overflow: hidden;
+    touch-action: none;
+  }
+
   .app-shell.is-overview-route .overview-page-content-fresh {
     height: 100%;
     overflow: hidden;

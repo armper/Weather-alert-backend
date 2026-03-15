@@ -1,10 +1,9 @@
-/* Lock the entire document when Overview is active */
+/* Lock the entire document when an immersive route is active */
 html:has(.app-shell.is-overview-route),
 html:has(.app-shell.is-overview-route) body {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  touch-action: none;
 }
 
 html:has(.app-shell.is-overview-route) #root {
@@ -30,7 +29,6 @@ html:has(.app-shell.is-overview-route) #root {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  touch-action: none;
 }
 
 .app-shell.is-overview-route .shell-body {
@@ -51,6 +49,7 @@ html:has(.app-shell.is-overview-route) #root {
 .app-shell.is-overview-route .overview-page-stack {
   height: 100%;
   overflow: hidden;
+  touch-action: none;
 }
 
 .app-shell.is-overview-route .overview-page-content-fresh {
