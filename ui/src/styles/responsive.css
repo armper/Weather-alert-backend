@@ -151,6 +151,22 @@
     grid-template-columns: 1fr;
   }
 
+  .auth-login-shell {
+    width: min(100%, 29rem);
+    padding: 8.25rem 1rem calc(8.5rem + env(safe-area-inset-bottom));
+  }
+
+  .auth-login-input {
+    min-height: 4.2rem;
+    font-size: 1rem;
+  }
+
+  .auth-login-primary,
+  .auth-login-secondary {
+    min-height: 4.05rem;
+    font-size: 1.08rem;
+  }
+
   .auth-home-stage {
     width: 100%;
   }
@@ -369,6 +385,30 @@
 }
 
 @media (max-width: 520px) {
+  .auth-login-shell {
+    width: 100%;
+    padding: 7.25rem 0.9rem calc(8.25rem + env(safe-area-inset-bottom));
+  }
+
+  .auth-login-input {
+    min-height: 4rem;
+    padding: 0 1.15rem;
+    border-radius: 1.5rem;
+  }
+
+  .auth-login-input-password {
+    padding-right: 4.9rem;
+  }
+
+  .auth-login-toggle {
+    right: 0.65rem;
+    padding: 0.38rem 0.72rem;
+  }
+
+  .auth-login-footer {
+    width: calc(100% - 1.5rem);
+  }
+
   .auth-home-stage {
     width: 100%;
   }

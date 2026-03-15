@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import { PublicPosterLayout } from '../components/layout/PublicPosterLayout'
+import backgroundLoginImage from '../assets/background-login.png'
 import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthLoginPage() {
@@ -20,122 +20,120 @@ export function AuthLoginPage() {
   } = useAuthState()
   const [showPassword, setShowPassword] = useState(false)
 
+  const handleUsernameChange = (value: string) => {
+    setLoginState((state) => ({ ...state, username: value }))
+    setMagicLinkState((state) => ({ ...state, usernameOrEmail: value }))
+  }
+
   return (
-    <PublicPosterLayout
-      eyebrow="Account"
-      title="Sign in"
-      summary="Create and manage custom weather alerts with a calm, simple workflow."
-      notice={notice ? <NoticeBanner notice={notice} /> : null}
-    >
-      <section className="auth-option-card stack public-poster-section-card">
-        <div className="stack-sm">
-          <h2>Password</h2>
-          <p className="muted">Use your username or email and password.</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="grid-form">
-          <label>
-            Username or email
-            <input
-              type="text"
-              required
-              value={loginState.username}
-              onChange={(event) => setLoginState((state) => ({ ...state, username: event.target.value }))}
-            />
-          </label>
-          <label>
-            Password
-            <div className="input-with-action">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={loginState.password}
-                onChange={(event) => setLoginState((state) => ({ ...state, password: event.target.value }))}
-              />
-              <button type="button" className="input-inline-action" onClick={() => setShowPassword((value) => !value)}>
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-          </label>
-          <button
-            type="submit"
-            className="action-bubble action-bubble-wide action-bubble-accent"
-            disabled={loadingAuth || confirmingMagicLink}
-          >
-            {loadingAuth ? 'Signing in...' : 'Sign in with password'}
-          </button>
-        </form>
-      </section>
-
-      <div className="auth-divider public-poster-divider" aria-hidden="true">
-        <span>or</span>
+    <main className="auth-login-stage">
+      <div className="auth-login-background" aria-hidden="true">
+        <img className="auth-login-background-image" src={backgroundLoginImage} alt="" />
       </div>
 
-      <section className="auth-option-card stack public-poster-section-card">
-        <div className="stack-sm">
-          <h2>Email link</h2>
-          <p className="muted">We’ll send a one-time sign-in link to your inbox. No password required.</p>
-        </div>
+      <section className="auth-login-shell">
+        {notice ? (
+          <div className="auth-login-notice">
+            <NoticeBanner notice={notice} />
+          </div>
+        ) : null}
 
-        <form onSubmit={handleMagicLinkRequest} className="grid-form">
-          <label>
-            Email or username
+        <form onSubmit={handleLogin} className="auth-login-form">
+          <input
+            className="auth-login-input"
+            type="text"
+            required
+            autoComplete="username"
+            aria-label="Username or email"
+            placeholder="Email address"
+            value={loginState.username}
+            onChange={(event) => handleUsernameChange(event.target.value)}
+          />
+
+          <div className="auth-login-password-shell">
             <input
-              type="text"
+              className="auth-login-input auth-login-input-password"
+              type={showPassword ? 'text' : 'password'}
               required
-              value={magicLinkState.usernameOrEmail}
-              onChange={(event) => setMagicLinkState((state) => ({ ...state, usernameOrEmail: event.target.value }))}
+              autoComplete="current-password"
+              aria-label="Password"
+              placeholder="Password"
+              value={loginState.password}
+              onChange={(event) => setLoginState((state) => ({ ...state, password: event.target.value }))}
             />
-          </label>
+            <button type="button" className="auth-login-toggle" onClick={() => setShowPassword((value) => !value)}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <div className="auth-login-meta-row">
+            <Link className="auth-login-text-link" to="/auth/forgot-password">
+              Forgot password?
+            </Link>
+          </div>
+
           <button
             type="submit"
-            className="action-bubble action-bubble-wide action-bubble-soft"
+            className="action-bubble action-bubble-wide action-bubble-accent auth-login-primary"
             disabled={loadingAuth || confirmingMagicLink}
+          >
+            {loadingAuth ? 'Signing in...' : 'Log In'}
+          </button>
+        </form>
+
+        <div className="auth-login-divider" aria-hidden="true">
+          <span>or</span>
+        </div>
+
+        <form onSubmit={handleMagicLinkRequest} className="auth-login-secondary-form">
+          <button
+            type="submit"
+            className="action-bubble action-bubble-wide action-bubble-soft auth-login-secondary"
+            disabled={loadingAuth || confirmingMagicLink || !magicLinkState.usernameOrEmail.trim()}
           >
             {loadingAuth ? 'Sending link...' : 'Email me a sign-in link'}
           </button>
         </form>
 
         {confirmingMagicLink ? (
-          <div className="auth-magic-link-status">
-            <strong>Signing you in…</strong>
+          <div className="auth-login-status">
+            <strong>Signing you in...</strong>
             <span>Checking your one-time SkyPanda link.</span>
           </div>
         ) : null}
 
         {magicLinkMeta?.recoveryId ? (
-          <form onSubmit={handleMagicLinkConfirm} className="grid-form auth-magic-link-fallback">
-            <div className="stack-sm">
-              <strong>Already requested a link?</strong>
-              <p className="muted">If you opened the email on this same device, you can enter the backup code here.</p>
-            </div>
-            <label>
-              Backup code
-              <input
-                type="text"
-                inputMode="text"
-                autoCapitalize="characters"
-                placeholder="A2B3C4D5"
-                required
-                value={magicLinkState.code}
-                onChange={(event) => setMagicLinkState((state) => ({ ...state, code: event.target.value.toUpperCase() }))}
-              />
-            </label>
-            <button type="submit" className="action-bubble action-bubble-wide action-bubble-soft" disabled={confirmingMagicLink}>
+          <form onSubmit={handleMagicLinkConfirm} className="auth-login-recovery">
+            <input
+              className="auth-login-input"
+              type="text"
+              inputMode="text"
+              autoCapitalize="characters"
+              aria-label="Backup code"
+              placeholder="Backup code"
+              required
+              value={magicLinkState.code}
+              onChange={(event) => setMagicLinkState((state) => ({ ...state, code: event.target.value.toUpperCase() }))}
+            />
+            <button type="submit" className="action-bubble action-bubble-wide action-bubble-soft auth-login-secondary" disabled={confirmingMagicLink}>
               {confirmingMagicLink ? 'Verifying link...' : 'Sign in with code'}
             </button>
           </form>
         ) : null}
+
       </section>
 
-      <div className="auth-link-row public-poster-link-row">
-        <Link className="auth-link" to="/auth/forgot-password">
-          Reset password
+      <nav className="auth-home-footer-links auth-login-footer" aria-label="Public information">
+        <Link className="auth-home-footer-link" to="/about">
+          About us
         </Link>
-        <Link className="auth-link" to="/auth/register">
-          Create account
+        <Link className="auth-home-footer-link" to="/privacy-policy">
+          Privacy policy
         </Link>
-      </div>
-    </PublicPosterLayout>
+        <Link className="auth-home-footer-link" to="/sms-consent">
+          SMS policy
+        </Link>
+      </nav>
+    </main>
   )
 }

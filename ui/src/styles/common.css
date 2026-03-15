@@ -415,6 +415,212 @@
   background: #d7e5ff;
 }
 
+.auth-login-stage {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #adb9ef;
+  overflow-x: hidden;
+}
+
+.auth-login-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: #adb9ef;
+}
+
+.auth-login-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(98, 80, 147, 0.12)),
+    radial-gradient(circle at 50% 46%, rgba(255, 206, 149, 0.2), transparent 30%);
+}
+
+.auth-login-background-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.auth-login-shell {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 32rem);
+  margin: 0 auto;
+  padding: clamp(10.5rem, 24vh, 13rem) 1.35rem calc(9rem + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-login-notice .notice {
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #30406f;
+  box-shadow:
+    0 18px 36px rgba(90, 88, 145, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.auth-login-form,
+.auth-login-secondary-form,
+.auth-login-recovery {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-login-input {
+  min-height: 4.6rem;
+  padding: 0 1.4rem;
+  border-radius: 1.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.14)),
+    rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 16px 34px rgba(99, 118, 162, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #425074;
+  font-size: 1.06rem;
+  font-weight: 600;
+}
+
+.auth-login-input::placeholder {
+  color: rgba(90, 98, 137, 0.66);
+}
+
+.auth-login-input:focus {
+  border-color: rgba(255, 246, 201, 0.76);
+  box-shadow:
+    0 0 0 4px rgba(255, 239, 199, 0.24),
+    0 18px 38px rgba(99, 118, 162, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+.auth-login-password-shell {
+  position: relative;
+}
+
+.auth-login-input-password {
+  padding-right: 5.6rem;
+}
+
+.auth-login-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  min-width: auto;
+  min-height: auto;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  color: #54607e;
+  font-size: 0.82rem;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.auth-login-toggle:hover {
+  transform: translateY(-50%) scale(1.02);
+}
+
+.auth-login-meta-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.3rem;
+}
+
+.auth-login-text-link {
+  color: #496fcb;
+  font-weight: 700;
+  text-decoration: none;
+  text-shadow: 0 8px 24px rgba(255, 255, 255, 0.22);
+}
+
+.auth-login-text-link:hover,
+.auth-login-text-link:focus-visible {
+  text-decoration: underline;
+}
+
+.auth-login-primary,
+.auth-login-secondary {
+  width: min(100%, 28rem);
+  justify-self: center;
+  min-height: 4.35rem;
+  font-size: 1.15rem;
+}
+
+.auth-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 8px 24px rgba(83, 91, 140, 0.24);
+}
+
+.auth-login-divider::before,
+.auth-login-divider::after {
+  content: '';
+  flex: 1 1 auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.46);
+}
+
+.auth-login-status {
+  display: grid;
+  gap: 0.28rem;
+  padding: 1rem 1.2rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 16px 30px rgba(99, 118, 162, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #fdfcff;
+}
+
+.auth-login-status span {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.auth-login-bottom-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.auth-login-footer {
+  position: absolute;
+  left: 50%;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  z-index: 1;
+  width: min(calc(100% - 2rem), 34rem);
+  transform: translateX(-50%);
+}
+
 .public-poster-shell {
   --auth-home-background: none;
   min-height: 100vh;
