@@ -148,7 +148,7 @@
   }
 
   .shell-mobile-nav-link {
-    min-height: 2.7rem;
+    min-height: 3.05rem;
     padding: 0.45rem 0;
     border: 0;
     border-radius: 999px;
@@ -171,9 +171,16 @@
   }
 
   .shell-mobile-nav-icon {
-    width: 1.38rem;
-    height: 1.38rem;
+    width: 1.72rem;
+    height: 1.72rem;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    fill: currentColor;
     filter: drop-shadow(0 8px 18px rgba(27, 45, 85, 0.35));
+  }
+
+  .shell-mobile-nav-link.active .shell-mobile-nav-icon {
+    transform: scale(1.08);
   }
 
   .auth-layout,
