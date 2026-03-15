@@ -19,6 +19,11 @@ export function AuthLoginPage() {
     handleMagicLinkConfirm,
   } = useAuthState()
   const [showPassword, setShowPassword] = useState(false)
+  const trimmedIdentifier = loginState.username.trim()
+  const hasPassword = loginState.password.trim().length > 0
+  const loginReady = trimmedIdentifier.length > 0 && hasPassword
+  const magicLinkReady = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedIdentifier)
+  const recoveryCodeReady = magicLinkState.code.trim().length > 0
 
   const handleUsernameChange = (value: string) => {
     setLoginState((state) => ({ ...state, username: value }))
@@ -75,7 +80,7 @@ export function AuthLoginPage() {
           <button
             type="submit"
             className="action-bubble action-bubble-wide action-bubble-accent auth-login-primary"
-            disabled={loadingAuth || confirmingMagicLink}
+            disabled={loadingAuth || confirmingMagicLink || !loginReady}
           >
             {loadingAuth ? 'Signing in...' : 'Log In'}
           </button>
@@ -89,7 +94,7 @@ export function AuthLoginPage() {
           <button
             type="submit"
             className="action-bubble action-bubble-wide action-bubble-soft auth-login-secondary"
-            disabled={loadingAuth || confirmingMagicLink || !magicLinkState.usernameOrEmail.trim()}
+            disabled={loadingAuth || confirmingMagicLink || !magicLinkReady}
           >
             {loadingAuth ? 'Sending link...' : 'Email me a sign-in link'}
           </button>
@@ -115,7 +120,11 @@ export function AuthLoginPage() {
               value={magicLinkState.code}
               onChange={(event) => setMagicLinkState((state) => ({ ...state, code: event.target.value.toUpperCase() }))}
             />
-            <button type="submit" className="action-bubble action-bubble-wide action-bubble-soft auth-login-secondary" disabled={confirmingMagicLink}>
+            <button
+              type="submit"
+              className="action-bubble action-bubble-wide action-bubble-soft auth-login-secondary"
+              disabled={confirmingMagicLink || !recoveryCodeReady}
+            >
               {confirmingMagicLink ? 'Verifying link...' : 'Sign in with code'}
             </button>
           </form>
