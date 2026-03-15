@@ -8,6 +8,7 @@ import { useSessionState } from './state/useAppState'
 
 const AccountPage = lazy(() => import('./pages/AccountPage').then((module) => ({ default: module.AccountPage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({ default: module.AdminPage })))
+const AboutPage = lazy(() => import('./pages/AboutPage').then((module) => ({ default: module.AboutPage })))
 const AuthForgotPasswordPage = lazy(() =>
   import('./pages/AuthForgotPasswordPage').then((module) => ({ default: module.AuthForgotPasswordPage })),
 )
@@ -95,6 +96,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<PageSuspense><RootRedirect /></PageSuspense>} />
+      <Route path="/about" element={<PageSuspense><AboutPage /></PageSuspense>} />
       <Route path="/billing/success" element={<PageSuspense><BillingRedirect status="success" /></PageSuspense>} />
       <Route path="/billing/cancel" element={<PageSuspense><BillingRedirect status="cancel" /></PageSuspense>} />
       <Route path="/privacy-policy" element={<PageSuspense><PrivacyPolicyPage /></PageSuspense>} />

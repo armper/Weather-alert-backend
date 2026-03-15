@@ -151,12 +151,20 @@
     grid-template-columns: 1fr;
   }
 
-  .auth-home-proof {
-    grid-template-columns: 1fr;
+  .auth-home-stage {
+    width: 100%;
   }
 
-  .span-2 {
-    grid-column: span 1;
+  .auth-home-poster {
+    width: 100%;
+    min-height: 102vh;
+    padding: 17vh 1.5rem 7rem;
+    background-attachment: scroll;
+  }
+
+  .auth-home-hero {
+    width: min(calc(100% - 2rem), 32rem);
+    top: 56vh;
   }
 
   .two-col,
@@ -349,5 +357,44 @@
 
   .rule-heartbeat-secondary {
     justify-items: start;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-home-stage {
+    width: 100%;
+  }
+
+  .auth-home-poster {
+    min-height: 101.5vh;
+    padding: 15vh 1.5rem 6.75rem;
+  }
+
+  .auth-home-hero {
+    width: calc(100% - 1.5rem);
+    top: 58vh;
+  }
+
+  .auth-home-title {
+    gap: 0.35rem;
+  }
+
+  .auth-home-title span {
+    font-size: 1.2rem;
+  }
+
+  .auth-home-title strong {
+    font-size: clamp(2.75rem, 14vw, 4rem);
+  }
+
+  .auth-home-footer-links {
+    width: calc(100% - 1.5rem);
+    gap: 1rem;
+    flex-wrap: wrap;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .auth-home-footer-link {
+    font-size: 0.9rem;
   }
 }
