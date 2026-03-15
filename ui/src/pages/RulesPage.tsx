@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { apiRequest } from '../api'
 import backgroundOverviewImage from '../assets/background-overview.png'
+import backgroundRainImage from '../assets/background-rain.png'
 import { buildCriteriaPayload, defaultThreshold } from '../lib/criteria'
 import {
   QUICK_START_PRESETS,
@@ -178,9 +179,14 @@ function buildPresetPayload(preset: QuickStartPreset, userId: string): Record<st
 
 export function RulesPage() {
   const { token, me, refresh } = useSessionState()
-  const { criteria } = useDataState()
+  const { criteria, currentWeather } = useDataState()
   const { criteriaForm, setCriteriaForm } = useFormState()
   const { canSubmitCriteria } = useAsyncState()
+
+  const h = (currentWeather?.headline ?? '').toLowerCase()
+  const isRaining = h.includes('rain') || h.includes('drizzle') || h.includes('shower') || h.includes('thunder') || h.includes('tstms')
+  const rulesBackground = isRaining ? backgroundRainImage : backgroundOverviewImage
+
   const [pendingState, setPendingState] = useState<Map<string, boolean>>(() => new Map())
   const abortControllers = useRef(new Map<string, AbortController>())
   const [modalSituation, setModalSituation] = useState<SimpleSituationConfig | null>(null)
@@ -287,7 +293,7 @@ export function RulesPage() {
   return (
     <section className="page-stack rules-page-fresh">
       <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={backgroundOverviewImage} alt="" />
+        <img className="overview-page-background-image" src={rulesBackground} alt="" />
       </div>
 
       <div className="rules-page-content">

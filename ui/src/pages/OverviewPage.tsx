@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import backgroundOverviewImage from '../assets/background-overview.png'
+import backgroundRainImage from '../assets/background-rain.png'
 import { formatFriendlyLocation, formatPercentOrNA, formatTemperature } from '../lib/formatting'
 import { useAsyncState, useDataState } from '../state/useAppState'
 import type { WeatherCondition } from '../types'
@@ -31,9 +32,9 @@ function resolveFromHeadline(headline?: string): { icon: string; label: string }
     return { icon: '☁️', label: 'Cloudy' }
   if (h.includes('cloud') || h.includes('mostly cloudy') || h.includes('broken'))
     return { icon: '☁️', label: 'Cloudy' }
-  if (h.includes('partly') || h.includes('few clouds') || h.includes('scattered'))
+  if (h.includes('partly') || h.includes('few clouds') || h.includes('scattered') || h.includes('mostly sunny') || h.includes('mostly clear'))
     return { icon: '⛅', label: 'Partly cloudy' }
-  if (h.includes('fair') || h.includes('sunny') || h.includes('clear'))
+  if (h.includes('fair') || h.includes('sunny') || h.includes('clear') || h.includes('hot'))
     return { icon: '☀️', label: 'Sunny' }
   return null
 }
@@ -94,7 +95,7 @@ function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherC
 }
 
 export function OverviewPage() {
-  const { currentWeather, dailyForecast } = useDataState()
+  const { currentWeather, dailyForecast, hourlyForecast } = useDataState()
   const { loadingData } = useAsyncState()
   const [now, setNow] = useState(() => new Date())
 
@@ -110,6 +111,8 @@ export function OverviewPage() {
     currentWeather?.temperature != null ? formatTemperature(currentWeather.temperature, 'F') : '--'
   const conditionIcon = resolveWeatherIcon(currentWeather ?? {})
   const conditionLabel = resolveConditionLabel(currentWeather ?? {})
+  const isRaining = conditionLabel === 'Rainy' || conditionLabel === 'Thunderstorms'
+  const backgroundImage = isRaining ? backgroundRainImage : backgroundOverviewImage
   const greetingLabel = useMemo(() => {
     const hour = now.getHours()
     if (hour < 12) {
@@ -139,22 +142,25 @@ export function OverviewPage() {
       }
     })
 
+    const nowPrecipProb =
+      currentWeather?.precipitationProbability ?? hourlyForecast[0]?.precipitationProbability
+
     const nowEntry: MinimalForecastItem = {
       id: 'now',
       label: 'Now',
       temperatureLabel: formatTemperature(currentWeather?.temperature, 'F'),
-      precipitationLabel: formatPercentOrNA(currentWeather?.precipitationProbability),
+      precipitationLabel: formatPercentOrNA(nowPrecipProb),
       icon: resolveWeatherIcon(currentWeather ?? {}),
     }
 
     return [nowEntry, ...dailyEntries]
-  }, [currentWeather, dailyForecast])
+  }, [currentWeather, dailyForecast, hourlyForecast])
   const isForecastLoading = loadingData && dailyForecast.length === 0
 
   return (
     <section className="page-stack overview-page-stack">
       <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={backgroundOverviewImage} alt="" />
+        <img className="overview-page-background-image" src={backgroundImage} alt="" />
       </div>
 
       <div className="overview-page-content overview-page-content-fresh">

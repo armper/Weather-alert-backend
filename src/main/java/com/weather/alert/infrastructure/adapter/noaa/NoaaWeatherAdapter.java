@@ -903,6 +903,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             period.getTemperature() == null ? null : period.getTemperature().doubleValue(),
             period.getTemperatureUnit());
         Double windKmh = NoaaUnitConversionUtils.parseWindSpeedToKmh(period.getWindSpeed());
+        Double precipitationProbability = extractValue(period.getProbabilityOfPrecipitation());
 
         return WeatherData.builder()
             .id("daily-" + latitude + "-" + longitude + "-" + (onset != null ? onset.toEpochMilli() : UUID.randomUUID()))
@@ -917,6 +918,7 @@ public class NoaaWeatherAdapter implements WeatherDataPort {
             .expires(expires)
             .temperature(tempC)
             .windSpeed(windKmh)
+            .precipitationProbability(precipitationProbability)
             .timestamp(onset != null ? onset : Instant.now())
             .build();
     }

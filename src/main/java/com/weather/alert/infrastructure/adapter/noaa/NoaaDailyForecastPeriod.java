@@ -16,4 +16,5 @@ public class NoaaDailyForecastPeriod {
     private String shortForecast;
     private String detailedForecast;
     private String icon;
+    private NoaaQuantitativeValue probabilityOfPrecipitation;
 }
