@@ -47,8 +47,8 @@ const TILE_SUBTITLES: Record<string, string> = {
   'very-humid': 'Humidity above 80%',
   'warm-muggy-night': 'Dew point above 68°F',
   'river-rising': 'River stage above 8 ft',
-  'river-problem': 'Flood category: Action',
-  'minor-flooding': 'Flood category: Minor',
+  'river-problem': 'Flood watch level reached',
+  'minor-flooding': 'Minor flooding detected',
 }
 
 function findMatchingCriteria(preset: QuickStartPreset, criteria: AlertCriteria[]): AlertCriteria | undefined {
@@ -202,8 +202,6 @@ export function RulesPage() {
       </div>
 
       <div className="rules-page-content">
-        <p className="rules-page-subtitle">Tap a tile to enable an alert</p>
-
         <div className="rules-tile-grid">
           {QUICK_START_PRESETS.map((preset) => {
             const actualEnabled = enabledMap.has(preset.id)
