@@ -6,6 +6,7 @@ import { WeatherTimeline } from '../components/features/dashboard/WeatherTimelin
 import { TrendSparkline } from '../components/features/dashboard/TrendSparkline'
 import { DailyForecastStrip } from '../components/features/dashboard/DailyForecastStrip'
 import { HourlyForecastStrip } from '../components/features/dashboard/HourlyForecastStrip'
+import { NwsProductsPanel } from '../components/features/dashboard/NwsProductsPanel'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { StaticLocationMap } from '../components/maps/StaticLocationMap'
 import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
@@ -24,7 +25,17 @@ import { buildRuleDashboardSummary } from '../lib/ruleDashboard'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 
 export function OverviewPage() {
-  const { currentWeather, criteria, alerts, observationHistory, dailyForecast, hourlyForecast, initialDataLoading } = useAppState()
+  const {
+    currentWeather,
+    criteria,
+    alerts,
+    observationHistory,
+    dailyForecast,
+    hourlyForecast,
+    initialDataLoading,
+    nwsProducts,
+    loadNwsProduct,
+  } = useAppState()
   const now = useLiveNow(20_000)
   const summary = useMemo(() => buildAlertConsoleSummary(criteria, alerts, currentWeather, now), [criteria, alerts, currentWeather, now])
   const dashboard = useMemo(
@@ -193,6 +204,10 @@ export function OverviewPage() {
       </div>
 
       {hourlyForecast.length > 0 ? <HourlyForecastStrip items={hourlyForecast} /> : null}
+
+      {!initialDataLoading && nwsProducts.length > 0 ? (
+        <NwsProductsPanel products={nwsProducts} onLoadProduct={loadNwsProduct} />
+      ) : null}
 
       {dailyForecast.length > 0 ? <DailyForecastStrip items={dailyForecast} /> : null}
 

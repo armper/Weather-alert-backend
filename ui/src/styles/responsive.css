@@ -215,6 +215,18 @@
     grid-template-columns: 1fr;
   }
 
+  .nws-products-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .nws-product-summary {
+    align-items: flex-start;
+  }
+
+  .nws-product-summary-status {
+    min-width: 0;
+  }
+
   .overview-activity-time,
   .overview-timeline-time {
     justify-self: start;

@@ -58,6 +58,24 @@ function unwrapCollection<T>(payload: T[] | PagedResponse<T> | null | undefined)
   return []
 }
 
+function sortNwsProductsByIssuanceTime(products: NwsProduct[]): NwsProduct[] {
+  return [...products].sort((left, right) => {
+    const leftTime = new Date(left.issuanceTime ?? '').getTime()
+    const rightTime = new Date(right.issuanceTime ?? '').getTime()
+
+    if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+      return left.id.localeCompare(right.id)
+    }
+    if (Number.isNaN(leftTime)) {
+      return 1
+    }
+    if (Number.isNaN(rightTime)) {
+      return -1
+    }
+    return rightTime - leftTime
+  })
+}
+
 export function useWeatherAppState() {
   type AdminJobKey = 'weather-processing' | 'alert-delivery-retries' | 'data-retention'
 
@@ -191,7 +209,14 @@ export function useWeatherAppState() {
       setObservationHistory(history)
       setDailyForecast(daily)
       setHourlyForecast(hourly)
-      setNwsProducts(products)
+      setNwsProducts((current) => {
+        const currentProductTextById = new Map(current.map((item) => [item.id, item.productText]))
+        const mergedProducts = products.map((item) => ({
+          ...item,
+          productText: item.productText ?? currentProductTextById.get(item.id),
+        }))
+        return sortNwsProductsByIssuanceTime(mergedProducts)
+      })
       setTravelPlans(
         unwrapCollection(trips).sort((left, right) => {
           const startCompare = left.startDate.localeCompare(right.startDate)
@@ -1150,6 +1175,31 @@ export function useWeatherAppState() {
     await refreshData(token, me)
   }, [token, me, refreshData])
 
+  const loadNwsProduct = useCallback(
+    async (productId: string) => {
+      if (!token) {
+        return null
+      }
+
+      const existing = nwsProducts.find((item) => item.id === productId)
+      if (existing?.productText?.trim()) {
+        return existing
+      }
+
+      const product = await apiRequest<NwsProduct>(`/api/weather/products/${encodeURIComponent(productId)}`, {
+        token,
+      })
+
+      setNwsProducts((current) => {
+        const next = current.map((item) => (item.id === productId ? { ...item, ...product } : item))
+        return sortNwsProductsByIssuanceTime(next)
+      })
+
+      return product
+    },
+    [token, nwsProducts],
+  )
+
   return {
     token,
     me,
@@ -1242,6 +1292,7 @@ export function useWeatherAppState() {
     handleDeleteAccount,
     handleAdminAction,
     handleAdminJobRun,
+    loadNwsProduct,
 
     refresh,
     logout,

@@ -4,7 +4,6 @@ import { useAppState } from '../state/useAppState'
 import { ActiveAlertCard } from '../components/features/dashboard/ActiveAlertCard'
 import { AlertTimelineItem } from '../components/features/dashboard/AlertTimelineItem'
 import { MonitoringBanner } from '../components/features/dashboard/MonitoringBanner'
-import { NwsProductsPanel } from '../components/features/dashboard/NwsProductsPanel'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { AriaButton } from '../components/ui/AriaButton'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
@@ -17,7 +16,6 @@ export function EventsPage() {
     currentWeather,
     initialDataLoading,
     loadingData,
-    nwsProducts,
     handleAcknowledgeAlert,
     handleAcknowledgeAllAlerts,
   } = useAppState()
@@ -131,8 +129,6 @@ export function EventsPage() {
             </div>
           </details>
         ) : null}
-
-        {!initialDataLoading && nwsProducts.length > 0 ? <NwsProductsPanel products={nwsProducts} /> : null}
       </article>
     </section>
   )
