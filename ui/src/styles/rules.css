@@ -740,3 +740,12 @@
 .rules-tile.is-enabled .rules-tile-desc {
   color: rgba(255, 255, 255, 0.78);
 }
+
+.rules-tile.is-busy {
+  animation: ruleTileBreathe 1.6s ease-in-out infinite;
+}
+
+@keyframes ruleTileBreathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.045); opacity: 0.55; }
+}
