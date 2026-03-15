@@ -10,8 +10,39 @@ export default defineConfig(({ mode }) => {
     secure: false,
   }
 
+  function manualChunks(id: string) {
+    if (!id.includes('node_modules')) {
+      return undefined
+    }
+
+    if (/[\\/]node_modules[\\/](react-map-gl|maplibre-gl)[\\/]/.test(id)) {
+      return 'maps-vendor'
+    }
+
+    if (
+      /[\\/]node_modules[\\/](react-aria-components|@react-aria|@react-stately|@react-types|@internationalized|@floating-ui)[\\/]/.test(
+        id,
+      )
+    ) {
+      return 'aria-vendor'
+    }
+
+    if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) {
+      return 'react-vendor'
+    }
+
+    return undefined
+  }
+
   return {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks,
+        },
+      },
+    },
     server: {
       port: 5174,
       proxy: {

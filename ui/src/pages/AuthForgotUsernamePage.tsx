@@ -3,18 +3,18 @@ import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import { useAppState } from '../state/useAppState'
+import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthForgotUsernamePage() {
+  const { notice } = useNoticeState()
   const {
-    notice,
     loadingAuth,
     forgotUsernameState,
     setForgotUsernameState,
     usernameRetryAfterSeconds,
     handleForgotUsernameRequest,
     handleForgotUsernameConfirm,
-  } = useAppState()
+  } = useAuthState()
   const [manualCodeEntry, setManualCodeEntry] = useState(false)
   const hasRecoveryLink = forgotUsernameState.recoveryId.trim() !== '' && forgotUsernameState.code.trim() !== ''
   const hideRecoveryInternals = hasRecoveryLink && !manualCodeEntry

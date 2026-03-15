@@ -1,16 +1,21 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { Suspense, lazy, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { describeCriteria } from '../lib/criteria'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
-import { StaticLocationMap } from '../components/maps/StaticLocationMap'
-import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
 import { searchPlaces } from '../services/geocoding'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
-import { useAppState } from '../state/useAppState'
+import { useActionState, useAsyncState, useDataState, useSessionState } from '../state/useAppState'
 import type { AlertCriteria, TravelAlertCoverageMode, TravelAlertTopic, TravelPlan } from '../types'
+
+const LocationPickerMap = lazy(() =>
+  import('../components/maps/LocationPickerMap').then((module) => ({ default: module.LocationPickerMap })),
+)
+const StaticLocationMap = lazy(() =>
+  import('../components/maps/StaticLocationMap').then((module) => ({ default: module.StaticLocationMap })),
+)
 
 type TravelFilter = 'all' | 'active' | 'upcoming' | 'past'
 
@@ -321,16 +326,14 @@ function buildCoveragePreview(
 }
 
 export function TravelPlansPage() {
+  const { initialDataLoading } = useSessionState()
+  const { savingTravelPlan } = useAsyncState()
+  const { handleCreateTravelPlan, handleDeleteTravelPlan, handleUpdateTravelPlan } = useActionState()
   const {
     billingStatus,
     criteria,
-    initialDataLoading,
-    savingTravelPlan,
     travelPlans,
-    handleCreateTravelPlan,
-    handleDeleteTravelPlan,
-    handleUpdateTravelPlan,
-  } = useAppState()
+  } = useDataState()
 
   const [activeFilter, setActiveFilter] = useState<TravelFilter>('all')
   const [draft, setDraft] = useState<TravelPlanDraft>(createEmptyDraft)
@@ -643,13 +646,21 @@ export function TravelPlansPage() {
               {featuredTrip.notes ? <p className="travel-feature-notes">{featuredTrip.notes}</p> : null}
             </div>
             {hasCoordinates(featuredTrip) ? (
-              <StaticLocationMap
-                latitude={featuredTrip.latitude}
-                longitude={featuredTrip.longitude}
-                radiusKm={6}
-                className="travel-feature-map"
-                ariaLabel={`${featuredTrip.destination} map`}
-              />
+              <Suspense
+                fallback={
+                  <div className="travel-feature-map static-map-shell">
+                    <LoadingPlaceholder title="Loading map" copy="Preparing trip spotlight." compact />
+                  </div>
+                }
+              >
+                <StaticLocationMap
+                  latitude={featuredTrip.latitude}
+                  longitude={featuredTrip.longitude}
+                  radiusKm={6}
+                  className="travel-feature-map"
+                  ariaLabel={`${featuredTrip.destination} map`}
+                />
+              </Suspense>
             ) : (
               <div className="travel-feature-empty-map">
                 <strong>Add a map pin for sharper weather matching</strong>
@@ -723,13 +734,21 @@ export function TravelPlansPage() {
                   </div>
 
                   {hasCoordinates(plan) ? (
-                    <StaticLocationMap
-                      latitude={plan.latitude}
-                      longitude={plan.longitude}
-                      radiusKm={5}
-                      className="travel-card-map"
-                      ariaLabel={`${plan.destination} preview`}
-                    />
+                    <Suspense
+                      fallback={
+                        <div className="travel-card-map static-map-shell">
+                          <LoadingPlaceholder title="Loading map" copy="Rendering trip preview." compact />
+                        </div>
+                      }
+                    >
+                      <StaticLocationMap
+                        latitude={plan.latitude}
+                        longitude={plan.longitude}
+                        radiusKm={5}
+                        className="travel-card-map"
+                        ariaLabel={`${plan.destination} preview`}
+                      />
+                    </Suspense>
                   ) : null}
 
                   <div className={`travel-coverage-box is-${coverage.emphasis}`}>
@@ -845,20 +864,28 @@ export function TravelPlansPage() {
                 </AriaButton>
               </div>
 
-              <LocationPickerMap
-                location={draft.destination}
-                latitude={draft.latitude ?? baseLatitude}
-                longitude={draft.longitude ?? baseLongitude}
-                onSelect={(selection) => {
-                  setDraft((current) => ({
-                    ...current,
-                    destination: selection.location,
-                    latitude: selection.latitude,
-                    longitude: selection.longitude,
-                  }))
-                }}
-                showSearchControls={false}
-              />
+              <Suspense
+                fallback={
+                  <div className="location-map-shell">
+                    <LoadingPlaceholder title="Loading map" copy="Preparing destination picker." compact />
+                  </div>
+                }
+              >
+                <LocationPickerMap
+                  location={draft.destination}
+                  latitude={draft.latitude ?? baseLatitude}
+                  longitude={draft.longitude ?? baseLongitude}
+                  onSelect={(selection) => {
+                    setDraft((current) => ({
+                      ...current,
+                      destination: selection.location,
+                      latitude: selection.latitude,
+                      longitude: selection.longitude,
+                    }))
+                  }}
+                  showSearchControls={false}
+                />
+              </Suspense>
 
               <div className="travel-form-grid">
                 <AriaTextField

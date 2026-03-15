@@ -3,19 +3,19 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import { useAppState } from '../state/useAppState'
+import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthVerifyEmailPage() {
   const [searchParams] = useSearchParams()
+  const { notice } = useNoticeState()
   const {
-    notice,
     loadingAuth,
     verifyState,
     setVerifyState,
     latestVerification,
     handleVerifyEmail,
     handleResendVerification,
-  } = useAppState()
+  } = useAuthState()
   const queryUserId = searchParams.get('userId')?.trim() ?? ''
   const queryVerificationId = searchParams.get('verificationId')?.trim() ?? ''
 

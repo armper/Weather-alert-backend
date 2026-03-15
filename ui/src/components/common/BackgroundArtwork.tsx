@@ -1,4 +1,4 @@
-import { useAppState } from '../../state/useAppState'
+import { useDataState } from '../../state/useAppState'
 
 function resolveAtmosphereTone(headline?: string) {
   const lower = (headline ?? '').toLowerCase()
@@ -12,7 +12,7 @@ function resolveAtmosphereTone(headline?: string) {
 }
 
 export function BackgroundArtwork() {
-  const { currentWeather } = useAppState()
+  const { currentWeather } = useDataState()
   const tone = resolveAtmosphereTone(currentWeather?.headline)
 
   return (

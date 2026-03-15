@@ -1,26 +1,61 @@
+import { Suspense, lazy, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout'
 import { RequireAuth } from './components/layout/RequireAuth'
-import { AdminPage } from './pages/AdminPage'
-import { AccountPage } from './pages/AccountPage'
-import { AuthForgotPasswordPage } from './pages/AuthForgotPasswordPage'
-import { AuthForgotUsernamePage } from './pages/AuthForgotUsernamePage'
-import { AuthLandingPage } from './pages/AuthLandingPage'
-import { AuthLoginPage } from './pages/AuthLoginPage'
-import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage'
-import { AuthRegisterPage } from './pages/AuthRegisterPage'
-import { AuthVerifyEmailPage } from './pages/AuthVerifyEmailPage'
-import { EventsPage } from './pages/EventsPage'
-import { ManageAlertsPage } from './pages/ManageAlertsPage'
-import { OverviewPage } from './pages/OverviewPage'
-import { RulesPage } from './pages/RulesPage'
-import { SmsConsentPage } from './pages/SmsConsentPage'
-import { TravelPlansPage } from './pages/TravelPlansPage'
+import { LoadingPlaceholder } from './components/common/LoadingPlaceholder'
 import { AppStateProvider } from './state/AppStateContext'
-import { useAppState } from './state/useAppState'
+import { useSessionState } from './state/useAppState'
+
+const AccountPage = lazy(() => import('./pages/AccountPage').then((module) => ({ default: module.AccountPage })))
+const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({ default: module.AdminPage })))
+const AuthForgotPasswordPage = lazy(() =>
+  import('./pages/AuthForgotPasswordPage').then((module) => ({ default: module.AuthForgotPasswordPage })),
+)
+const AuthForgotUsernamePage = lazy(() =>
+  import('./pages/AuthForgotUsernamePage').then((module) => ({ default: module.AuthForgotUsernamePage })),
+)
+const AuthLandingPage = lazy(() => import('./pages/AuthLandingPage').then((module) => ({ default: module.AuthLandingPage })))
+const AuthLoginPage = lazy(() => import('./pages/AuthLoginPage').then((module) => ({ default: module.AuthLoginPage })))
+const AuthRegisterPage = lazy(() => import('./pages/AuthRegisterPage').then((module) => ({ default: module.AuthRegisterPage })))
+const AuthVerifyEmailPage = lazy(() =>
+  import('./pages/AuthVerifyEmailPage').then((module) => ({ default: module.AuthVerifyEmailPage })),
+)
+const EventsPage = lazy(() => import('./pages/EventsPage').then((module) => ({ default: module.EventsPage })))
+const ManageAlertsPage = lazy(() =>
+  import('./pages/ManageAlertsPage').then((module) => ({ default: module.ManageAlertsPage })),
+)
+const OverviewPage = lazy(() => import('./pages/OverviewPage').then((module) => ({ default: module.OverviewPage })))
+const PrivacyPolicyPage = lazy(() =>
+  import('./pages/PrivacyPolicyPage').then((module) => ({ default: module.PrivacyPolicyPage })),
+)
+const RulesPage = lazy(() => import('./pages/RulesPage').then((module) => ({ default: module.RulesPage })))
+const SmsConsentPage = lazy(() => import('./pages/SmsConsentPage').then((module) => ({ default: module.SmsConsentPage })))
+const TravelPlansPage = lazy(() =>
+  import('./pages/TravelPlansPage').then((module) => ({ default: module.TravelPlansPage })),
+)
+
+function PageSuspense({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <section className="page-stack">
+          <article className="panel">
+            <LoadingPlaceholder
+              title="Loading page"
+              copy="Preparing the next view."
+              lineCount={3}
+            />
+          </article>
+        </section>
+      }
+    >
+      {children}
+    </Suspense>
+  )
+}
 
 function RootRedirect() {
-  const { token } = useAppState()
+  const { token } = useSessionState()
   const location = useLocation()
   if (token) {
     return <Navigate to="/app/overview" replace />
@@ -41,7 +76,7 @@ function RootRedirect() {
 }
 
 function AuthRoute() {
-  const { token } = useAppState()
+  const { token } = useSessionState()
   if (token) {
     return <Navigate to="/app/overview" replace />
   }
@@ -59,18 +94,18 @@ function BillingRedirect({ status }: { status: 'success' | 'cancel' }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="/billing/success" element={<BillingRedirect status="success" />} />
-      <Route path="/billing/cancel" element={<BillingRedirect status="cancel" />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-      <Route path="/sms-consent" element={<SmsConsentPage />} />
+      <Route path="/" element={<PageSuspense><RootRedirect /></PageSuspense>} />
+      <Route path="/billing/success" element={<PageSuspense><BillingRedirect status="success" /></PageSuspense>} />
+      <Route path="/billing/cancel" element={<PageSuspense><BillingRedirect status="cancel" /></PageSuspense>} />
+      <Route path="/privacy-policy" element={<PageSuspense><PrivacyPolicyPage /></PageSuspense>} />
+      <Route path="/sms-consent" element={<PageSuspense><SmsConsentPage /></PageSuspense>} />
       <Route path="/auth" element={<AuthRoute />}>
-        <Route index element={<AuthLandingPage />} />
-        <Route path="login" element={<AuthLoginPage />} />
-        <Route path="register" element={<AuthRegisterPage />} />
-        <Route path="verify-email" element={<AuthVerifyEmailPage />} />
-        <Route path="forgot-password" element={<AuthForgotPasswordPage />} />
-        <Route path="forgot-username" element={<AuthForgotUsernamePage />} />
+        <Route index element={<PageSuspense><AuthLandingPage /></PageSuspense>} />
+        <Route path="login" element={<PageSuspense><AuthLoginPage /></PageSuspense>} />
+        <Route path="register" element={<PageSuspense><AuthRegisterPage /></PageSuspense>} />
+        <Route path="verify-email" element={<PageSuspense><AuthVerifyEmailPage /></PageSuspense>} />
+        <Route path="forgot-password" element={<PageSuspense><AuthForgotPasswordPage /></PageSuspense>} />
+        <Route path="forgot-username" element={<PageSuspense><AuthForgotUsernamePage /></PageSuspense>} />
       </Route>
 
       <Route
@@ -82,13 +117,13 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<OverviewPage />} />
-        <Route path="rules" element={<RulesPage />} />
-        <Route path="alerts" element={<ManageAlertsPage />} />
-        <Route path="events" element={<EventsPage />} />
-        <Route path="travel" element={<TravelPlansPage />} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="admin" element={<AdminPage />} />
+        <Route path="overview" element={<PageSuspense><OverviewPage /></PageSuspense>} />
+        <Route path="rules" element={<PageSuspense><RulesPage /></PageSuspense>} />
+        <Route path="alerts" element={<PageSuspense><ManageAlertsPage /></PageSuspense>} />
+        <Route path="events" element={<PageSuspense><EventsPage /></PageSuspense>} />
+        <Route path="travel" element={<PageSuspense><TravelPlansPage /></PageSuspense>} />
+        <Route path="account" element={<PageSuspense><AccountPage /></PageSuspense>} />
+        <Route path="admin" element={<PageSuspense><AdminPage /></PageSuspense>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

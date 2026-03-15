@@ -3,10 +3,11 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import { useAppState } from '../state/useAppState'
+import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthRegisterPage() {
-  const { notice, loadingAuth, registerState, setRegisterState, verifyState, latestVerification, handleRegister } = useAppState()
+  const { notice } = useNoticeState()
+  const { loadingAuth, registerState, setRegisterState, verifyState, latestVerification, handleRegister } = useAuthState()
   const [showPassword, setShowPassword] = useState(false)
   const [searchParams] = useSearchParams()
   const initialEmail = searchParams.get('email')?.trim() ?? ''

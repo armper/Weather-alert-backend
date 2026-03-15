@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Disclosure, DisclosurePanel } from 'react-aria-components'
 import { useLocation } from 'react-router-dom'
 import { apiRequest, toErrorMessage } from '../api'
@@ -20,15 +20,18 @@ import {
   type SimpleSituationConfig,
   type SimpleSituationId,
 } from '../lib/ruleBuilder'
-import { LocationPickerMap } from '../components/maps/LocationPickerMap'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
-import { useAppState } from '../state/useAppState'
 import { DEFAULT_LAT, DEFAULT_LON, initialCriteriaForm, type RuleType } from '../state/types'
+import { useActionState, useAsyncState, useDataState, useFormState, useNoticeState, useSessionState } from '../state/useAppState'
 import type { FloodCategory, WeatherCondition } from '../types'
+
+const LocationPickerMap = lazy(() =>
+  import('../components/maps/LocationPickerMap').then((module) => ({ default: module.LocationPickerMap })),
+)
 
 interface RuleFormErrors {
   location?: string
@@ -61,20 +64,15 @@ const LOCATION_MODE_OPTIONS = [
 ]
 
 export function RulesPage() {
+  const { token, initialDataLoading } = useSessionState()
+  const { setNotice } = useNoticeState()
+  const { criteria, alerts, currentWeather } = useDataState()
+  const { criteriaForm, setCriteriaForm } = useFormState()
+  const { canSubmitCriteria, savingCriteria } = useAsyncState()
+  const { handleCreateCriteria } = useActionState()
   const {
-    token,
-    setNotice,
-    alerts,
-    criteria,
-    criteriaForm,
-    currentWeather,
-    initialDataLoading,
-    setCriteriaForm,
-    canSubmitCriteria,
-    savingCriteria,
-    handleCreateCriteria,
-  } = useAppState()
-  const location = useLocation()
+    hash,
+  } = useLocation()
 
   const [formErrors, setFormErrors] = useState<RuleFormErrors>({})
   const [advancedExpanded, setAdvancedExpanded] = useState(false)
@@ -193,7 +191,7 @@ export function RulesPage() {
         target.focus()
       }
     })
-  }, [location.hash])
+  }, [hash])
 
   useEffect(() => {
     if (!flashForm) {
@@ -605,25 +603,33 @@ export function RulesPage() {
             </div>
           </div>
 
-          <LocationPickerMap
-            location={criteriaForm.location}
-            latitude={resolvedLatitude}
-            longitude={resolvedLongitude}
-            onSelect={({ location: selectedLocation, latitude, longitude }) => {
-              setCriteriaForm((state) => ({
-                ...state,
-                location: selectedLocation,
-                latitude: String(latitude),
-                longitude: String(longitude),
-              }))
-              setFormErrors((state) => ({
-                ...state,
-                location: undefined,
-                latitude: undefined,
-                longitude: undefined,
-              }))
-            }}
-          />
+          <Suspense
+            fallback={
+              <div className="location-map-shell">
+                <LoadingPlaceholder title="Loading map" copy="Preparing location picker." compact />
+              </div>
+            }
+          >
+            <LocationPickerMap
+              location={criteriaForm.location}
+              latitude={resolvedLatitude}
+              longitude={resolvedLongitude}
+              onSelect={({ location: selectedLocation, latitude, longitude }) => {
+                setCriteriaForm((state) => ({
+                  ...state,
+                  location: selectedLocation,
+                  latitude: String(latitude),
+                  longitude: String(longitude),
+                }))
+                setFormErrors((state) => ({
+                  ...state,
+                  location: undefined,
+                  latitude: undefined,
+                  longitude: undefined,
+                }))
+              }}
+            />
+          </Suspense>
 
           {formErrors.location ? <p className="field-error">{formErrors.location}</p> : null}
         </div>

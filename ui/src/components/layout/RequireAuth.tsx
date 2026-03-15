@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAppState } from '../../state/useAppState'
+import { useSessionState } from '../../state/useAppState'
 
 export function RequireAuth({ children }: { children: ReactElement }) {
-  const { token } = useAppState()
+  const { token } = useSessionState()
   const location = useLocation()
 
   if (!token) {

@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { AdminUserRow } from '../components/features/dashboard/AdminUserRow'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { formatFriendlyLocation, formatRelativeTime } from '../lib/formatting'
-import { useAppState } from '../state/useAppState'
+import { useActionState, useAsyncState, useDataState, useSessionState } from '../state/useAppState'
 
 const GCP_PROJECT_ID = 'weather-alerts-panda'
 const GCP_REGION = 'us-east1'
@@ -75,20 +75,16 @@ const CLOUD_CONSOLE_LINKS = [
 ] as const
 
 export function AdminPage() {
+  const { isAdmin, me, initialDataLoading } = useSessionState()
+  const { busyAdminAction, busyAdminJob } = useAsyncState()
+  const { handleAdminAction, handleAdminJobRun } = useActionState()
   const {
-    isAdmin,
-    me,
     criteria,
     alerts,
     currentWeather,
     adminUsers,
-    initialDataLoading,
-    busyAdminAction,
-    busyAdminJob,
     adminJobResults,
-    handleAdminAction,
-    handleAdminJobRun,
-  } = useAppState()
+  } = useDataState()
 
   if (!isAdmin) {
     return <Navigate to="/app/overview" replace />

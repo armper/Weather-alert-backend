@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
-import { useAppState } from '../state/useAppState'
 import { formatStatusLabel } from '../lib/formatting'
 import { AriaButton } from '../components/ui/AriaButton'
 import { AriaSelect } from '../components/ui/AriaSelect'
@@ -9,6 +8,13 @@ import { AriaSwitch } from '../components/ui/AriaSwitch'
 import { AriaTextField } from '../components/ui/AriaTextField'
 import { useThemePreference, type ThemePreference } from '../theme'
 import type { BillingPlan } from '../types'
+import {
+  useActionState,
+  useAsyncState,
+  useDataState,
+  useFormState,
+  useSessionState,
+} from '../state/useAppState'
 
 const CHANNEL_OPTIONS = [
   { id: 'EMAIL', label: 'Email' },
@@ -60,23 +66,18 @@ const PLAN_DETAILS: Array<{
 ]
 
 export function AccountPage() {
+  const { me, initialDataLoading, refresh } = useSessionState()
+  const { criteria, travelPlans, billingStatus, notificationPreference } = useDataState()
+  const { profileForm, setProfileForm, passwordForm, setPasswordForm } = useFormState()
   const {
-    me,
-    criteria,
-    travelPlans,
-    billingStatus,
-    initialDataLoading,
     loadingBilling,
     checkoutPlan,
     changingPlan,
     openingBillingPortal,
     deletingAccount,
-    profileForm,
-    setProfileForm,
-    passwordForm,
-    setPasswordForm,
-    notificationPreference,
     savingProfile,
+  } = useAsyncState()
+  const {
     handleSaveProfile,
     handleChangePassword,
     handleSaveNotificationPreference,
@@ -84,8 +85,7 @@ export function AccountPage() {
     handleChangePlan,
     handleOpenBillingPortal,
     handleDeleteAccount,
-    refresh,
-  } = useAppState()
+  } = useActionState()
   const { theme, themePreference, setThemePreference } = useThemePreference()
   const location = useLocation()
   const navigate = useNavigate()

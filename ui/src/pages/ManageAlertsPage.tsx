@@ -1,9 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CriteriaCard } from '../components/features/dashboard/CriteriaCard'
 import { RuleHeartbeatStrip } from '../components/features/dashboard/RuleHeartbeatStrip'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
-import { MonitoringRulesMap } from '../components/maps/MonitoringRulesMap'
 import { AriaSelect } from '../components/ui/AriaSelect'
 import {
   buildRuleDashboardSummary,
@@ -11,7 +10,11 @@ import {
   type RuleSortMode,
   type RuleViewModel,
 } from '../lib/ruleDashboard'
-import { useAppState } from '../state/useAppState'
+import { useActionState, useAsyncState, useDataState, useSessionState } from '../state/useAppState'
+
+const MonitoringRulesMap = lazy(() =>
+  import('../components/maps/MonitoringRulesMap').then((module) => ({ default: module.MonitoringRulesMap })),
+)
 
 const SORT_OPTIONS = [
   { id: 'attention', label: 'Attention first' },
@@ -21,8 +24,10 @@ const SORT_OPTIONS = [
 ] as const
 
 export function ManageAlertsPage() {
-  const { alerts, busyCriteriaId, criteria, currentWeather, handleDeleteCriteria, handleToggleCriteriaEnabled, initialDataLoading } =
-    useAppState()
+  const { initialDataLoading } = useSessionState()
+  const { busyCriteriaId } = useAsyncState()
+  const { handleDeleteCriteria, handleToggleCriteriaEnabled } = useActionState()
+  const { alerts, criteria, currentWeather } = useDataState()
   const [sortMode, setSortMode] = useState<RuleSortMode>('attention')
   const [pinnedGroupId, setPinnedGroupId] = useState<string | null>(null)
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null)
@@ -139,13 +144,21 @@ export function ManageAlertsPage() {
               Click a rule or marker to jump between the list and the places SkyPanda is actively watching.
             </p>
             <div className="rule-monitoring-layout">
-              <MonitoringRulesMap
-                groups={summary.locationGroups}
-                selectedGroupId={activeFocusedGroupId}
-                onMarkerSelect={(groupId) => focusGroup(groupId, true)}
-                onMarkerHover={setHoveredGroupId}
-                className="rule-monitoring-map"
-              />
+              <Suspense
+                fallback={
+                  <div className="rule-monitoring-map static-map-shell">
+                    <LoadingPlaceholder title="Loading map" copy="Preparing watched places." compact />
+                  </div>
+                }
+              >
+                <MonitoringRulesMap
+                  groups={summary.locationGroups}
+                  selectedGroupId={activeFocusedGroupId}
+                  onMarkerSelect={(groupId) => focusGroup(groupId, true)}
+                  onMarkerHover={setHoveredGroupId}
+                  className="rule-monitoring-map"
+                />
+              </Suspense>
               <div className="rule-monitoring-context">
                 <div>
                   <p className="eyebrow">Selected Watch Area</p>

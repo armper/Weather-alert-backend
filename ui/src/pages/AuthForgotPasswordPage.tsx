@@ -3,18 +3,18 @@ import { Link } from 'react-router-dom'
 import { BackgroundArtwork } from '../components/common/BackgroundArtwork'
 import { BrandLockup } from '../components/common/BrandLockup'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import { useAppState } from '../state/useAppState'
+import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthForgotPasswordPage() {
+  const { notice } = useNoticeState()
   const {
-    notice,
     loadingAuth,
     forgotPasswordState,
     setForgotPasswordState,
     passwordRetryAfterSeconds,
     handleForgotPasswordRequest,
     handleForgotPasswordConfirm,
-  } = useAppState()
+  } = useAuthState()
   const [showPassword, setShowPassword] = useState(false)
   const [manualCodeEntry, setManualCodeEntry] = useState(false)
   const hasRecoveryLink = forgotPasswordState.recoveryId.trim() !== '' && forgotPasswordState.code.trim() !== ''

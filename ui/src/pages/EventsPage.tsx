@@ -1,24 +1,22 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useAppState } from '../state/useAppState'
 import { ActiveAlertCard } from '../components/features/dashboard/ActiveAlertCard'
 import { AlertTimelineItem } from '../components/features/dashboard/AlertTimelineItem'
 import { MonitoringBanner } from '../components/features/dashboard/MonitoringBanner'
 import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
 import { AriaButton } from '../components/ui/AriaButton'
 import { buildAlertConsoleSummary } from '../lib/alertConsole'
+import { useActionState, useAsyncState, useDataState, useSessionState } from '../state/useAppState'
 
 export function EventsPage() {
+  const { initialDataLoading } = useSessionState()
+  const { busyAlertId, loadingData } = useAsyncState()
+  const { handleAcknowledgeAlert, handleAcknowledgeAllAlerts } = useActionState()
   const {
     alerts,
-    busyAlertId,
     criteria,
     currentWeather,
-    initialDataLoading,
-    loadingData,
-    handleAcknowledgeAlert,
-    handleAcknowledgeAllAlerts,
-  } = useAppState()
+  } = useDataState()
   const summary = useMemo(
     () => buildAlertConsoleSummary(criteria, alerts, currentWeather),
     [criteria, alerts, currentWeather],

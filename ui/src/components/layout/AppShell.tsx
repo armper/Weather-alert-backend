@@ -3,7 +3,7 @@ import { Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { BrandLockup } from '../common/BrandLockup'
 import { formatFriendlyLocation } from '../../lib/formatting'
-import { useAppState } from '../../state/useAppState'
+import { useDataState, useSessionState } from '../../state/useAppState'
 import { AriaButton } from '../ui/AriaButton'
 
 interface AppShellProps {
@@ -69,7 +69,8 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { me, criteria, logout, isAdmin, initialDataLoading } = useAppState()
+  const { me, logout, isAdmin, initialDataLoading } = useSessionState()
+  const { criteria } = useDataState()
   const location = useLocation()
   const navigate = useNavigate()
   const desktopNavItems = useMemo(
