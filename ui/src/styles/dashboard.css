@@ -916,6 +916,10 @@
   padding: clamp(1.6rem, 4vw, 2.75rem);
 }
 
+.app-shell.is-overview-route .overview-page-content-fresh {
+  padding: 1.05rem 0.95rem calc(10.9rem + env(safe-area-inset-bottom));
+}
+
 .overview-minimal-readout {
   display: grid;
   gap: 0.2rem;
@@ -968,6 +972,17 @@
     inset 0 -1px 0 rgba(255, 255, 255, 0.18);
   -webkit-backdrop-filter: blur(10px) saturate(1.08);
   backdrop-filter: blur(10px) saturate(1.08);
+}
+
+.app-shell.is-overview-route .overview-minimal-forecast-strip {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 1.9rem), 32rem);
+  bottom: calc(3.95rem + env(safe-area-inset-bottom));
+  z-index: 30;
+  box-sizing: border-box;
+  margin-bottom: 0;
 }
 
 .overview-minimal-forecast-strip.is-loading {

@@ -352,7 +352,9 @@
     position: fixed;
     left: 0.95rem;
     right: 0.95rem;
+    width: auto;
     max-width: calc(100vw - 1.9rem);
+    transform: none;
     bottom: calc(3.95rem + env(safe-area-inset-bottom));
     z-index: 30;
     box-sizing: border-box;
@@ -609,6 +611,8 @@
   .app-shell.is-overview-route .overview-minimal-forecast-strip {
     left: 0.7rem;
     right: 0.7rem;
+    width: auto;
+    transform: none;
     bottom: calc(3.85rem + env(safe-area-inset-bottom));
   }
 

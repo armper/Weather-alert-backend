@@ -11,6 +11,87 @@
 
 .app-shell.is-overview-route {
   background: #1f3c6f;
+  padding: 1rem 1rem calc(6.4rem + env(safe-area-inset-bottom));
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-shell.is-overview-route .shell-body {
+  grid-template-columns: 1fr;
+  height: 100%;
+}
+
+.app-shell.is-overview-route .shell-sidebar {
+  display: none;
+}
+
+.app-shell.is-overview-route .shell-content {
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell.is-overview-route,
+.app-shell.is-overview-route .shell-body,
+.app-shell.is-overview-route .shell-content,
+.app-shell.is-overview-route .overview-page-stack,
+.app-shell.is-overview-route .overview-page-content-fresh {
+  overflow-x: hidden;
+}
+
+.app-shell.is-overview-route .shell-mobile-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 2rem), 32rem);
+  bottom: 0;
+  z-index: 35;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0 0 max(0.7rem, env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell.is-overview-route .shell-mobile-nav-link {
+  min-height: 3.05rem;
+  padding: 0.45rem 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  transition: color 120ms ease, transform 120ms ease;
+}
+
+.app-shell.is-overview-route .shell-mobile-nav-link:hover {
+  background: transparent;
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.app-shell.is-overview-route .shell-mobile-nav-link.active {
+  background: transparent;
+  border-color: transparent;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.app-shell.is-overview-route .shell-mobile-nav-icon {
+  width: 1.72rem;
+  height: 1.72rem;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  fill: currentColor;
+  filter: drop-shadow(0 8px 18px rgba(27, 45, 85, 0.35));
+}
+
+.app-shell.is-overview-route .shell-mobile-nav-link.active .shell-mobile-nav-icon {
+  transform: scale(1.08);
 }
 
 .bg-art {
