@@ -180,8 +180,7 @@ export function RulesPage() {
   const { criteriaForm, setCriteriaForm } = useFormState()
   const { handleCreateCriteria } = useActionState()
   const { canSubmitCriteria, savingCriteria } = useAsyncState()
-  const [busy, setBusy] = useState<Set<string>>(() => new Set())
-  const [optimistic, setOptimistic] = useState<Set<string>>(() => new Set())
+  const [pendingState, setPendingState] = useState<Map<string, boolean>>(() => new Map())
   const abortControllers = useRef(new Map<string, AbortController>())
   const [modalSituation, setModalSituation] = useState<SimpleSituationConfig | null>(null)
   const [selectedSensitivity, setSelectedSensitivity] = useState<string>('')
@@ -207,33 +206,30 @@ export function RulesPage() {
       if (existing) {
         existing.abort()
         abortControllers.current.delete(preset.id)
-        setBusy((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
-        setOptimistic((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
+        setPendingState((prev) => { const next = new Map(prev); next.delete(preset.id); return next })
         return
       }
 
+      const isCurrentlyEnabled = enabledMap.has(preset.id)
+      const targetState = !isCurrentlyEnabled
+
       const controller = new AbortController()
       abortControllers.current.set(preset.id, controller)
-      setBusy((prev) => new Set(prev).add(preset.id))
-      setOptimistic((prev) => new Set(prev).add(preset.id))
+      setPendingState((prev) => new Map(prev).set(preset.id, targetState))
 
       try {
-        const existingId = enabledMap.get(preset.id)
-        if (existingId) {
-          await apiRequest<void>(`/api/criteria/${existingId}`, { method: 'DELETE', token, signal: controller.signal })
+        if (isCurrentlyEnabled) {
+          await apiRequest<void>(`/api/criteria/${enabledMap.get(preset.id)}`, { method: 'DELETE', token, signal: controller.signal })
         } else {
           const payload = buildPresetPayload(preset, me.id)
           await apiRequest<AlertCriteria>('/api/criteria', { method: 'POST', token, body: payload, signal: controller.signal })
         }
-        // Clear optimistic before refresh so the new server state doesn't get inverted
-        setOptimistic((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
         await refresh()
       } catch {
-        // On abort or error, revert optimistic state
-        setOptimistic((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
+        // Silent — aborted or network error
       } finally {
         abortControllers.current.delete(preset.id)
-        setBusy((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
+        setPendingState((prev) => { const next = new Map(prev); next.delete(preset.id); return next })
       }
     },
     [token, me, enabledMap, refresh],
@@ -294,9 +290,7 @@ export function RulesPage() {
       <div className="rules-page-content">
         <div className="rules-tile-grid">
           {QUICK_START_PRESETS.map((preset) => {
-            const actualEnabled = enabledMap.has(preset.id)
-            const isEnabled = optimistic.has(preset.id) ? !actualEnabled : actualEnabled
-            const isBusy = busy.has(preset.id)
+            const isEnabled = pendingState.has(preset.id) ? pendingState.get(preset.id)! : enabledMap.has(preset.id)
             return (
               <button
                 key={preset.id}
