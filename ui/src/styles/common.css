@@ -13,18 +13,6 @@
   background: #1f3c6f;
 }
 
-.app-shell.is-overview-route {
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-}
-
-.app-shell.is-overview-route .shell-body,
-.app-shell.is-overview-route .shell-content {
-  height: 100%;
-  overflow: hidden;
-}
-
 .bg-art {
   position: fixed;
   inset: 0;

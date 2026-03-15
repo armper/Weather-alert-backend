@@ -76,6 +76,26 @@
     padding: 1rem 1rem calc(6.4rem + env(safe-area-inset-bottom));
   }
 
+  .app-shell.is-overview-route {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-shell.is-overview-route .shell-body,
+  .app-shell.is-overview-route .shell-content {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app-shell.is-overview-route,
+  .app-shell.is-overview-route .shell-body,
+  .app-shell.is-overview-route .shell-content,
+  .app-shell.is-overview-route .overview-page-stack,
+  .app-shell.is-overview-route .overview-page-content-fresh {
+    overflow-x: hidden;
+  }
+
   .shell-header {
     padding: 0.68rem;
   }
@@ -133,6 +153,7 @@
     position: fixed;
     left: 1rem;
     right: 1rem;
+    max-width: calc(100vw - 2rem);
     bottom: 0;
     z-index: 35;
     display: grid;
@@ -331,8 +352,10 @@
     position: fixed;
     left: 0.95rem;
     right: 0.95rem;
+    max-width: calc(100vw - 1.9rem);
     bottom: calc(3.95rem + env(safe-area-inset-bottom));
     z-index: 30;
+    box-sizing: border-box;
   }
 
   .overview-minimal-forecast-row {
