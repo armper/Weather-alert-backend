@@ -153,7 +153,7 @@
 
   .auth-login-shell {
     width: min(100%, 29rem);
-    padding: 9.5rem 1rem calc(8.5rem + env(safe-area-inset-bottom));
+    padding: 10.75rem 1rem calc(8.5rem + env(safe-area-inset-bottom));
   }
 
   .auth-login-input {
@@ -387,7 +387,7 @@
 @media (max-width: 520px) {
   .auth-login-shell {
     width: 100%;
-    padding: 8.5rem 0.9rem calc(8.25rem + env(safe-area-inset-bottom));
+    padding: 9.75rem 0.9rem calc(8.25rem + env(safe-area-inset-bottom));
   }
 
   .auth-login-input {
