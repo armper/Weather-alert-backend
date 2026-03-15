@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import backgroundOverviewImage from '../assets/background-overview.png'
 import { formatFriendlyLocation, formatPercentOrNA, formatTemperature } from '../lib/formatting'
-import { useDataState } from '../state/useAppState'
+import { useAsyncState, useDataState } from '../state/useAppState'
 import type { WeatherCondition } from '../types'
 
 interface MinimalForecastItem {
@@ -64,6 +64,7 @@ function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherC
 
 export function OverviewPage() {
   const { currentWeather, dailyForecast } = useDataState()
+  const { loadingData } = useAsyncState()
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -115,6 +116,7 @@ export function OverviewPage() {
 
     return [nowEntry, ...dailyEntries]
   }, [currentWeather, dailyForecast])
+  const isForecastLoading = loadingData && dailyForecast.length === 0
 
   return (
     <section className="page-stack overview-page-stack">
@@ -132,19 +134,30 @@ export function OverviewPage() {
           <p className="overview-minimal-temperature">{temperatureLabel}</p>
         </div>
 
-        <section className="overview-minimal-forecast-strip" aria-label="Now and next seven days forecast">
-          <div className="overview-minimal-forecast-row">
-            {forecastItems.map((item) => (
-              <article key={item.id} className="overview-minimal-forecast-item">
-                <p className="overview-minimal-forecast-label">{item.label}</p>
-                <p className="overview-minimal-forecast-temp">{item.temperatureLabel}</p>
-                <p className="overview-minimal-forecast-icon" aria-hidden>
-                  {item.icon}
-                </p>
-                <p className="overview-minimal-forecast-precip">{item.precipitationLabel}</p>
-              </article>
-            ))}
-          </div>
+        <section
+          className={`overview-minimal-forecast-strip${isForecastLoading ? ' is-loading' : ''}`}
+          aria-label="Now and next seven days forecast"
+        >
+          {isForecastLoading ? (
+            <div className="overview-minimal-forecast-loading-glow" role="status" aria-label="Loading seven day forecast" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : (
+            <div className="overview-minimal-forecast-row">
+              {forecastItems.map((item) => (
+                <article key={item.id} className="overview-minimal-forecast-item">
+                  <p className="overview-minimal-forecast-label">{item.label}</p>
+                  <p className="overview-minimal-forecast-temp">{item.temperatureLabel}</p>
+                  <p className="overview-minimal-forecast-icon" aria-hidden>
+                    {item.icon}
+                  </p>
+                  <p className="overview-minimal-forecast-precip">{item.precipitationLabel}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </section>

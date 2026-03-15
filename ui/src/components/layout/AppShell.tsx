@@ -92,10 +92,10 @@ export function AppShell({ children }: AppShellProps) {
             key={item.key}
             to={item.to}
             className={({ isActive }) => `shell-mobile-nav-link${isActive ? ' active' : ''}`}
+            aria-label={item.label}
             aria-current={location.pathname === item.to ? 'page' : undefined}
           >
             <NavIcon itemKey={item.key} />
-            <span className="shell-mobile-nav-label">{item.label}</span>
           </NavLink>
         ))}
       </nav>
