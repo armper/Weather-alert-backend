@@ -225,14 +225,15 @@ export function RulesPage() {
           const payload = buildPresetPayload(preset, me.id)
           await apiRequest<AlertCriteria>('/api/criteria', { method: 'POST', token, body: payload, signal: controller.signal })
         }
-        // Refresh criteria list from server
+        // Clear optimistic before refresh so the new server state doesn't get inverted
+        setOptimistic((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
         await refresh()
       } catch {
-        // Silent — aborted or network error
+        // On abort or error, revert optimistic state
+        setOptimistic((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
       } finally {
         abortControllers.current.delete(preset.id)
         setBusy((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
-        setOptimistic((prev) => { const next = new Set(prev); next.delete(preset.id); return next })
       }
     },
     [token, me, enabledMap, refresh],
