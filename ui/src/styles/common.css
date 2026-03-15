@@ -456,7 +456,7 @@
   z-index: 1;
   width: min(100%, 32rem);
   margin: 0 auto;
-  padding: clamp(10.5rem, 24vh, 13rem) 1.35rem calc(9rem + env(safe-area-inset-bottom));
+  padding: clamp(12rem, 30vh, 15rem) 1.35rem calc(9rem + env(safe-area-inset-bottom));
   display: grid;
   gap: 1rem;
 }
