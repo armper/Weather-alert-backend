@@ -284,7 +284,6 @@
 }
 
 .auth-home-stage {
-  --auth-home-scroll-offset: 0px;
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -304,7 +303,6 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  background-attachment: fixed;
 }
 
 .auth-home-poster::after {
@@ -315,16 +313,15 @@
 }
 
 .auth-home-hero {
-  position: fixed;
-  bottom: max(8.5rem, calc(env(safe-area-inset-bottom) + 7.5rem));
+  position: absolute;
   left: 50%;
+  bottom: max(8.5rem, calc(env(safe-area-inset-bottom) + 7.5rem));
   z-index: 2;
   display: grid;
   justify-items: center;
   gap: 0;
   width: min(calc(100% - 3rem), 34rem);
-  transform: translate(-50%, calc(var(--auth-home-scroll-offset) * -1));
-  will-change: transform;
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
@@ -366,7 +363,7 @@
 }
 
 .auth-home-footer-links {
-  position: fixed;
+  position: absolute;
   left: 50%;
   bottom: max(1.5rem, env(safe-area-inset-bottom));
   z-index: 1;
@@ -406,6 +403,7 @@
 .public-poster-shell {
   --auth-home-background: none;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: clamp(2.5rem, 6vw, 4.5rem) 1rem 7rem;
   box-sizing: border-box;
   background-image:
@@ -414,7 +412,6 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  background-attachment: fixed;
 }
 
 .public-poster-scroll {

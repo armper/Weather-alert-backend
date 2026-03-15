@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { searchPlaces } from '../../../services/geocoding'
 import { formatFriendlyLocation } from '../../../lib/formatting'
 import { AriaButton } from '../../ui/AriaButton'
@@ -35,10 +35,12 @@ export function OverviewLocationSwitcher({
   resolvingCurrentLocation,
   statusMessage,
 }: OverviewLocationSwitcherProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<OverviewLocationOption[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
 
   const isViewingAlternate = activeLocation.id !== monitoringLocation.id
   const recentLocationsToShow = useMemo(
@@ -46,6 +48,29 @@ export function OverviewLocationSwitcher({
     [activeLocation.id, recentLocations],
   )
   const viewingBadgeLabel = isViewingAlternate ? `Viewing ${formatFriendlyLocation(activeLocation.name)}` : 'Viewing monitored area'
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      searchInputRef.current?.focus()
+    }, 30)
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [isOpen])
 
   async function handleSearch() {
     if (!query.trim()) {
@@ -82,103 +107,153 @@ export function OverviewLocationSwitcher({
     setQuery('')
     setResults([])
     setSearchError(null)
+    setIsOpen(false)
   }
 
   return (
-    <section className="panel overview-location-switcher">
-      <div className="overview-location-switcher-header">
-        <div>
-          <p className="eyebrow">Explore Forecasts</p>
-          <h2>Check another location</h2>
-          <p className="overview-location-switcher-copy">
-            Browse live weather and forecast discussions somewhere else without changing the places SkyPanda is actively watching.
-          </p>
+    <>
+      <section className="panel overview-location-launcher">
+        <div className="overview-location-launcher-main">
+          <div className="overview-location-launcher-copy">
+            <span className="overview-location-launcher-label">{viewingBadgeLabel}</span>
+            <strong>{formatFriendlyLocation(activeLocation.name)}</strong>
+            <p>
+              {isViewingAlternate
+                ? `Alerts still monitor ${formatFriendlyLocation(monitoringLocation.name)}.`
+                : 'Open another place without changing the locations SkyPanda is watching.'}
+            </p>
+          </div>
+          <div className="overview-location-launcher-actions">
+            <AriaButton className="button-inline overview-location-open-button" onPress={() => setIsOpen(true)}>
+              Check another location
+            </AriaButton>
+            {isViewingAlternate ? (
+              <AriaButton className="ghost button-inline overview-location-inline-reset" onPress={onResetToMonitoring}>
+                Back to monitored area
+              </AriaButton>
+            ) : null}
+          </div>
         </div>
-        <div className="overview-location-switcher-status">
+        <div className="overview-location-launcher-status">
           <span className="badge overview-location-badge">{viewingBadgeLabel}</span>
           <span className="badge is-muted">{`Monitoring ${formatFriendlyLocation(monitoringLocation.name)}`}</span>
         </div>
-      </div>
+        {statusMessage ? <p className="muted small overview-location-status">{statusMessage}</p> : null}
+        {loadingLocationData ? (
+          <p className="muted small overview-location-loading-copy">Refreshing conditions, forecasts, and discussions for this location…</p>
+        ) : null}
+      </section>
 
-      <div className="overview-location-search-row">
-        <label className="overview-location-search-field" htmlFor="overview-location-search">
-          <span>Search another place</span>
-          <input
-            id="overview-location-search"
-            className="aria-input"
-            value={query}
-            placeholder="City, ZIP, park, airport..."
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void handleSearch()
-              }
-            }}
-          />
-        </label>
-        <div className="overview-location-search-actions">
-          <AriaButton className="ghost button-inline overview-location-action" onPress={() => void handleSearch()} isDisabled={searching}>
-            {searching ? 'Searching...' : 'Search'}
-          </AriaButton>
-          <AriaButton
-            className="ghost button-inline overview-location-action"
-            onPress={() => void onUseCurrentLocation()}
-            isDisabled={resolvingCurrentLocation}
+      {isOpen ? (
+        <div className="overview-location-dialog-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
+          <div
+            className="overview-location-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="overview-location-dialog-title"
+            onClick={(event) => event.stopPropagation()}
           >
-            {resolvingCurrentLocation ? 'Locating...' : 'Use my location'}
-          </AriaButton>
-          {isViewingAlternate ? (
-            <AriaButton className="button-inline overview-location-reset" onPress={onResetToMonitoring}>
-              Back to monitored area
-            </AriaButton>
-          ) : null}
-        </div>
-      </div>
-
-      {searchError ? <p className="field-error">{searchError}</p> : null}
-      {statusMessage ? <p className="muted small overview-location-status">{statusMessage}</p> : null}
-
-      {results.length > 0 ? (
-        <div className="overview-location-search-results" role="listbox" aria-label="Overview location results">
-          {results.map((item) => (
-            <AriaButton key={item.id} className="overview-location-search-result" onPress={() => applySelection(item)}>
-              <span className="overview-location-result-name">{formatFriendlyLocation(item.name)}</span>
-              <span className="overview-location-result-detail">{item.detail}</span>
-            </AriaButton>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="overview-location-meta-row">
-        <div className="overview-location-meta-card">
-          <span className="overview-location-meta-label">Now viewing</span>
-          <strong>{formatFriendlyLocation(activeLocation.name)}</strong>
-          <span>{activeLocation.detail}</span>
-        </div>
-        <div className="overview-location-meta-card">
-          <span className="overview-location-meta-label">Alerts stay tied to</span>
-          <strong>{formatFriendlyLocation(monitoringLocation.name)}</strong>
-          <span>{monitoringLocation.detail}</span>
-        </div>
-      </div>
-
-      {recentLocationsToShow.length > 0 ? (
-        <div className="overview-location-recent-row">
-          <span className="overview-location-recent-label">Recent places</span>
-          <div className="overview-location-recent-chips">
-            {recentLocationsToShow.map((item) => (
-              <AriaButton key={item.id} className="overview-location-chip" onPress={() => applySelection(item)}>
-                {formatFriendlyLocation(item.name)}
+            <div className="overview-location-dialog-header">
+              <div>
+                <p className="eyebrow">Explore Forecasts</p>
+                <h2 id="overview-location-dialog-title">Check another location</h2>
+                <p className="overview-location-dialog-copy">
+                  Browse live weather and forecast discussions somewhere else without changing the places SkyPanda is actively watching.
+                </p>
+              </div>
+              <AriaButton className="ghost button-inline overview-location-close" onPress={() => setIsOpen(false)}>
+                Done
               </AriaButton>
-            ))}
+            </div>
+
+            <div className="overview-location-search-row">
+              <label className="overview-location-search-field" htmlFor="overview-location-search">
+                <span>Search another place</span>
+                <input
+                  ref={searchInputRef}
+                  id="overview-location-search"
+                  className="aria-input"
+                  value={query}
+                  placeholder="City, ZIP, park, airport..."
+                  onChange={(event) => setQuery(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      void handleSearch()
+                    }
+                  }}
+                />
+              </label>
+              <div className="overview-location-search-actions">
+                <AriaButton className="ghost button-inline overview-location-action" onPress={() => void handleSearch()} isDisabled={searching}>
+                  {searching ? 'Searching...' : 'Search'}
+                </AriaButton>
+                <AriaButton
+                  className="ghost button-inline overview-location-action"
+                  onPress={async () => {
+                    await onUseCurrentLocation()
+                    setIsOpen(false)
+                  }}
+                  isDisabled={resolvingCurrentLocation}
+                >
+                  {resolvingCurrentLocation ? 'Locating...' : 'Use my location'}
+                </AriaButton>
+                {isViewingAlternate ? (
+                  <AriaButton
+                    className="button-inline overview-location-reset"
+                    onPress={() => {
+                      onResetToMonitoring()
+                      setIsOpen(false)
+                    }}
+                  >
+                    Back to monitored area
+                  </AriaButton>
+                ) : null}
+              </div>
+            </div>
+
+            {searchError ? <p className="field-error">{searchError}</p> : null}
+            {statusMessage ? <p className="muted small overview-location-status">{statusMessage}</p> : null}
+
+            {results.length > 0 ? (
+              <div className="overview-location-search-results" role="listbox" aria-label="Overview location results">
+                {results.map((item) => (
+                  <AriaButton key={item.id} className="overview-location-search-result" onPress={() => applySelection(item)}>
+                    <span className="overview-location-result-name">{formatFriendlyLocation(item.name)}</span>
+                    <span className="overview-location-result-detail">{item.detail}</span>
+                  </AriaButton>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="overview-location-meta-row">
+              <div className="overview-location-meta-card">
+                <span className="overview-location-meta-label">Now viewing</span>
+                <strong>{formatFriendlyLocation(activeLocation.name)}</strong>
+                <span>{activeLocation.detail}</span>
+              </div>
+              <div className="overview-location-meta-card">
+                <span className="overview-location-meta-label">Alerts stay tied to</span>
+                <strong>{formatFriendlyLocation(monitoringLocation.name)}</strong>
+                <span>{monitoringLocation.detail}</span>
+              </div>
+            </div>
+
+            {recentLocationsToShow.length > 0 ? (
+              <div className="overview-location-recent-row">
+                <span className="overview-location-recent-label">Recent places</span>
+                <div className="overview-location-recent-chips">
+                  {recentLocationsToShow.map((item) => (
+                    <AriaButton key={item.id} className="overview-location-chip" onPress={() => applySelection(item)}>
+                      {formatFriendlyLocation(item.name)}
+                    </AriaButton>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
-
-      {loadingLocationData ? (
-        <p className="muted small overview-location-loading-copy">Refreshing conditions, forecasts, and discussions for this location…</p>
-      ) : null}
-    </section>
+    </>
   )
 }

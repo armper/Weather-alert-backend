@@ -160,12 +160,10 @@
     min-height: 100vh;
     min-height: 100dvh;
     padding: 0 1.5rem 7rem;
-    background-attachment: scroll;
   }
 
   .public-poster-shell {
     padding: 2rem 1rem 6.5rem;
-    background-attachment: scroll;
   }
 
   .public-poster-scroll {
@@ -237,7 +235,8 @@
     grid-template-columns: 1fr;
   }
 
-  .overview-location-switcher-header,
+  .overview-location-launcher-main,
+  .overview-location-dialog-header,
   .overview-location-search-actions {
     flex-direction: column;
     align-items: stretch;
@@ -248,7 +247,7 @@
     grid-template-columns: 1fr;
   }
 
-  .overview-location-switcher-status {
+  .overview-location-launcher-status {
     justify-content: flex-start;
   }
 

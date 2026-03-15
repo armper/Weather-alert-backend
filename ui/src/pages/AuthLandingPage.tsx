@@ -1,44 +1,10 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import backgroundImage from '../assets/background.png'
 
 export function AuthLandingPage() {
-  const stageRef = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    const node = stageRef.current
-    if (!node) {
-      return
-    }
-
-    let frame = 0
-
-    const syncScrollOffset = () => {
-      frame = 0
-      const offset = Math.min(window.scrollY, 42) * 0.16
-      node.style.setProperty('--auth-home-scroll-offset', `${offset}px`)
-    }
-
-    const handleScroll = () => {
-      if (frame !== 0) {
-        return
-      }
-      frame = window.requestAnimationFrame(syncScrollOffset)
-    }
-
-    syncScrollOffset()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-      if (frame !== 0) {
-        window.cancelAnimationFrame(frame)
-      }
-    }
-  }, [])
-
   return (
-    <main className="auth-home-stage" ref={stageRef}>
+    <main className="auth-home-stage">
       <section
         className="auth-home-poster"
         style={{ '--auth-home-background': `url(${backgroundImage})` } as CSSProperties}
@@ -57,6 +23,7 @@ export function AuthLandingPage() {
             </Link>
           </div>
         </div>
+
         <nav className="auth-home-footer-links" aria-label="Public information">
           <Link className="auth-home-footer-link" to="/about">
             About us
