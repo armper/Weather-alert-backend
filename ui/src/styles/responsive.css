@@ -157,14 +157,28 @@
 
   .auth-home-poster {
     width: 100%;
-    min-height: 102vh;
-    padding: 17vh 1.5rem 7rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0 1.5rem 7rem;
     background-attachment: scroll;
+  }
+
+  .public-poster-shell {
+    padding: 2rem 1rem 6.5rem;
+    background-attachment: scroll;
+  }
+
+  .public-poster-scroll {
+    width: 100%;
+  }
+
+  .public-poster-link-row {
+    justify-content: flex-start;
   }
 
   .auth-home-hero {
     width: min(calc(100% - 2rem), 32rem);
-    top: 56vh;
+    bottom: max(8rem, calc(env(safe-area-inset-bottom) + 7rem));
   }
 
   .two-col,
@@ -366,13 +380,27 @@
   }
 
   .auth-home-poster {
-    min-height: 101.5vh;
-    padding: 15vh 1.5rem 6.75rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0 1.5rem 6.75rem;
+  }
+
+  .public-poster-shell {
+    padding: 1.2rem 0.75rem 6rem;
+  }
+
+  .public-poster-card {
+    border-radius: 1.4rem;
+    padding: 1rem;
+  }
+
+  .public-poster-card-form {
+    padding: 0.9rem;
   }
 
   .auth-home-hero {
     width: calc(100% - 1.5rem);
-    top: 58vh;
+    bottom: max(7.35rem, calc(env(safe-area-inset-bottom) + 6.6rem));
   }
 
   .auth-home-title {
@@ -396,5 +424,9 @@
 
   .auth-home-footer-link {
     font-size: 0.9rem;
+  }
+
+  .public-poster-header h1 {
+    font-size: clamp(1.95rem, 10vw, 2.7rem);
   }
 }
