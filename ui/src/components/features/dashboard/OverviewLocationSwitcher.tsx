@@ -31,7 +31,6 @@ export function OverviewLocationSwitcher({
   onSelectLocation,
   onUseCurrentLocation,
   onResetToMonitoring,
-  loadingLocationData,
   resolvingCurrentLocation,
   statusMessage,
 }: OverviewLocationSwitcherProps) {
@@ -47,7 +46,6 @@ export function OverviewLocationSwitcher({
     () => recentLocations.filter((item) => item.id !== activeLocation.id).slice(0, 4),
     [activeLocation.id, recentLocations],
   )
-  const viewingBadgeLabel = isViewingAlternate ? `Viewing ${formatFriendlyLocation(activeLocation.name)}` : 'Viewing monitored area'
 
   useEffect(() => {
     if (!isOpen) {
@@ -112,37 +110,9 @@ export function OverviewLocationSwitcher({
 
   return (
     <>
-      <section className="panel overview-location-launcher">
-        <div className="overview-location-launcher-main">
-          <div className="overview-location-launcher-copy">
-            <span className="overview-location-launcher-label">{viewingBadgeLabel}</span>
-            <strong>{formatFriendlyLocation(activeLocation.name)}</strong>
-            <p>
-              {isViewingAlternate
-                ? `Alerts still monitor ${formatFriendlyLocation(monitoringLocation.name)}.`
-                : 'Open another place without changing the locations SkyPanda is watching.'}
-            </p>
-          </div>
-          <div className="overview-location-launcher-actions">
-            <AriaButton className="button-inline overview-location-open-button" onPress={() => setIsOpen(true)}>
-              Check another location
-            </AriaButton>
-            {isViewingAlternate ? (
-              <AriaButton className="ghost button-inline overview-location-inline-reset" onPress={onResetToMonitoring}>
-                Back to monitored area
-              </AriaButton>
-            ) : null}
-          </div>
-        </div>
-        <div className="overview-location-launcher-status">
-          <span className="badge overview-location-badge">{viewingBadgeLabel}</span>
-          <span className="badge is-muted">{`Monitoring ${formatFriendlyLocation(monitoringLocation.name)}`}</span>
-        </div>
-        {statusMessage ? <p className="muted small overview-location-status">{statusMessage}</p> : null}
-        {loadingLocationData ? (
-          <p className="muted small overview-location-loading-copy">Refreshing conditions, forecasts, and discussions for this location…</p>
-        ) : null}
-      </section>
+      <AriaButton className="overview-location-inline-trigger" onPress={() => setIsOpen(true)}>
+        Change location
+      </AriaButton>
 
       {isOpen ? (
         <div className="overview-location-dialog-backdrop" role="presentation" onClick={() => setIsOpen(false)}>

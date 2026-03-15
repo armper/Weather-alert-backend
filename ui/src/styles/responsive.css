@@ -235,7 +235,6 @@
     grid-template-columns: 1fr;
   }
 
-  .overview-location-launcher-main,
   .overview-location-dialog-header,
   .overview-location-search-actions {
     flex-direction: column;
@@ -245,10 +244,6 @@
   .overview-location-search-row,
   .overview-location-meta-row {
     grid-template-columns: 1fr;
-  }
-
-  .overview-location-launcher-status {
-    justify-content: flex-start;
   }
 
   .nws-products-hero {

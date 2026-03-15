@@ -1,14 +1,14 @@
-import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import backgroundImage from '../assets/background.png'
 
 export function AuthLandingPage() {
   return (
     <main className="auth-home-stage">
-      <section
-        className="auth-home-poster"
-        style={{ '--auth-home-background': `url(${backgroundImage})` } as CSSProperties}
-      >
+      <div className="auth-home-background" aria-hidden="true">
+        <img className="auth-home-background-image" src={backgroundImage} alt="" />
+      </div>
+
+      <section className="auth-home-poster">
         <div className="auth-home-hero">
           <div className="auth-home-title">
             <span>Welcome to</span>

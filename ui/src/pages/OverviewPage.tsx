@@ -408,18 +408,6 @@ export function OverviewPage() {
 
   return (
     <section className="page-stack">
-      <OverviewLocationSwitcher
-        monitoringLocation={monitoringLocation}
-        activeLocation={activeLocation}
-        recentLocations={recentViewLocations}
-        onSelectLocation={selectOverviewLocation}
-        onUseCurrentLocation={handleUseCurrentLocation}
-        onResetToMonitoring={handleResetToMonitoring}
-        loadingLocationData={alternateWeatherLoading}
-        resolvingCurrentLocation={resolvingCurrentLocation}
-        statusMessage={displayLocationStatusMessage}
-      />
-
       <div className="page-grid overview-grid">
         <article className="panel">
           <div className="panel-title-row overview-title-row">
@@ -429,6 +417,17 @@ export function OverviewPage() {
               <div className="overview-monitoring-indicator" aria-live="polite">
                 <span className="overview-monitoring-dot" aria-hidden />
                 <span>{dashboard.monitoringLabel}</span>
+                <OverviewLocationSwitcher
+                  monitoringLocation={monitoringLocation}
+                  activeLocation={activeLocation}
+                  recentLocations={recentViewLocations}
+                  onSelectLocation={selectOverviewLocation}
+                  onUseCurrentLocation={handleUseCurrentLocation}
+                  onResetToMonitoring={handleResetToMonitoring}
+                  loadingLocationData={alternateWeatherLoading}
+                  resolvingCurrentLocation={resolvingCurrentLocation}
+                  statusMessage={displayLocationStatusMessage}
+                />
               </div>
             </div>
             <span className="badge overview-status-badge">
