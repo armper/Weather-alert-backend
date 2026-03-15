@@ -917,7 +917,7 @@
 }
 
 .app-shell.is-overview-route .overview-page-content-fresh {
-  padding: 1.05rem 0.95rem calc(10.9rem + env(safe-area-inset-bottom));
+  padding: 1.05rem 0.95rem 1rem;
 }
 
 .overview-minimal-readout {
@@ -976,13 +976,23 @@
 
 .app-shell.is-overview-route .overview-minimal-forecast-strip {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(calc(100vw - 1.9rem), 32rem);
+  left: 1rem;
+  right: 1rem;
+  width: auto;
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+  transform: none;
   bottom: calc(3.95rem + env(safe-area-inset-bottom));
   z-index: 30;
   box-sizing: border-box;
   margin-bottom: 0;
+}
+
+@media (min-width: 861px) {
+  .app-shell.is-overview-route .overview-minimal-forecast-strip {
+    max-width: 48rem;
+  }
 }
 
 .overview-minimal-forecast-strip.is-loading {
