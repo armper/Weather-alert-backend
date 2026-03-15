@@ -456,7 +456,8 @@
   z-index: 1;
   width: min(100%, 32rem);
   margin: 0 auto;
-  padding: clamp(13.5rem, 36vh, 17rem) 1.35rem calc(9rem + env(safe-area-inset-bottom));
+  padding: clamp(11rem, 28vh, 14rem) 1.35rem calc(9rem + env(safe-area-inset-bottom));
+  transform: translateY(clamp(1.25rem, 3vh, 2rem));
   display: grid;
   gap: 1rem;
 }
@@ -542,7 +543,7 @@
 
 .auth-login-meta-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: -0.3rem;
 }
 
