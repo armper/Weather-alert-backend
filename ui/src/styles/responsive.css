@@ -268,6 +268,52 @@
     grid-template-columns: 1fr;
   }
 
+  .overview-page-content-fresh {
+    padding: 1.05rem 0.95rem 1rem;
+  }
+
+  .overview-minimal-greeting {
+    font-size: clamp(1.2rem, 6.2vw, 1.5rem);
+  }
+
+  .overview-minimal-location {
+    font-size: clamp(0.92rem, 3.6vw, 1.08rem);
+  }
+
+  .overview-minimal-temperature {
+    font-size: clamp(2.45rem, 12vw, 3.5rem);
+  }
+
+  .overview-minimal-forecast-strip {
+    padding: 0.6rem;
+    border-radius: 1.15rem;
+  }
+
+  .overview-minimal-forecast-row {
+    gap: 0.34rem;
+    grid-auto-columns: minmax(3.85rem, 1fr);
+  }
+
+  .overview-minimal-forecast-item {
+    padding: 0.2rem 0.2rem;
+  }
+
+  .overview-minimal-forecast-label {
+    font-size: 0.78rem;
+  }
+
+  .overview-minimal-forecast-temp {
+    font-size: 1.02rem;
+  }
+
+  .overview-minimal-forecast-icon {
+    font-size: 1.22rem;
+  }
+
+  .overview-minimal-forecast-precip {
+    font-size: 0.69rem;
+  }
+
   .nws-products-hero {
     grid-template-columns: 1fr;
   }
@@ -473,5 +519,24 @@
 
   .public-poster-header h1 {
     font-size: clamp(1.95rem, 10vw, 2.7rem);
+  }
+}
+
+@media (max-width: 420px) {
+  .overview-page-content-fresh {
+    padding: 0.9rem 0.7rem 0.8rem;
+  }
+
+  .overview-minimal-temperature {
+    font-size: clamp(2.15rem, 11.5vw, 3rem);
+  }
+
+  .overview-minimal-forecast-strip {
+    padding: 0.5rem;
+    border-radius: 1rem;
+  }
+
+  .overview-minimal-forecast-row {
+    grid-auto-columns: minmax(3.45rem, 1fr);
   }
 }
