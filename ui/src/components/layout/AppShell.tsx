@@ -1,10 +1,6 @@
-import { useMemo, type ReactNode } from 'react'
-import { Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { BrandLockup } from '../common/BrandLockup'
-import { formatFriendlyLocation } from '../../lib/formatting'
-import { useDataState, useSessionState } from '../../state/useAppState'
-import { AriaButton } from '../ui/AriaButton'
+import { type ReactNode } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useSessionState } from '../../state/useAppState'
 
 interface AppShellProps {
   children: ReactNode
@@ -69,93 +65,14 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { me, logout, isAdmin, initialDataLoading } = useSessionState()
-  const { criteria } = useDataState()
+  const { isAdmin } = useSessionState()
   const location = useLocation()
-  const navigate = useNavigate()
-  const desktopNavItems = useMemo(
-    () =>
-      isAdmin
-        ? [...PRIMARY_NAV_ITEMS, { key: 'admin', label: 'Admin', to: '/app/admin' as const }]
-        : PRIMARY_NAV_ITEMS,
-    [isAdmin],
-  )
-
-  const locationLabel = useMemo(() => {
-    const primaryLocation = criteria[0]?.location?.trim()
-    return formatFriendlyLocation(primaryLocation)
-  }, [criteria])
-
-  const userLabel = me?.name?.trim() || me?.id || 'Account'
-  const avatarInitial = userLabel.charAt(0).toUpperCase()
-
-  function handleUserMenuAction(key: React.Key) {
-    if (key === 'admin') {
-      navigate('/app/admin')
-      return
-    }
-    if (key === 'account') {
-      navigate('/app/account')
-      return
-    }
-    if (key === 'signout') {
-      logout()
-    }
-  }
+  const desktopNavItems = isAdmin
+    ? [...PRIMARY_NAV_ITEMS, { key: 'admin', label: 'Admin', to: '/app/admin' as const }]
+    : PRIMARY_NAV_ITEMS
 
   return (
     <div className="app-shell">
-      <header className="shell-header panel">
-        <div className="shell-header-left">
-          <div>
-            <BrandLockup compact subtitle="SkyPanda" />
-          </div>
-        </div>
-
-        <div className="shell-header-right">
-          <Link to="/app/rules#location-picker" className="shell-location-chip" aria-label={`Current location ${locationLabel}`}>
-            <span aria-hidden>📍</span>
-            <span>{initialDataLoading ? 'Loading watch area…' : locationLabel}</span>
-          </Link>
-
-          <Link to="/app/rules#create-custom-alert" className="primary overview-create-link shell-create-link">
-            <span aria-hidden className="overview-create-icon">
-              <svg viewBox="0 0 12 12" className="create-plus-svg" focusable="false">
-                <path d="M6 2.25v7.5M2.25 6h7.5" />
-              </svg>
-            </span>
-            <span>New alert</span>
-          </Link>
-
-          <MenuTrigger>
-            <AriaButton className="ghost shell-user-trigger" aria-label="Open account menu">
-              <span className="shell-avatar" aria-hidden>
-                {avatarInitial}
-              </span>
-              <span className="shell-user-mobile-label">Account</span>
-              <span className="shell-user-id">{me?.id ?? 'Account'}</span>
-              <span aria-hidden>▾</span>
-            </AriaButton>
-
-            <Popover placement="bottom end" className="shell-user-popover">
-              <Menu className="shell-user-menu" onAction={handleUserMenuAction} aria-label="User menu">
-                {isAdmin ? (
-                  <MenuItem id="admin" className="shell-user-menu-item">
-                    Admin panel
-                  </MenuItem>
-                ) : null}
-                <MenuItem id="account" className="shell-user-menu-item">
-                  Account
-                </MenuItem>
-                <MenuItem id="signout" className="shell-user-menu-item">
-                  Sign out
-                </MenuItem>
-              </Menu>
-            </Popover>
-          </MenuTrigger>
-        </div>
-      </header>
-
       <div className="shell-body">
         <nav className="shell-sidebar panel" aria-label="Primary navigation">
           {desktopNavItems.map((item) => (

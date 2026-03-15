@@ -22,6 +22,17 @@
 - Match existing suffix conventions: `*Controller`, `*UseCase`, `*Adapter`, `*Repository`, `*Entity`, `*Response`, `*Request`.
 - Prefer constructor injection and keep domain logic in `domain/`, not in controllers/adapters.
 
+## Frontend UX Direction
+- Design consumer-facing pages for clarity first. Reduce cognitive load, remove nonessential copy, and make the primary action obvious.
+- Prefer strong visual hierarchy: one dominant action, a small number of supporting actions, and generous spacing between groups.
+- Keep public-facing screens simple enough for non-technical users. Avoid feature walls, dense explanatory text, and layouts that require interpretation.
+- When creating or refreshing pages, favor cohesive visual systems over ad hoc components. Inputs, buttons, surfaces, spacing, and helper text should feel like part of one family.
+- Use decorative/brand visuals to support the experience, but keep interaction elements easy to recognize and separate from background art.
+- Prefer lightweight, contextual guidance. If a field or action needs explanation, show a small inline hint near that field only when needed instead of large warning blocks.
+- Avoid silent disabled states. When an action is unavailable, provide a nearby reason in plain language.
+- For dashboards and utility screens, compress secondary controls and explanations. Prefer modals, popovers, and compact summaries over large persistent instruction sections.
+- When updating older pages, simplify before adding. Remove low-value elements, shorten copy, and tighten action hierarchy before introducing new UI.
+
 ## Testing Guidelines
 - Framework stack: JUnit 5 via `spring-boot-starter-test`, plus Spring Security and Kafka test support.
 - Name tests `*Test` and place them in mirrored package paths.

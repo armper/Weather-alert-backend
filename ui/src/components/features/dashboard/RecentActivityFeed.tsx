@@ -13,8 +13,8 @@ export function RecentActivityFeed({ items, calmLabel, now }: RecentActivityFeed
     <article className="panel overview-activity-panel">
       <div className="panel-title-row">
         <div>
-          <p className="eyebrow">Recent Activity</p>
-          <h2>Recent alert activity</h2>
+          <p className="eyebrow">Alerts</p>
+          <h2>Recent alerts</h2>
         </div>
       </div>
 

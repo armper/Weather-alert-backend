@@ -9,8 +9,8 @@ export function WeatherTimeline({ items }: WeatherTimelineProps) {
     <article className="panel overview-timeline-panel">
       <div className="panel-title-row">
         <div>
-          <p className="eyebrow">Weather Timeline</p>
-          <h2>Weather Timeline</h2>
+          <p className="eyebrow">Next Up</p>
+          <h2>What happens next</h2>
         </div>
       </div>
 
