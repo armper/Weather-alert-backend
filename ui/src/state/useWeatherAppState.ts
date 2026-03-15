@@ -141,12 +141,12 @@ export function useWeatherAppState() {
     if (!criteriaForm.latitude.trim() || !criteriaForm.longitude.trim()) {
       return false
     }
+    if (criteriaForm.ruleType === 'RIVER_FLOOD_CATEGORY') {
+      return true
+    }
     const isRiverRule = RIVER_RULE_TYPES.includes(criteriaForm.ruleType)
     if (isRiverRule && !criteriaForm.riverGaugeId.trim()) {
       return false
-    }
-    if (criteriaForm.ruleType === 'RIVER_FLOOD_CATEGORY') {
-      return true
     }
     if (RIVER_STAGE_RULE_TYPES.includes(criteriaForm.ruleType)) {
       return !Number.isNaN(Number(criteriaForm.threshold))

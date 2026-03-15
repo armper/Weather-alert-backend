@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { apiRequest } from '../api'
 import backgroundOverviewImage from '../assets/background-overview.png'
-import { defaultThreshold } from '../lib/criteria'
+import { buildCriteriaPayload, defaultThreshold } from '../lib/criteria'
 import {
   QUICK_START_PRESETS,
   SIMPLE_SITUATIONS,
@@ -13,8 +13,10 @@ import {
 } from '../lib/ruleBuilder'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import type { RuleType } from '../state/types'
-import { useActionState, useAsyncState, useDataState, useFormState, useSessionState } from '../state/useAppState'
+import { useAsyncState, useDataState, useFormState, useSessionState } from '../state/useAppState'
 import type { AlertCriteria } from '../types'
+
+type ModalStatus = 'idle' | 'saving' | 'success' | 'error'
 
 function resolveRuleEmoji(icon: RuleBuilderIcon): string {
   switch (icon) {
@@ -178,12 +180,12 @@ export function RulesPage() {
   const { token, me, refresh } = useSessionState()
   const { criteria } = useDataState()
   const { criteriaForm, setCriteriaForm } = useFormState()
-  const { handleCreateCriteria } = useActionState()
-  const { canSubmitCriteria, savingCriteria } = useAsyncState()
+  const { canSubmitCriteria } = useAsyncState()
   const [pendingState, setPendingState] = useState<Map<string, boolean>>(() => new Map())
   const abortControllers = useRef(new Map<string, AbortController>())
   const [modalSituation, setModalSituation] = useState<SimpleSituationConfig | null>(null)
   const [selectedSensitivity, setSelectedSensitivity] = useState<string>('')
+  const [modalStatus, setModalStatus] = useState<ModalStatus>('idle')
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const enabledMap = useMemo(() => {
@@ -252,6 +254,7 @@ export function RulesPage() {
 
   function closeModal() {
     setModalSituation(null)
+    setModalStatus('idle')
   }
 
   function handleSensitivityPick(sensId: string) {
@@ -336,7 +339,7 @@ export function RulesPage() {
           ref={backdropRef}
           onClick={(e) => { if (e.target === backdropRef.current) closeModal() }}
         >
-          <div className="rules-modal" role="dialog" aria-label={`Create ${modalSituation.title} alert`}>
+          <div className={`rules-modal${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`} role="dialog" aria-label={`Create ${modalSituation.title} alert`}>
             <div className="rules-modal-header">
               <span className="rules-modal-icon">{resolveRuleEmoji(modalSituation.icon)}</span>
               <h2 className="rules-modal-title">{modalSituation.title}</h2>
@@ -362,9 +365,19 @@ export function RulesPage() {
 
             <form
               className="rules-modal-form"
-              onSubmit={async (e) => {
-                const result = await handleCreateCriteria(e)
-                if (result && 'ok' in result && result.ok) closeModal()
+              onSubmit={async (e: FormEvent<HTMLFormElement>) => {
+                e.preventDefault()
+                if (!token || !me) return
+                setModalStatus('saving')
+                try {
+                  const payload = buildCriteriaPayload(criteriaForm, me.id)
+                  await apiRequest<AlertCriteria>('/api/criteria', { method: 'POST', token, body: payload })
+                  setModalStatus('success')
+                  await refresh()
+                  setTimeout(() => closeModal(), 900)
+                } catch {
+                  setModalStatus('error')
+                }
               }}
             >
               {modalSituation.ruleType === 'RIVER_FLOOD_CATEGORY' && !isCustomSensitivity ? null : modalSituation.ruleType === 'RIVER_FLOOD_CATEGORY' ? (
@@ -419,9 +432,9 @@ export function RulesPage() {
               <button
                 type="submit"
                 className="action-bubble action-bubble-wide action-bubble-accent"
-                disabled={!canSubmitCriteria || savingCriteria}
+                disabled={!canSubmitCriteria || modalStatus === 'saving' || modalStatus === 'success'}
               >
-                {savingCriteria ? 'Creating...' : 'Create Alert'}
+                {modalStatus === 'saving' ? 'Creating...' : modalStatus === 'success' ? 'Created!' : modalStatus === 'error' ? 'Try Again' : 'Create Alert'}
               </button>
             </form>
           </div>

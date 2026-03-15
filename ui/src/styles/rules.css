@@ -936,3 +936,67 @@
   from { opacity: 0; transform: translateY(16px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ─── Modal success state ─── */
+
+.rules-modal.is-success {
+  border-color: rgba(80, 220, 140, 0.55);
+  background:
+    linear-gradient(180deg, rgba(80, 220, 140, 0.22), rgba(60, 180, 120, 0.08)),
+    rgba(60, 180, 120, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(80, 220, 140, 0.2),
+    0 0 40px rgba(80, 220, 140, 0.15),
+    0 24px 60px rgba(10, 20, 50, 0.3),
+    inset 0 1px 0 rgba(180, 255, 220, 0.45);
+  animation: rulesModalCelebrate 600ms ease;
+}
+
+.rules-modal.is-success .rules-modal-title {
+  color: rgba(180, 255, 220, 0.95);
+}
+
+.rules-modal.is-success .rules-modal-desc {
+  color: rgba(180, 255, 220, 0.7);
+}
+
+@keyframes rulesModalCelebrate {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.03); }
+  40%  { transform: scale(0.985); }
+  60%  { transform: scale(1.015); }
+  80%  { transform: scale(0.995); }
+  100% { transform: scale(1); }
+}
+
+/* ─── Modal error state ─── */
+
+.rules-modal.is-error {
+  border-color: rgba(255, 100, 100, 0.5);
+  background:
+    linear-gradient(180deg, rgba(255, 90, 90, 0.18), rgba(200, 60, 60, 0.06)),
+    rgba(200, 80, 80, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(255, 100, 100, 0.18),
+    0 0 30px rgba(255, 80, 80, 0.12),
+    0 24px 60px rgba(10, 20, 50, 0.3),
+    inset 0 1px 0 rgba(255, 180, 180, 0.35);
+  animation: rulesModalShake 400ms ease;
+}
+
+.rules-modal.is-error .rules-modal-title {
+  color: rgba(255, 200, 200, 0.95);
+}
+
+.rules-modal.is-error .rules-modal-desc {
+  color: rgba(255, 180, 180, 0.7);
+}
+
+@keyframes rulesModalShake {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-6px); }
+  30%      { transform: translateX(5px); }
+  45%      { transform: translateX(-4px); }
+  60%      { transform: translateX(3px); }
+  75%      { transform: translateX(-1px); }
+}
