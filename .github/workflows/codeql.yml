@@ -27,7 +27,7 @@ jobs:
           - javascript-typescript
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Java
         if: matrix.language == 'java-kotlin'
