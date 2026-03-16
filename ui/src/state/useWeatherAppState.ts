@@ -797,7 +797,7 @@ export function useWeatherAppState() {
         }),
       )
       return true
-    } catch (error) {
+    } catch {
       return false
     } finally {
       setSavingTravelPlan(false)
@@ -844,7 +844,7 @@ export function useWeatherAppState() {
           }),
       )
       return true
-    } catch (error) {
+    } catch {
       return false
     } finally {
       setSavingTravelPlan(false)
@@ -862,7 +862,7 @@ export function useWeatherAppState() {
         token,
       })
       setTravelPlans((current) => current.filter((item) => item.id !== travelPlanId))
-    } catch (error) {
+    } catch {
       // handled by caller via modal feedback
     }
   }
