@@ -19,7 +19,7 @@ jobs:
 
       - name: Check dependency graph status
         id: graph
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const result = await github.graphql(
