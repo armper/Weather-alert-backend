@@ -69,15 +69,24 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
 export function AppShell({ children }: AppShellProps) {
   const { isAdmin } = useSessionState()
   const location = useLocation()
-  const isOverviewRoute = location.pathname.startsWith('/app/overview')
-  const isRulesRoute = location.pathname.startsWith('/app/rules')
-  const isImmersiveRoute = isOverviewRoute || isRulesRoute
+  const overviewRoutePrefixes = [
+    '/app/overview',
+    '/app/rules',
+  ]
+  const bottomNavRoutePrefixes = [
+    ...overviewRoutePrefixes,
+    '/app/travel',
+    '/app/account',
+    '/app/subscription',
+  ]
+  const hasBottomNav = bottomNavRoutePrefixes.some((prefix) => location.pathname.startsWith(prefix))
+  const isImmersiveRoute = overviewRoutePrefixes.some((prefix) => location.pathname.startsWith(prefix))
   const desktopNavItems = isAdmin
     ? [...PRIMARY_NAV_ITEMS, { key: 'admin', label: 'Admin', to: '/app/admin' as const }]
     : PRIMARY_NAV_ITEMS
 
   return (
-    <div className={`app-shell${isImmersiveRoute ? ' is-overview-route' : ''}`}>
+    <div className={`app-shell${hasBottomNav ? ' has-bottom-nav' : ''}${isImmersiveRoute ? ' is-overview-route' : ''}`}>
       <div className="shell-body">
         <nav className="shell-sidebar panel" aria-label="Primary navigation">
           {desktopNavItems.map((item) => (
