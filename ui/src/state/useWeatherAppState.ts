@@ -780,7 +780,6 @@ export function useWeatherAppState() {
     }
 
     setSavingTravelPlan(true)
-    setNotice(null)
 
     try {
       const created = await apiRequest<TravelPlan>('/api/travel-plans', {
@@ -797,10 +796,8 @@ export function useWeatherAppState() {
           return startCompare !== 0 ? startCompare : left.id.localeCompare(right.id)
         }),
       )
-      setNotice({ kind: 'success', text: `Trip "${created.name}" added.` })
       return true
     } catch (error) {
-      setNotice({ kind: 'error', text: toErrorMessage(error) })
       return false
     } finally {
       setSavingTravelPlan(false)
@@ -828,7 +825,6 @@ export function useWeatherAppState() {
     }
 
     setSavingTravelPlan(true)
-    setNotice(null)
 
     try {
       const updated = await apiRequest<TravelPlan>(`/api/travel-plans/${travelPlanId}`, {
@@ -847,10 +843,8 @@ export function useWeatherAppState() {
             return startCompare !== 0 ? startCompare : left.id.localeCompare(right.id)
           }),
       )
-      setNotice({ kind: 'success', text: `Trip "${updated.name}" updated.` })
       return true
     } catch (error) {
-      setNotice({ kind: 'error', text: toErrorMessage(error) })
       return false
     } finally {
       setSavingTravelPlan(false)
@@ -862,16 +856,14 @@ export function useWeatherAppState() {
       return
     }
 
-    setNotice(null)
     try {
       await apiRequest<void>(`/api/travel-plans/${travelPlanId}`, {
         method: 'DELETE',
         token,
       })
       setTravelPlans((current) => current.filter((item) => item.id !== travelPlanId))
-      setNotice({ kind: 'success', text: 'Trip deleted.' })
     } catch (error) {
-      setNotice({ kind: 'error', text: toErrorMessage(error) })
+      // handled by caller via modal feedback
     }
   }
 

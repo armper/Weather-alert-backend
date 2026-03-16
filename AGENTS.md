@@ -51,3 +51,13 @@
 ## Security & Configuration Tips
 - Do not commit credentials. Configure auth via environment variables (for example `APP_SECURITY_JWT_SECRET`, `APP_SECURITY_USER_USERNAME`).
 - Use test-specific configs in `src/test/resources/application-test.yml` for local and CI safety.
+
+## Google Cloud Deployment
+- GCP project ID: `weather-alerts-panda`.
+- Cloud Build triggers live in **us-east1** region. Two triggers fire on push to `main`:
+  - `backend-main` → uses `cloudbuild.yaml` (builds & deploys the Spring Boot backend).
+  - `ui-main` → uses `ui/cloudbuild.yaml` (builds & deploys the frontend).
+- Useful commands:
+  - List recent builds: `gcloud builds list --project=weather-alerts-panda --region=us-east1 --limit=5 --format='table(id,status,startTime,duration,substitutions.TRIGGER_NAME)'`
+  - List triggers: `gcloud builds triggers list --project=weather-alerts-panda --region=us-east1`
+  - Stream build logs: `gcloud builds log --project=weather-alerts-panda --region=us-east1 <BUILD_ID> --stream`
