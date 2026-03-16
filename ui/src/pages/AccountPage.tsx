@@ -1,11 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LoadingPlaceholder } from '../components/common/LoadingPlaceholder'
-import { formatStatusLabel } from '../lib/formatting'
-import { AriaButton } from '../components/ui/AriaButton'
-import { AriaSelect } from '../components/ui/AriaSelect'
-import { AriaSwitch } from '../components/ui/AriaSwitch'
-import { AriaTextField } from '../components/ui/AriaTextField'
+import backgroundOverviewImage from '../assets/background-overview.png'
+import backgroundRainImage from '../assets/background-rain.png'
 import { useThemePreference, type ThemePreference } from '../theme'
 import {
   useActionState,
@@ -22,13 +18,13 @@ const CHANNEL_OPTIONS = [
 ]
 
 const FALLBACK_OPTIONS = [
-  { id: 'FIRST_SUCCESS', label: 'First successful channel' },
+  { id: 'FIRST_SUCCESS', label: 'First success' },
   { id: 'FAIL_FAST', label: 'Fail fast' },
 ]
 
 export function AccountPage() {
   const { me, initialDataLoading } = useSessionState()
-  const { notificationPreference } = useDataState()
+  const { notificationPreference, currentWeather } = useDataState()
   const { profileForm, setProfileForm, passwordForm, setPasswordForm } = useFormState()
   const { deletingAccount, savingProfile } = useAsyncState()
   const {
@@ -118,242 +114,270 @@ export function AccountPage() {
     setPreferenceDraft({ ...preferenceForm, enabledChannels: nextChannels, preferredChannel: fallbackPreferred })
   }
 
-  const THEME_OPTIONS: Array<{ id: ThemePreference; label: string; detail: string }> = [
-    { id: 'system', label: 'System', detail: 'Follow your device preference automatically.' },
-    { id: 'light', label: 'Light', detail: 'Use the bright daytime palette.' },
-    { id: 'dark', label: 'Dark', detail: 'Use the twilight palette all the time.' },
+  const THEME_OPTIONS: Array<{ id: ThemePreference; label: string; emoji: string; detail: string }> = [
+    { id: 'system', label: 'System', emoji: '🖥️', detail: 'Follow your device preference.' },
+    { id: 'light', label: 'Light', emoji: '☀️', detail: 'Bright daytime palette.' },
+    { id: 'dark', label: 'Dark', emoji: '🌙', detail: 'Twilight palette always.' },
   ]
 
+  const headline = currentWeather?.description ?? ''
+  const isRainy = /rain|thunder|storm|drizzle|shower/i.test(headline)
+  const bgImage = isRainy ? backgroundRainImage : backgroundOverviewImage
+
   return (
-    <section className="page-stack">
-      <article className="panel">
-        <div className="panel-title-row">
-          <h2>Settings</h2>
-          <span className="badge">{initialDataLoading ? 'Loading\u2026' : formatStatusLabel(me?.approvalStatus)}</span>
+    <section className="page-stack settings-page">
+      <div className="overview-page-background" aria-hidden="true">
+        <img className="overview-page-background-image" src={bgImage} alt="" />
+      </div>
+
+      <div className="settings-page-content">
+        {/* ── hero ── */}
+        <div className="settings-hero">
+          <h1 className="settings-hero-title">Settings</h1>
+          {!initialDataLoading && me ? (
+            <p className="settings-hero-sub">{me.email}</p>
+          ) : null}
         </div>
 
         {initialDataLoading ? (
-          <LoadingPlaceholder
-            title="Loading account details"
-            copy="Fetching your profile and delivery preferences."
-            lineCount={3}
-          />
-        ) : null}
-
-        <div className="account-stack">
-          {!initialDataLoading ? (
-            <section className="section-block">
-              <h3>Profile</h3>
-              <form onSubmit={onSaveProfile} className="grid-form">
-                <AriaTextField
-                  label="Name"
-                  inputClassName="aria-input"
-                  value={profileForm.name}
-                  onChange={(value) => setProfileForm((state) => ({ ...state, name: value }))}
-                />
-                <AriaTextField
-                  label="Phone"
-                  inputClassName="aria-input"
-                  value={profileForm.phoneNumber}
-                  onChange={(value) => setProfileForm((state) => ({ ...state, phoneNumber: value }))}
-                />
-                <AriaButton type="submit" className="primary button-inline" isDisabled={savingProfile}>
-                  {savingProfile ? 'Updating...' : 'Update profile'}
-                </AriaButton>
-                {profileSaved ? <p className="inline-success">Profile updated.</p> : null}
+          <div className="settings-card">
+            <p className="settings-loading">Loading account details&hellip;</p>
+          </div>
+        ) : (
+          <>
+            {/* ── Profile ── */}
+            <div className="settings-card">
+              <h2 className="settings-card-header">Profile</h2>
+              <form onSubmit={onSaveProfile} className="settings-form">
+                <label className="settings-field">
+                  <span className="settings-label">Name</span>
+                  <input
+                    className="settings-input"
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, name: e.target.value }))}
+                  />
+                </label>
+                <label className="settings-field">
+                  <span className="settings-label">Phone</span>
+                  <input
+                    className="settings-input"
+                    type="tel"
+                    value={profileForm.phoneNumber}
+                    onChange={(e) => setProfileForm((s) => ({ ...s, phoneNumber: e.target.value }))}
+                  />
+                </label>
+                <div className="settings-form-actions">
+                  <button type="submit" className="settings-btn is-primary" disabled={savingProfile}>
+                    {savingProfile ? 'Saving\u2026' : 'Update profile'}
+                  </button>
+                  {profileSaved ? <span className="settings-inline-ok">Saved</span> : null}
+                </div>
               </form>
-            </section>
-          ) : null}
+            </div>
 
-          {!initialDataLoading ? (
-            <section className="section-block">
-              <h3>Password</h3>
-              <form onSubmit={onChangePassword} className="grid-form">
-                <AriaTextField
-                  label="Current password"
-                  inputClassName="aria-input"
-                  inputWrapperClassName="input-with-action"
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  minLength={8}
-                  value={passwordForm.currentPassword}
-                  onChange={(value) => setPasswordForm((state) => ({ ...state, currentPassword: value }))}
-                  endAction={
-                    <AriaButton
-                      className="input-inline-action"
-                      onPress={() => setShowCurrentPassword((state) => !state)}
-                    >
+            {/* ── Password ── */}
+            <div className="settings-card">
+              <h2 className="settings-card-header">Password</h2>
+              <form onSubmit={onChangePassword} className="settings-form">
+                <label className="settings-field">
+                  <span className="settings-label">Current password</span>
+                  <div className="settings-input-group">
+                    <input
+                      className="settings-input"
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      minLength={8}
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm((s) => ({ ...s, currentPassword: e.target.value }))}
+                    />
+                    <button type="button" className="settings-input-toggle" onClick={() => setShowCurrentPassword((v) => !v)}>
                       {showCurrentPassword ? 'Hide' : 'Show'}
-                    </AriaButton>
-                  }
-                />
-                <AriaTextField
-                  label="New password"
-                  inputClassName="aria-input"
-                  inputWrapperClassName="input-with-action"
-                  type={showNewPassword ? 'text' : 'password'}
-                  minLength={8}
-                  value={passwordForm.newPassword}
-                  description={`Strength: ${passwordStrength}`}
-                  onChange={(value) => setPasswordForm((state) => ({ ...state, newPassword: value }))}
-                  endAction={
-                    <AriaButton className="input-inline-action" onPress={() => setShowNewPassword((state) => !state)}>
+                    </button>
+                  </div>
+                </label>
+                <label className="settings-field">
+                  <span className="settings-label">New password</span>
+                  <div className="settings-input-group">
+                    <input
+                      className="settings-input"
+                      type={showNewPassword ? 'text' : 'password'}
+                      minLength={8}
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm((s) => ({ ...s, newPassword: e.target.value }))}
+                    />
+                    <button type="button" className="settings-input-toggle" onClick={() => setShowNewPassword((v) => !v)}>
                       {showNewPassword ? 'Hide' : 'Show'}
-                    </AriaButton>
-                  }
-                />
-                <AriaTextField
-                  label="Confirm new password"
-                  inputClassName="aria-input"
-                  inputWrapperClassName="input-with-action"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  minLength={8}
-                  value={passwordForm.confirmNewPassword}
-                  onChange={(value) => setPasswordForm((state) => ({ ...state, confirmNewPassword: value }))}
-                  endAction={
-                    <AriaButton
-                      className="input-inline-action"
-                      onPress={() => setShowConfirmPassword((state) => !state)}
-                    >
+                    </button>
+                  </div>
+                  <span className={`settings-strength is-${passwordStrength.toLowerCase()}`}>
+                    Strength: {passwordStrength}
+                  </span>
+                </label>
+                <label className="settings-field">
+                  <span className="settings-label">Confirm new password</span>
+                  <div className="settings-input-group">
+                    <input
+                      className="settings-input"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      minLength={8}
+                      value={passwordForm.confirmNewPassword}
+                      onChange={(e) => setPasswordForm((s) => ({ ...s, confirmNewPassword: e.target.value }))}
+                    />
+                    <button type="button" className="settings-input-toggle" onClick={() => setShowConfirmPassword((v) => !v)}>
                       {showConfirmPassword ? 'Hide' : 'Show'}
-                    </AriaButton>
-                  }
-                />
-                <AriaButton type="submit" className="ghost button-inline" isDisabled={savingProfile}>
-                  {savingProfile ? 'Updating...' : 'Change password'}
-                </AriaButton>
-                {passwordSaved ? <p className="inline-success">Password updated.</p> : null}
+                    </button>
+                  </div>
+                </label>
+                <div className="settings-form-actions">
+                  <button type="submit" className="settings-btn" disabled={savingProfile}>
+                    {savingProfile ? 'Saving\u2026' : 'Change password'}
+                  </button>
+                  {passwordSaved ? <span className="settings-inline-ok">Updated</span> : null}
+                </div>
               </form>
-            </section>
-          ) : null}
+            </div>
 
-          {!initialDataLoading ? (
-            <section className="section-block">
-              <h3>Appearance</h3>
-              <div className="theme-settings-block">
-                <p className="muted small">
-                  Current appearance: <strong>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</strong>
-                </p>
-                <div className="theme-settings-grid">
-                  {THEME_OPTIONS.map((option) => {
-                    const isActive = themePreference === option.id
+            {/* ── Appearance ── */}
+            <div className="settings-card">
+              <h2 className="settings-card-header">Appearance</h2>
+              <p className="settings-hint">
+                Currently using <strong>{theme === 'dark' ? 'dark' : 'light'}</strong> mode
+              </p>
+              <div className="settings-theme-grid">
+                {THEME_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`settings-theme-tile${themePreference === opt.id ? ' is-active' : ''}`}
+                    onClick={() => setThemePreference(opt.id)}
+                  >
+                    <span className="settings-theme-emoji">{opt.emoji}</span>
+                    <span className="settings-theme-name">{opt.label}</span>
+                    <span className="settings-theme-detail">{opt.detail}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Delivery preferences ── */}
+            <div className="settings-card">
+              <h2 className="settings-card-header">Delivery preferences</h2>
+              <form onSubmit={onSavePreferences} className="settings-form">
+                <div className="settings-channels">
+                  {CHANNEL_OPTIONS.map((ch) => {
+                    const enabled = preferenceForm.enabledChannels.includes(ch.id as 'EMAIL' | 'SMS' | 'PUSH')
                     return (
                       <button
-                        key={option.id}
+                        key={ch.id}
                         type="button"
-                        className={`theme-settings-option${isActive ? ' is-active' : ''}`}
-                        onClick={() => setThemePreference(option.id)}
+                        className={`settings-channel-chip${enabled ? ' is-on' : ''}`}
+                        onClick={() => toggleChannel(ch.id as 'EMAIL' | 'SMS' | 'PUSH')}
                       >
-                        <span className="theme-settings-option-title">{option.label}</span>
-                        <span className="theme-settings-option-copy">{option.detail}</span>
+                        <span className={`settings-channel-dot${enabled ? ' is-on' : ''}`} />
+                        {ch.label}
                       </button>
                     )
                   })}
                 </div>
-              </div>
-            </section>
-          ) : null}
-
-          {!initialDataLoading ? (
-            <section className="section-block">
-              <h3>Delivery preferences</h3>
-              <form onSubmit={onSavePreferences} className="grid-form">
-                <div className="toggle-row">
-                  <AriaSwitch compact label="Email" isSelected={preferenceForm.enabledChannels.includes('EMAIL')} onChange={() => toggleChannel('EMAIL')} />
-                  <AriaSwitch compact label="SMS" isSelected={preferenceForm.enabledChannels.includes('SMS')} onChange={() => toggleChannel('SMS')} />
-                  <AriaSwitch compact label="Push" isSelected={preferenceForm.enabledChannels.includes('PUSH')} onChange={() => toggleChannel('PUSH')} />
+                <label className="settings-field">
+                  <span className="settings-label">Preferred channel</span>
+                  <select
+                    className="settings-select"
+                    value={preferenceForm.preferredChannel}
+                    onChange={(e) => setPreferenceDraft({ ...preferenceForm, preferredChannel: e.target.value as 'EMAIL' | 'SMS' | 'PUSH' })}
+                  >
+                    {enabledChannelOptions.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="settings-field">
+                  <span className="settings-label">Fallback strategy</span>
+                  <select
+                    className="settings-select"
+                    value={preferenceForm.fallbackStrategy}
+                    onChange={(e) => setPreferenceDraft({ ...preferenceForm, fallbackStrategy: e.target.value as 'FIRST_SUCCESS' | 'FAIL_FAST' })}
+                  >
+                    {FALLBACK_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="settings-form-actions">
+                  <button type="submit" className="settings-btn" disabled={savingProfile}>
+                    Save preferences
+                  </button>
+                  {prefsSaved ? <span className="settings-inline-ok">Saved</span> : null}
                 </div>
-                <AriaSelect
-                  label="Preferred channel"
-                  buttonClassName="aria-select-trigger"
-                  popoverClassName="aria-select-popover"
-                  listBoxClassName="aria-select-listbox"
-                  selectedKey={preferenceForm.preferredChannel}
-                  options={enabledChannelOptions}
-                  onSelectionChange={(value) => setPreferenceDraft({ ...preferenceForm, preferredChannel: value as 'EMAIL' | 'SMS' | 'PUSH' })}
-                />
-                <AriaSelect
-                  label="Delivery fallback strategy"
-                  buttonClassName="aria-select-trigger"
-                  popoverClassName="aria-select-popover"
-                  listBoxClassName="aria-select-listbox"
-                  selectedKey={preferenceForm.fallbackStrategy}
-                  options={FALLBACK_OPTIONS}
-                  onSelectionChange={(value) => setPreferenceDraft({ ...preferenceForm, fallbackStrategy: value as 'FIRST_SUCCESS' | 'FAIL_FAST' })}
-                />
-                <AriaButton type="submit" className="ghost button-inline" isDisabled={savingProfile}>
-                  Save preferences
-                </AriaButton>
-                {prefsSaved ? <p className="inline-success">Preferences updated.</p> : null}
               </form>
-            </section>
-          ) : null}
+            </div>
 
-          {!initialDataLoading ? (
-            <section className="section-block account-danger-block">
-              <div className="account-danger-copy">
+            {/* ── Danger zone ── */}
+            <div className="settings-card is-danger">
+              <div className="settings-danger-top">
                 <div>
-                  <p className="eyebrow">Danger zone</p>
-                  <h3>Delete account</h3>
+                  <p className="settings-danger-eyebrow">Danger zone</p>
+                  <h2 className="settings-card-header">Delete account</h2>
                 </div>
-                <p className="small muted">
-                  Permanently delete your account, saved alert rules, alert history, notification preferences, billing
-                  references, and profile details including your email address and phone number.
-                </p>
+                <button type="button" className="settings-btn is-danger" onClick={() => setShowDeleteDialog(true)}>
+                  Delete account
+                </button>
               </div>
-              <AriaButton className="ghost danger button-inline" onPress={() => setShowDeleteDialog(true)}>
-                Delete account permanently
-              </AriaButton>
-            </section>
-          ) : null}
-        </div>
-      </article>
+              <p className="settings-danger-copy">
+                Permanently removes your profile, alert rules, history, notification preferences, billing data,
+                email&nbsp;address, and phone&nbsp;number.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
 
+      {/* ── delete confirmation dialog ── */}
       {showDeleteDialog ? (
-        <div className="account-delete-dialog-backdrop" role="presentation" onClick={() => setShowDeleteDialog(false)}>
+        <div className="settings-dialog-backdrop" role="presentation" onClick={() => setShowDeleteDialog(false)}>
           <div
-            className="account-delete-dialog"
+            className="settings-dialog"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="account-delete-title"
-            onClick={(event) => event.stopPropagation()}
+            aria-labelledby="settings-delete-title"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="account-delete-dialog-header">
+            <div className="settings-dialog-header">
               <div>
-                <p className="eyebrow">Permanent deletion</p>
-                <h3 id="account-delete-title">Delete your account forever?</h3>
+                <p className="settings-danger-eyebrow">Permanent deletion</p>
+                <h3 id="settings-delete-title">Delete your account forever?</h3>
               </div>
-              <AriaButton className="ghost button-inline" onPress={() => setShowDeleteDialog(false)}>
-                Cancel
-              </AriaButton>
+              <button type="button" className="settings-dialog-close" onClick={() => setShowDeleteDialog(false)}>
+                &times;
+              </button>
             </div>
-            <div className="account-delete-dialog-body">
+            <div className="settings-dialog-body">
               <p>
-                This permanently removes your account, phone number, email address, saved alert rules, notification
-                history, and associated billing/customer data from SkyPanda.
+                This permanently removes your account, phone number, email, saved alert rules,
+                notification history, and associated billing data from SkyPanda.
               </p>
-              <p className="small muted">
-                If you have an active paid plan, SkyPanda will cancel it before deleting the account. Type{' '}
-                <strong>{deletePhrase}</strong> to confirm.
+              <p className="settings-dialog-hint">
+                Type <strong>{deletePhrase}</strong> to confirm.
               </p>
-              <AriaTextField
-                label="Type your username to confirm"
-                inputClassName="aria-input"
-                value={deleteConfirmation}
-                onChange={setDeleteConfirmation}
+              <input
+                className="settings-input"
                 placeholder={deletePhrase}
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
               />
             </div>
-            <div className="account-delete-dialog-actions">
-              <AriaButton className="ghost button-inline" onPress={() => setShowDeleteDialog(false)}>
+            <div className="settings-dialog-actions">
+              <button type="button" className="settings-btn" onClick={() => setShowDeleteDialog(false)}>
                 Keep my account
-              </AriaButton>
-              <AriaButton
-                className="ghost danger button-inline"
-                isDisabled={!canConfirmDelete || deletingAccount}
-                onPress={() => void onDeleteAccount()}
+              </button>
+              <button
+                type="button"
+                className="settings-btn is-danger"
+                disabled={!canConfirmDelete || deletingAccount}
+                onClick={() => void onDeleteAccount()}
               >
-                {deletingAccount ? 'Deleting account...' : 'Delete forever'}
-              </AriaButton>
+                {deletingAccount ? 'Deleting\u2026' : 'Delete forever'}
+              </button>
             </div>
           </div>
         </div>

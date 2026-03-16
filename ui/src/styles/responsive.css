@@ -3,8 +3,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .billing-plan-grid,
-  .theme-settings-grid,
+  .settings-theme-grid,
   .create-grid,
   .simple-situation-grid,
   .simple-sensitivity-grid,
@@ -264,8 +263,7 @@
 
   .two-col,
   .create-grid,
-  .billing-plan-grid,
-  .theme-settings-grid,
+  .settings-theme-grid,
   .recovery-grid {
     grid-template-columns: 1fr;
   }
@@ -430,21 +428,19 @@
     flex-direction: column;
   }
 
-  .account-plan-summary {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .account-danger-block,
-  .account-delete-dialog-header,
-  .account-delete-dialog-actions {
+  .settings-danger-top {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .account-delete-dialog-backdrop {
+  .settings-dialog-backdrop {
     place-items: start center;
     padding: 0.8rem 0.8rem calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .settings-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .travel-dialog {

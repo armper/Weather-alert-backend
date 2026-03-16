@@ -1,30 +1,402 @@
-.account-stack {
-  display: grid;
-  gap: 0.9rem;
+/* ─── settings page ─── */
+
+.settings-page {
+  position: relative;
 }
 
-.account-danger-block {
+.settings-page-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.2rem;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+}
+
+/* ─── hero ─── */
+
+.settings-hero {
+  text-align: center;
+  padding: 1.2rem 0 0.2rem;
+}
+
+.settings-hero-title {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+.settings-hero-sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ─── loading ─── */
+
+.settings-loading {
+  margin: 0;
+  text-align: center;
+  padding: 2rem 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.88rem;
+}
+
+/* ─── card ─── */
+
+.settings-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(30, 50, 90, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #fff;
+}
+
+.settings-card-header {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.settings-hint {
+  margin: -0.3rem 0 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.settings-hint strong {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ─── form ─── */
+
+.settings-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.settings-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.settings-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.02em;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+  box-sizing: border-box;
+}
+
+.settings-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.settings-input:focus {
+  border-color: rgba(120, 200, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(120, 200, 255, 0.12);
+}
+
+.settings-input-group {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+
+.settings-input-group .settings-input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.settings-input-toggle {
+  padding: 0 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: none;
+  border-radius: 0 0.6rem 0.6rem 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.settings-input-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── select ─── */
+
+.settings-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  padding-right: 2rem;
+  transition: border-color 180ms ease;
+}
+
+.settings-select:focus {
+  border-color: rgba(120, 200, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(120, 200, 255, 0.12);
+}
+
+.settings-select option {
+  background: #1e325a;
+  color: #fff;
+}
+
+/* ─── password strength ─── */
+
+.settings-strength {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.settings-strength.is-weak {
+  color: #f87171;
+}
+
+.settings-strength.is-medium {
+  color: #fbbf24;
+}
+
+.settings-strength.is-strong {
+  color: #4ade80;
+}
+
+.settings-strength.is-no\ password\ entered {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ─── buttons ─── */
+
+.settings-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.settings-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.settings-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.settings-btn.is-primary {
+  background: rgba(120, 200, 255, 0.2);
+  border-color: rgba(120, 200, 255, 0.35);
+}
+
+.settings-btn.is-primary:hover:not(:disabled) {
+  background: rgba(120, 200, 255, 0.3);
+}
+
+.settings-btn.is-danger {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+.settings-btn.is-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.35);
+}
+
+.settings-btn.is-danger:disabled {
+  opacity: 0.35;
+}
+
+.settings-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.2rem;
+}
+
+.settings-inline-ok {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4ade80;
+}
+
+/* ─── channel chips ─── */
+
+.settings-channels {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.settings-channel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.settings-channel-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-channel-chip.is-on {
+  background: rgba(120, 200, 255, 0.15);
+  border-color: rgba(120, 200, 255, 0.35);
+  color: #fff;
+}
+
+.settings-channel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 150ms ease;
+}
+
+.settings-channel-dot.is-on {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
+}
+
+/* ─── theme grid ─── */
+
+.settings-theme-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-theme-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.85rem 0.5rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 180ms ease, background 180ms ease, transform 150ms ease, box-shadow 180ms ease;
+}
+
+.settings-theme-tile:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.settings-theme-tile.is-active {
+  border-color: rgba(120, 200, 255, 0.4);
+  background: rgba(120, 200, 255, 0.12);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.1), 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.settings-theme-emoji {
+  font-size: 1.4rem;
+}
+
+.settings-theme-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.settings-theme-detail {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.3;
+}
+
+.settings-theme-tile.is-active .settings-theme-detail {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ─── danger card ─── */
+
+.settings-card.is-danger {
+  border-color: rgba(248, 113, 113, 0.25);
+  background: rgba(80, 20, 30, 0.45);
+}
+
+.settings-danger-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  border-color: rgba(185, 28, 28, 0.18);
-  background:
-    linear-gradient(180deg, rgba(255, 244, 244, 0.96), rgba(255, 248, 248, 0.94)),
-    var(--panel-bg);
 }
 
-.account-danger-copy {
-  display: grid;
-  gap: 0.45rem;
-  max-width: 42rem;
+.settings-danger-eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(248, 113, 113, 0.7);
 }
 
-.account-danger-copy h3 {
-  margin-bottom: 0;
+.settings-danger-copy {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.45;
 }
 
-.account-delete-dialog-backdrop {
+/* ─── delete dialog ─── */
+
+.settings-dialog-backdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -34,305 +406,81 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  background: rgba(5, 16, 28, 0.48);
-  backdrop-filter: blur(8px);
+  background: rgba(5, 16, 28, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.account-delete-dialog {
-  width: min(100%, 34rem);
+.settings-dialog {
+  width: min(100%, 30rem);
   display: grid;
   gap: 1rem;
-  padding: 1.15rem;
+  padding: 1.2rem;
   border-radius: 1.1rem;
-  border: 1px solid rgba(185, 28, 28, 0.18);
-  background: var(--card-bg-elevated);
-  box-shadow: var(--card-shadow-raised);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  background: rgba(40, 20, 35, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  color: #fff;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
 }
 
-.billing-change-dialog {
-  border-color: rgba(var(--accent-rgb), 0.18);
-}
-
-.billing-change-dialog.is-caution {
-  border-color: rgba(180, 83, 9, 0.22);
-}
-
-.account-delete-dialog-header {
+.settings-dialog-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.account-delete-dialog-header h3 {
+.settings-dialog-header h3 {
   margin: 0.2rem 0 0;
+  font-size: 1.05rem;
 }
 
-.account-delete-dialog-body {
+.settings-dialog-close {
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
   display: grid;
-  gap: 0.75rem;
+  place-items: center;
+  border: none;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 150ms ease;
 }
 
-.account-delete-dialog-body p {
-  margin: 0;
+.settings-dialog-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
 }
 
-.billing-change-summary {
-  display: grid;
-  gap: 0.28rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 0.9rem;
-  border: 1px solid rgba(var(--accent-rgb), 0.12);
-  background: var(--card-bg-muted);
-}
-
-.billing-change-warning {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.8rem 0.85rem;
-  border-radius: 0.9rem;
-  border: 1px solid rgba(180, 83, 9, 0.16);
-  background: rgba(255, 251, 235, 0.94);
-}
-
-.account-delete-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.account-billing-block {
-  display: grid;
-  gap: 1rem;
-  background:
-    var(--card-bg-elevated),
-    var(--card-highlight-glow);
-}
-
-.account-billing-hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.account-billing-hero h3 {
-  margin: 0.18rem 0 0;
-  font-size: 1.18rem;
-}
-
-.account-billing-copy {
-  max-width: 42rem;
-  margin: 0.35rem 0 0;
-  color: var(--text-secondary);
-}
-
-.account-plan-summary {
-  min-width: 16rem;
-  display: grid;
-  gap: 0.28rem;
-  padding: 0.8rem 0.9rem;
-  border: 1px solid rgba(var(--accent-rgb), 0.12);
-  border-radius: 0.9rem;
-  background: var(--card-bg-elevated);
-}
-
-.billing-feedback {
-  border-radius: 0.9rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid transparent;
-}
-
-.billing-feedback p {
-  margin: 0;
-}
-
-.billing-feedback.is-success {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-  color: #166534;
-}
-
-.billing-feedback.is-warning {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #92400e;
-}
-
-.billing-plan-grid {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.billing-plan-card {
-  display: grid;
-  gap: 0.9rem;
-  padding: 0.95rem;
-  border: 1px solid var(--panel-border);
-  border-radius: 1rem;
-  background: var(--card-bg);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
-}
-
-.billing-plan-card.is-current {
-  border-color: rgba(var(--accent-rgb), 0.34);
-  box-shadow:
-    0 14px 28px rgba(12, 31, 46, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.62);
-}
-
-.billing-plan-card.is-emphasized {
-  background: var(--card-bg-highlight);
-  border-color: rgba(var(--accent-rgb), 0.3);
-}
-
-.billing-plan-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  align-items: flex-start;
-}
-
-.billing-plan-header h4 {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 1rem;
-}
-
-.billing-plan-price {
-  margin: 0.18rem 0 0;
-  font-size: 1.9rem;
-  line-height: 1;
-  font-family: var(--font-heading);
-  color: #1b4965;
-}
-
-.billing-plan-price span {
-  margin-left: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.billing-plan-body {
-  display: grid;
-  gap: 0.7rem;
-}
-
-.billing-plan-body p {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
-.billing-plan-list {
-  margin: 0;
-  padding-left: 1rem;
-  display: grid;
-  gap: 0.38rem;
-  color: var(--text-secondary);
-}
-
-.billing-plan-note {
-  margin-top: auto;
-}
-
-.billing-footnote {
-  display: grid;
-  gap: 0.2rem;
-  padding-top: 0.2rem;
-  border-top: 1px solid var(--surface-border);
-}
-
-.billing-footnote p {
-  margin: 0;
-}
-
-.section-block {
-  border: 1px solid var(--panel-border);
-  border-radius: 0.95rem;
-  padding: 0.75rem;
-  background: var(--panel-bg);
-}
-
-.section-block h3 {
-  margin: 0 0 0.65rem;
-  font-family: var(--font-heading);
-  font-size: 1rem;
-}
-
-.theme-settings-block {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.theme-settings-grid {
+.settings-dialog-body {
   display: grid;
   gap: 0.65rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.theme-settings-option {
-  display: grid;
-  gap: 0.28rem;
-  text-align: left;
-  padding: 0.8rem 0.85rem;
-  border-radius: 0.9rem;
-  border: 1px solid var(--panel-border);
-  background: var(--card-bg-muted);
-  color: var(--text-primary);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
+.settings-dialog-body p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.45;
 }
 
-.theme-settings-option:hover {
-  border-color: var(--panel-border-strong);
-  background: var(--card-bg-hover);
+.settings-dialog-hint {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
 }
 
-.theme-settings-option.is-active {
-  border-color: rgba(var(--accent-rgb), 0.34);
-  background: var(--card-bg-highlight);
-  box-shadow: 0 10px 18px rgba(var(--accent-deep-rgb), 0.08);
+.settings-dialog-hint strong {
+  color: rgba(255, 255, 255, 0.75);
 }
 
-.theme-settings-option-title {
-  font-weight: 800;
-  font-family: var(--font-heading);
-}
-
-.theme-settings-option-copy {
-  color: var(--text-secondary);
-  font-size: 0.86rem;
-  line-height: 1.4;
-}
-
-[data-theme='dark'] .billing-change-warning {
-  background: rgba(123, 63, 17, 0.26);
-  border-color: rgba(245, 158, 11, 0.28);
-}
-
-[data-theme='dark'] .billing-plan-card,
-[data-theme='dark'] .theme-settings-option {
-  box-shadow:
-    var(--card-shadow-soft),
-    inset 0 1px 0 rgba(var(--accent-soft-rgb), 0.06);
-}
-
-[data-theme='dark'] .account-danger-block {
-  background:
-    linear-gradient(180deg, rgba(75, 13, 13, 0.22), rgba(32, 12, 12, 0.18)),
-    var(--panel-bg);
-  border-color: rgba(248, 113, 113, 0.22);
-}
-
-[data-theme='dark'] .account-delete-dialog {
-  border-color: rgba(248, 113, 113, 0.2);
-}
-
-[data-theme='dark'] .billing-plan-card.is-current,
-[data-theme='dark'] .theme-settings-option.is-active {
-  box-shadow:
-    var(--card-shadow-raised),
-    inset 0 1px 0 rgba(var(--accent-soft-rgb), 0.1);
+.settings-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
