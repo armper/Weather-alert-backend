@@ -1,0 +1,52 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: dependency-review
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check dependency graph status
+        id: graph
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = await github.graphql(
+              `
+                query($owner: String!, $name: String!) {
+                  repository(owner: $owner, name: $name) {
+                    dependencyGraphManifests(first: 1) {
+                      totalCount
+                    }
+                  }
+                }
+              `,
+              {
+                owner: context.repo.owner,
+                name: context.repo.repo,
+              }
+            );
+            const manifestCount = result.repository.dependencyGraphManifests.totalCount;
+            core.info(`Dependency graph manifest count: ${manifestCount}`);
+            core.setOutput('ready', manifestCount > 0 ? 'true' : 'false');
+
+      - name: Review dependency changes
+        if: steps.graph.outputs.ready == 'true'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+      - name: Skip until dependency graph is available
+        if: steps.graph.outputs.ready != 'true'
+        run: echo "Dependency graph is not populated yet; skipping dependency review for now."
