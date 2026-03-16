@@ -9,9 +9,9 @@ interface AppShellProps {
 const PRIMARY_NAV_ITEMS = [
   { key: 'overview', label: 'Overview', to: '/app/overview' },
   { key: 'rules', label: 'New Alert', to: '/app/rules' },
-  { key: 'alerts', label: 'Monitoring Rules', to: '/app/alerts' },
-  { key: 'events', label: 'Triggered Alerts', to: '/app/events' },
   { key: 'travel', label: 'Travel Plans', to: '/app/travel' },
+  { key: 'account', label: 'Settings', to: '/app/account' },
+  { key: 'subscription', label: 'Subscription', to: '/app/subscription' },
 ] as const
 
 function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ itemKey: string; className?: string }>) {
@@ -28,20 +28,6 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
           <path d="M10 4.5v11M4.5 10h11" />
         </svg>
       )
-    case 'alerts':
-      return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <path d="M3.5 10c1.9-3.1 4.1-4.65 6.5-4.65S14.6 6.9 16.5 10c-1.9 3.1-4.1 4.65-6.5 4.65S5.4 13.1 3.5 10Z" />
-          <path d="M10 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
-        </svg>
-      )
-    case 'events':
-      return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <path d="M4.5 11.75h2.25l1.5-4 3.25 7 1.75-4h2.25" />
-          <path d="M4.5 5.75h11" />
-        </svg>
-      )
     case 'travel':
       return (
         <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
@@ -50,6 +36,22 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
           <path d="M8 9.25 4.75 13" />
           <path d="M10.75 9.25 15.25 5.75" />
           <path d="M10.75 9.25 15.25 12.75" />
+        </svg>
+      )
+    case 'account':
+      return (
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
+          <circle cx="10" cy="10" r="6.5" fill="none" />
+          <path d="M10 6.5a2.25 2.25 0 1 1 0 4.5 2.25 2.25 0 0 1 0-4.5Z" />
+          <path d="M12.6 7.4l1.15-1.15M7.4 12.6l-1.15 1.15M13.5 10h1.6M4.9 10H6.5M12.6 12.6l1.15 1.15M7.4 7.4 6.25 6.25" />
+        </svg>
+      )
+    case 'subscription':
+      return (
+        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
+          <rect x="3.5" y="5" width="13" height="10" rx="1.5" fill="none" />
+          <path d="M3.5 8.5h13" />
+          <path d="M6.5 12h3" />
         </svg>
       )
     case 'admin':

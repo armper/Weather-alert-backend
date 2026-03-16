@@ -1,0 +1,411 @@
+/* ─── subscription page ─── */
+
+.sub-page {
+  position: relative;
+}
+
+.sub-page-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.2rem;
+  max-width: 58rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+}
+
+/* ─── hero ─── */
+
+.sub-hero {
+  text-align: center;
+  padding: 1.2rem 0 0.4rem;
+}
+
+.sub-hero-title {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+.sub-hero-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.sub-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.sub-stat strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.sub-stat-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-left: 0.15rem;
+}
+
+.sub-stat-divider {
+  width: 1px;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── billing feedback ─── */
+
+.sub-feedback {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sub-feedback.is-success {
+  background: rgba(20, 83, 45, 0.6);
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.sub-feedback.is-warning {
+  background: rgba(120, 53, 15, 0.5);
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* ─── plan grid ─── */
+
+.sub-plan-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sub-plan-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.1rem;
+  background: rgba(30, 50, 90, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.sub-plan-tile:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(120, 200, 255, 0.35);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+
+.sub-plan-tile:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.sub-plan-tile.is-current {
+  border-color: rgba(120, 200, 255, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(120, 200, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.sub-plan-tile.is-pro {
+  background: rgba(50, 30, 90, 0.55);
+  border-color: rgba(168, 130, 255, 0.25);
+}
+
+.sub-plan-tile.is-pro:hover:not(:disabled) {
+  border-color: rgba(168, 130, 255, 0.5);
+}
+
+/* plan tile internals */
+
+.sub-plan-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sub-plan-emoji {
+  font-size: 1.5rem;
+}
+
+.sub-plan-price {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.sub-plan-price small {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  margin-left: 0.1rem;
+}
+
+.sub-plan-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sub-plan-highlight {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+.sub-plan-features {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.sub-plan-action {
+  margin-top: auto;
+  padding: 0.5rem 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(120, 200, 255, 0.9);
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sub-plan-action.is-current {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── footnote ─── */
+
+.sub-footnote {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sub-link {
+  color: rgba(120, 200, 255, 0.8);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sub-link:hover {
+  color: #fff;
+}
+
+/* ─── confirm dialog ─── */
+
+.sub-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(5, 16, 28, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.sub-dialog {
+  width: min(100%, 28rem);
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(30, 50, 90, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.sub-dialog.is-downgrade {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.sub-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.sub-dialog-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.sub-dialog-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.sub-dialog-close:hover {
+  color: #fff;
+}
+
+.sub-dialog-body {
+  display: grid;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+}
+
+.sub-dialog-body p {
+  margin: 0;
+}
+
+.sub-dialog-plan-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sub-dialog-plan-card strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.sub-dialog-price {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.sub-dialog-warn {
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.6rem;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+  font-size: 0.8rem;
+}
+
+.sub-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.sub-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.sub-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sub-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sub-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.sub-btn-primary {
+  background: rgba(120, 200, 255, 0.2);
+  color: rgba(120, 200, 255, 0.95);
+}
+
+.sub-btn-primary:hover:not(:disabled) {
+  background: rgba(120, 200, 255, 0.32);
+  color: #fff;
+}
+
+.sub-btn-warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fde68a;
+}
+
+.sub-btn-warn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fff;
+}
+
+/* ─── responsive ─── */
+
+@media (max-width: 640px) {
+  .sub-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sub-plan-tile {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .sub-plan-top {
+    width: 100%;
+  }
+
+  .sub-plan-name {
+    width: 100%;
+  }
+
+  .sub-plan-features {
+    width: 100%;
+  }
+
+  .sub-plan-action {
+    width: 100%;
+  }
+}

@@ -21,16 +21,15 @@ const AuthRegisterPage = lazy(() => import('./pages/AuthRegisterPage').then((mod
 const AuthVerifyEmailPage = lazy(() =>
   import('./pages/AuthVerifyEmailPage').then((module) => ({ default: module.AuthVerifyEmailPage })),
 )
-const EventsPage = lazy(() => import('./pages/EventsPage').then((module) => ({ default: module.EventsPage })))
-const ManageAlertsPage = lazy(() =>
-  import('./pages/ManageAlertsPage').then((module) => ({ default: module.ManageAlertsPage })),
-)
 const OverviewPage = lazy(() => import('./pages/OverviewPage').then((module) => ({ default: module.OverviewPage })))
 const PrivacyPolicyPage = lazy(() =>
   import('./pages/PrivacyPolicyPage').then((module) => ({ default: module.PrivacyPolicyPage })),
 )
 const RulesPage = lazy(() => import('./pages/RulesPage').then((module) => ({ default: module.RulesPage })))
 const SmsConsentPage = lazy(() => import('./pages/SmsConsentPage').then((module) => ({ default: module.SmsConsentPage })))
+const SubscriptionPage = lazy(() =>
+  import('./pages/SubscriptionPage').then((module) => ({ default: module.SubscriptionPage })),
+)
 const TravelPlansPage = lazy(() =>
   import('./pages/TravelPlansPage').then((module) => ({ default: module.TravelPlansPage })),
 )
@@ -89,7 +88,7 @@ function BillingRedirect({ status }: { status: 'success' | 'cancel' }) {
   const params = new URLSearchParams(location.search)
   params.set('billing', status)
   const suffix = params.toString()
-  return <Navigate to={`/app/account${suffix ? `?${suffix}` : ''}`} replace />
+  return <Navigate to={`/app/subscription${suffix ? `?${suffix}` : ''}`} replace />
 }
 
 function AppRoutes() {
@@ -121,9 +120,8 @@ function AppRoutes() {
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<PageSuspense><OverviewPage /></PageSuspense>} />
         <Route path="rules" element={<PageSuspense><RulesPage /></PageSuspense>} />
-        <Route path="alerts" element={<PageSuspense><ManageAlertsPage /></PageSuspense>} />
-        <Route path="events" element={<PageSuspense><EventsPage /></PageSuspense>} />
         <Route path="travel" element={<PageSuspense><TravelPlansPage /></PageSuspense>} />
+        <Route path="subscription" element={<PageSuspense><SubscriptionPage /></PageSuspense>} />
         <Route path="account" element={<PageSuspense><AccountPage /></PageSuspense>} />
         <Route path="admin" element={<PageSuspense><AdminPage /></PageSuspense>} />
       </Route>
