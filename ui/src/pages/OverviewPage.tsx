@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import backgroundOverviewImage from '../assets/background-overview.png'
 import backgroundRainImage from '../assets/background-rain.png'
+import backgroundThunderstormImage from '../assets/background-thunderstorm.png'
 import { formatFriendlyLocation, formatPercentOrNA, formatTemperature } from '../lib/formatting'
 import { useAsyncState, useDataState } from '../state/useAppState'
 import type { WeatherCondition } from '../types'
@@ -111,8 +112,12 @@ export function OverviewPage() {
     currentWeather?.temperature != null ? formatTemperature(currentWeather.temperature, 'F') : '--'
   const conditionIcon = resolveWeatherIcon(currentWeather ?? {})
   const conditionLabel = resolveConditionLabel(currentWeather ?? {})
-  const isRaining = conditionLabel === 'Rainy' || conditionLabel === 'Thunderstorms'
-  const backgroundImage = isRaining ? backgroundRainImage : backgroundOverviewImage
+  const backgroundImage =
+    conditionLabel === 'Thunderstorms'
+      ? backgroundThunderstormImage
+      : conditionLabel === 'Rainy'
+        ? backgroundRainImage
+        : backgroundOverviewImage
   const greetingLabel = useMemo(() => {
     const hour = now.getHours()
     if (hour < 12) {
