@@ -1,8 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import backgroundOverviewImage from '../assets/background-overview.png'
-import backgroundRainImage from '../assets/background-rain.png'
-import backgroundThunderstormImage from '../assets/background-thunderstorm.png'
+import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { useThemePreference, type ThemePreference } from '../theme'
 import {
   useActionState,
@@ -121,14 +119,7 @@ export function AccountPage() {
     { id: 'dark', label: 'Dark', emoji: '🌙', detail: 'Twilight palette always.' },
   ]
 
-  const headline = currentWeather?.description ?? ''
-  const isThunderstorm = /thunder|storm|tstms/i.test(headline)
-  const isRainy = /rain|drizzle|shower/i.test(headline)
-  const bgImage = isThunderstorm
-    ? backgroundThunderstormImage
-    : isRainy
-      ? backgroundRainImage
-      : backgroundOverviewImage
+  const bgImage = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   return (
     <section className="page-stack settings-page">

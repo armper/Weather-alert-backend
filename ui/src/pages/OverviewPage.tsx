@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import backgroundOverviewImage from '../assets/background-overview.png'
-import backgroundRainImage from '../assets/background-rain.png'
-import backgroundThunderstormImage from '../assets/background-thunderstorm.png'
 import { formatFriendlyLocation, formatPercentOrNA, formatTemperature } from '../lib/formatting'
+import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { useAsyncState, useDataState } from '../state/useAppState'
 import type { WeatherCondition } from '../types'
 
@@ -18,54 +16,8 @@ function resolveDisplayTime(item: WeatherCondition): string | undefined {
   return item.onset ?? item.timestamp
 }
 
-function resolveFromHeadline(headline?: string): { icon: string; label: string } | null {
-  if (!headline) return null
-  const h = headline.toLowerCase()
-  if (h.includes('snow') || h.includes('blizzard') || h.includes('ice') || h.includes('sleet') || h.includes('freezing'))
-    return { icon: '❄️', label: 'Snow' }
-  if (h.includes('thunder') || h.includes('tstms'))
-    return { icon: '⛈️', label: 'Thunderstorms' }
-  if (h.includes('rain') || h.includes('drizzle') || h.includes('shower'))
-    return { icon: '🌧️', label: 'Rainy' }
-  if (h.includes('fog') || h.includes('mist') || h.includes('haze'))
-    return { icon: '🌫️', label: 'Foggy' }
-  if (h.includes('overcast'))
-    return { icon: '☁️', label: 'Cloudy' }
-  if (h.includes('cloud') || h.includes('mostly cloudy') || h.includes('broken'))
-    return { icon: '☁️', label: 'Cloudy' }
-  if (h.includes('partly') || h.includes('few clouds') || h.includes('scattered') || h.includes('mostly sunny') || h.includes('mostly clear'))
-    return { icon: '⛅', label: 'Partly cloudy' }
-  if (h.includes('fair') || h.includes('sunny') || h.includes('clear') || h.includes('hot'))
-    return { icon: '☀️', label: 'Sunny' }
-  return null
-}
-
-function resolveFromNumeric(item: Partial<WeatherCondition>): { icon: string; label: string } {
-  if ((item.iceAccumulation ?? 0) > 0 || (item.snowfallAmount ?? 0) > 0)
-    return { icon: '❄️', label: 'Snow' }
-  if ((item.probabilityOfThunder ?? 0) > 30)
-    return { icon: '⛈️', label: 'Thunderstorms' }
-  if ((item.precipitationAmount ?? 0) > 0 || (item.precipitationProbability ?? 0) > 65)
-    return { icon: '🌧️', label: 'Rainy' }
-  if ((item.precipitationProbability ?? 0) > 35)
-    return { icon: '🌦️', label: 'Chance of rain' }
-  if ((item.skyCover ?? 0) > 75)
-    return { icon: '☁️', label: 'Cloudy' }
-  if ((item.skyCover ?? 0) > 40)
-    return { icon: '⛅', label: 'Partly cloudy' }
-  return { icon: '☀️', label: 'Sunny' }
-}
-
-function resolveCondition(item: Partial<WeatherCondition>): { icon: string; label: string } {
-  return resolveFromHeadline(item.headline) ?? resolveFromNumeric(item)
-}
-
 function resolveWeatherIcon(item: Partial<WeatherCondition>): string {
-  return resolveCondition(item).icon
-}
-
-function resolveConditionLabel(item: Partial<WeatherCondition>): string {
-  return resolveCondition(item).label
+  return resolveWeatherVisual(item).icon
 }
 
 function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherCondition[] {
@@ -110,14 +62,10 @@ export function OverviewPage() {
   const locationLabel = formatFriendlyLocation(currentWeather?.location ?? 'Orlando')
   const temperatureLabel =
     currentWeather?.temperature != null ? formatTemperature(currentWeather.temperature, 'F') : '--'
-  const conditionIcon = resolveWeatherIcon(currentWeather ?? {})
-  const conditionLabel = resolveConditionLabel(currentWeather ?? {})
-  const backgroundImage =
-    conditionLabel === 'Thunderstorms'
-      ? backgroundThunderstormImage
-      : conditionLabel === 'Rainy'
-        ? backgroundRainImage
-        : backgroundOverviewImage
+  const weatherVisual = resolveWeatherVisual(currentWeather ?? {})
+  const conditionIcon = weatherVisual.icon
+  const conditionLabel = weatherVisual.label
+  const backgroundImage = weatherVisual.backgroundImage
   const greetingLabel = useMemo(() => {
     const hour = now.getHours()
     if (hour < 12) {
