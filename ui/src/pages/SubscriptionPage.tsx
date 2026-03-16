@@ -55,7 +55,7 @@ const PLAN_DETAILS: Array<{
 export function SubscriptionPage() {
   const { me, initialDataLoading, refresh } = useSessionState()
   const { criteria, travelPlans, billingStatus, currentWeather } = useDataState()
-  const { loadingBilling: _lb, checkoutPlan, changingPlan, openingBillingPortal } = useAsyncState()
+  const { checkoutPlan, changingPlan, openingBillingPortal } = useAsyncState()
   const { handleStartCheckout, handleChangePlan, handleOpenBillingPortal } = useActionState()
 
   const location = useLocation()

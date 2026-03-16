@@ -3,7 +3,7 @@ import backgroundOverviewImage from '../assets/background-overview.png'
 import backgroundRainImage from '../assets/background-rain.png'
 import { searchPlaces, type GeocodePlace } from '../services/geocoding'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
-import { useActionState, useDataState, useSessionState } from '../state/useAppState'
+import { useActionState, useDataState } from '../state/useAppState'
 import type { TravelPlan } from '../types'
 
 const LocationPickerMap = lazy(() =>
@@ -45,7 +45,6 @@ function formatRange(start?: string, end?: string) {
 }
 
 function daysLabel(plan: TravelPlan) {
-  const today = todayKey()
   const status = tripStatus(plan)
   if (status === 'past') return 'Completed'
   if (status === 'active') {
@@ -62,7 +61,6 @@ function daysLabel(plan: TravelPlan) {
 
 export function TravelPlansPage() {
   const { travelPlans, currentWeather } = useDataState()
-  const { token } = useSessionState()
   const { handleCreateTravelPlan, handleUpdateTravelPlan, handleDeleteTravelPlan } = useActionState()
 
   const [mode, setMode] = useState<ModalMode>('closed')
@@ -78,7 +76,6 @@ export function TravelPlansPage() {
   const [lon, setLon] = useState(Number(DEFAULT_LON))
   const [notes, setNotes] = useState('')
   const [geoResults, setGeoResults] = useState<GeocodePlace[]>([])
-  const [geoSearching, setGeoSearching] = useState(false)
   const geoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -180,7 +177,12 @@ export function TravelPlansPage() {
   /* esc key */
   useEffect(() => {
     if (mode === 'closed') return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || modalStatus === 'saving') return
+      setMode('closed')
+      setSelected(null)
+      setModalStatus('idle')
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [mode, modalStatus])
@@ -337,12 +339,10 @@ export function TravelPlansPage() {
                       if (geoTimer.current) clearTimeout(geoTimer.current)
                       if (val.trim().length >= 3) {
                         geoTimer.current = setTimeout(async () => {
-                          setGeoSearching(true)
                           try {
                             const places = await searchPlaces(val.trim())
                             setGeoResults(places)
                           } catch { setGeoResults([]) }
-                          setGeoSearching(false)
                         }, 400)
                       } else {
                         setGeoResults([])

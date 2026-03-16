@@ -15,6 +15,7 @@
 - `mvn spring-boot:run`: start backend locally on port `8080`.
 - `java -jar target/weather-alert-backend-0.0.1-SNAPSHOT.jar`: run packaged artifact.
 - `mvn clean package -DskipTests`: fast packaging when tests are intentionally deferred.
+- `cd ui && npm ci && npm run lint && npm run build`: frontend CI-equivalent check; `npm run build` includes the TypeScript compile gate.
 
 ## Coding Style & Naming Conventions
 - Java 17 + Spring Boot 3.x; use 4-space indentation and UTF-8 source files.
@@ -38,10 +39,15 @@
 - Name tests `*Test` and place them in mirrored package paths.
 - Default command: `mvn test`.
 - For feature work, add focused tests for use cases, security behavior, and adapter edge cases (e.g., NOAA/Kafka failures).
+- Before merging to `main`, the minimum required local validation is:
+  - backend: `mvn test`
+  - frontend: `cd ui && npm ci && npm run lint && npm run build`
+- Treat TypeScript compile errors, ESLint errors, and failing backend tests as merge blockers. Do not merge with red checks.
 
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commit style seen in history: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`.
 - Keep commits scoped and descriptive (one logical change per commit).
+- Do not push directly to `main` for feature or fix work. Open a pull request and wait for CI to pass before merging.
 - PRs should include:
   - concise summary and motivation,
   - linked issue/ticket (if applicable),
@@ -57,6 +63,7 @@
 - Cloud Build triggers live in **us-east1** region. Two triggers fire on push to `main`:
   - `backend-main` → uses `cloudbuild.yaml` (builds & deploys the Spring Boot backend).
   - `ui-main` → uses `ui/cloudbuild.yaml` (builds & deploys the frontend).
+- GitHub Actions should be the pre-merge gate. Cloud Build is the post-merge deployment path and should not be relied on to catch preventable TypeScript, lint, or test failures after code is already on `main`.
 - Useful commands:
   - List recent builds: `gcloud builds list --project=weather-alerts-panda --region=us-east1 --limit=5 --format='table(id,status,startTime,duration,substitutions.TRIGGER_NAME)'`
   - List triggers: `gcloud builds triggers list --project=weather-alerts-panda --region=us-east1`
