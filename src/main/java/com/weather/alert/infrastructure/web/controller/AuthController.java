@@ -9,6 +9,7 @@ import com.weather.alert.application.exception.InvalidCredentialsException;
 import com.weather.alert.application.service.AuthSecurityGuardService;
 import com.weather.alert.application.usecase.AuthenticateRegisteredUserUseCase;
 import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
+import com.weather.alert.infrastructure.web.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -45,6 +46,7 @@ public class AuthController {
     private final ManageAccountRecoveryUseCase manageAccountRecoveryUseCase;
     private final AuthSecurityGuardService authSecurityGuardService;
     private final JwtEncoder jwtEncoder;
+    private final ClientIpResolver clientIpResolver;
 
     @Value("${app.security.jwt.expiration-seconds:3600}")
     private long jwtExpirationSeconds;
@@ -132,9 +134,6 @@ public class AuthController {
     }
 
     private String clientIp(HttpServletRequest request) {
-        if (request == null || request.getRemoteAddr() == null || request.getRemoteAddr().isBlank()) {
-            return "unknown";
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolve(request);
     }
 }

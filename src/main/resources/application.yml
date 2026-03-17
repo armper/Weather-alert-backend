@@ -121,9 +121,9 @@ app:
     outage-failure-threshold: ${APP_NWPS_OUTAGE_FAILURE_THRESHOLD:4}
     outage-open-seconds: ${APP_NWPS_OUTAGE_OPEN_SECONDS:30}
   rate-limit:
-    max-requests: 120
-    window-seconds: 60
-    trust-forwarded-for: false
+    max-requests: ${APP_RATE_LIMIT_MAX_REQUESTS:120}
+    window-seconds: ${APP_RATE_LIMIT_WINDOW_SECONDS:60}
+    trust-forwarded-for: ${APP_RATE_LIMIT_TRUST_FORWARDED_FOR:true}
   retention:
     schedule-enabled: ${APP_RETENTION_SCHEDULE_ENABLED:true}
     enabled: ${APP_RETENTION_ENABLED:true}

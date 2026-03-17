@@ -99,6 +99,7 @@ export function useWeatherAppState() {
   const [criteria, setCriteria] = useState<AlertCriteria[]>([])
   const [alerts, setAlerts] = useState<AlertEvent[]>([])
   const [currentWeather, setCurrentWeather] = useState<WeatherCondition | null>(null)
+  const [officialAlerts, setOfficialAlerts] = useState<WeatherCondition[]>([])
   const [notificationPreference, setNotificationPreference] = useState<UserNotificationPreference | null>(null)
   const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null)
   const [adminUsers, setAdminUsers] = useState<UserAccount[]>([])
@@ -134,6 +135,26 @@ export function useWeatherAppState() {
   const isAdmin = useMemo(() => Boolean(me?.role?.includes('ADMIN')), [me?.role])
   const initialDataLoading = token != null && !hasResolvedInitialData
 
+  const markAlertsAcknowledged = useCallback((updates: Map<string, string>) => {
+    if (updates.size === 0) {
+      return
+    }
+
+    setAlerts((current) =>
+      current.map((alert) => {
+        const acknowledgedAt = updates.get(alert.id)
+        if (!acknowledgedAt) {
+          return alert
+        }
+        return {
+          ...alert,
+          status: 'ACKNOWLEDGED',
+          acknowledgedAt,
+        }
+      }),
+    )
+  }, [])
+
   const canSubmitCriteria = useMemo(() => {
     if (!criteriaForm.location.trim()) {
       return false
@@ -166,7 +187,7 @@ export function useWeatherAppState() {
       const lat = freshCriteria[0]?.latitude?.toString() ?? DEFAULT_LAT
       const lon = freshCriteria[0]?.longitude?.toString() ?? DEFAULT_LON
 
-      const [freshAlerts, preferences, weather, billing, adminAccounts, history, daily, hourly, products, trips] = await Promise.all([
+      const [freshAlerts, preferences, weather, official, billing, adminAccounts, history, daily, hourly, products, trips] = await Promise.all([
         apiRequest<AlertEvent[] | PagedResponse<AlertEvent>>(`/api/alerts/user/${account.id}`, { token: activeToken }),
         apiRequest<UserNotificationPreference>('/api/users/me/notification-preferences', { token: activeToken }).catch(
           () => null,
@@ -175,6 +196,10 @@ export function useWeatherAppState() {
           `/api/weather/conditions/current?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`,
           { token: activeToken },
         ).catch(() => null),
+        apiRequest<WeatherCondition[]>(
+          `/api/weather/location?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`,
+          { token: activeToken },
+        ).catch(() => [] as WeatherCondition[]),
         apiRequest<BillingStatus>('/api/billing/me', { token: activeToken }).catch(() => null),
         account.role.includes('ADMIN')
           ? apiRequest<UserAccount[]>('/api/admin/users', { token: activeToken })
@@ -207,6 +232,9 @@ export function useWeatherAppState() {
       )
       setNotificationPreference(preferences)
       setCurrentWeather(weather)
+      setOfficialAlerts(
+        [...official].sort((left, right) => new Date(left.onset ?? '').getTime() - new Date(right.onset ?? '').getTime()),
+      )
       setBillingStatus(billing)
       setAdminUsers(adminAccounts)
       setObservationHistory(history)
@@ -264,6 +292,7 @@ export function useWeatherAppState() {
       setCriteria([])
       setAlerts([])
       setCurrentWeather(null)
+      setOfficialAlerts([])
       setNotificationPreference(null)
       setBillingStatus(null)
       setAdminUsers([])
@@ -867,32 +896,36 @@ export function useWeatherAppState() {
     }
   }
 
-  async function handleAcknowledgeAlert(alertId: string) {
+  async function handleAcknowledgeAlert(alertId: string): Promise<boolean> {
     if (!token) {
-      return
+      return false
     }
 
     setBusyAlertId(alertId)
     setNotice(null)
 
     try {
-      await apiRequest<AlertEvent>(`/api/alerts/${alertId}/acknowledge`, {
+      const acknowledged = await apiRequest<AlertEvent>(`/api/alerts/${alertId}/acknowledge`, {
         method: 'POST',
         token,
       })
+      markAlertsAcknowledged(new Map([[alertId, acknowledged.acknowledgedAt ?? new Date().toISOString()]]))
       setNotice({ kind: 'success', text: 'Alert acknowledged.' })
-      if (me) {
-        await refreshData(token, me)
-      }
+      return true
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        markAlertsAcknowledged(new Map([[alertId, new Date().toISOString()]]))
+        return true
+      }
       setNotice({ kind: 'error', text: toErrorMessage(error) })
+      return false
     } finally {
       setBusyAlertId(null)
     }
   }
 
   async function handleAcknowledgeAllAlerts() {
-    if (!token || !me) {
+    if (!token) {
       return
     }
 
@@ -904,16 +937,31 @@ export function useWeatherAppState() {
     setLoadingData(true)
     setNotice(null)
     try {
-      await Promise.all(
-        sentAlerts.map((alert) =>
-          apiRequest<AlertEvent>(`/api/alerts/${alert.id}/acknowledge`, {
+      const acknowledgedUpdates = new Map<string, string>()
+      for (const alert of sentAlerts) {
+        try {
+          const acknowledged = await apiRequest<AlertEvent>(`/api/alerts/${alert.id}/acknowledge`, {
             method: 'POST',
             token,
-          }),
-        ),
-      )
-      setNotice({ kind: 'success', text: `Acknowledged ${sentAlerts.length} alerts.` })
-      await refreshData(token, me)
+          })
+          acknowledgedUpdates.set(alert.id, acknowledged.acknowledgedAt ?? new Date().toISOString())
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 409) {
+            acknowledgedUpdates.set(alert.id, new Date().toISOString())
+            continue
+          }
+
+          markAlertsAcknowledged(acknowledgedUpdates)
+          const acknowledgedCount = acknowledgedUpdates.size
+          const partialPrefix =
+            acknowledgedCount > 0 ? `Acknowledged ${acknowledgedCount} alert${acknowledgedCount === 1 ? '' : 's'} before the next request failed. ` : ''
+          setNotice({ kind: 'error', text: `${partialPrefix}${toErrorMessage(error)}` })
+          return
+        }
+      }
+
+      markAlertsAcknowledged(acknowledgedUpdates)
+      setNotice({ kind: 'success', text: `Acknowledged ${acknowledgedUpdates.size} alerts.` })
     } catch (error) {
       setNotice({ kind: 'error', text: toErrorMessage(error) })
     } finally {
@@ -1229,6 +1277,7 @@ export function useWeatherAppState() {
     criteria,
     alerts,
     currentWeather,
+    officialAlerts,
     notificationPreference,
     billingStatus,
     adminUsers,

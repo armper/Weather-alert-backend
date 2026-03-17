@@ -4,6 +4,7 @@ import backgroundOverviewImage from '../assets/background-overview.png'
 import backgroundRainImage from '../assets/background-rain.png'
 import { buildCriteriaPayload, defaultThreshold, describeCriteria } from '../lib/criteria'
 import { formatFriendlyLocation } from '../lib/formatting'
+import { resolveCriteriaTileEmoji, resolveRuleEmoji } from '../lib/ruleIcons'
 import {
   QUICK_START_PRESETS,
   SIMPLE_SITUATIONS,
@@ -12,7 +13,6 @@ import {
   getSituationConfig,
   resolveMatchingSensitivityId,
   type QuickStartPreset,
-  type RuleBuilderIcon,
   type SimpleSituationConfig,
 } from '../lib/ruleBuilder'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
@@ -21,33 +21,6 @@ import { useAsyncState, useDataState, useFormState, useSessionState } from '../s
 import type { AlertCriteria } from '../types'
 
 type ModalStatus = 'idle' | 'saving' | 'success' | 'error'
-
-function resolveRuleEmoji(icon: RuleBuilderIcon): string {
-  switch (icon) {
-    case 'heat':
-      return '🔥'
-    case 'jacket':
-      return '🧥'
-    case 'rain':
-      return '🌧️'
-    case 'wind':
-      return '💨'
-    case 'humidity':
-      return '💧'
-    case 'dew':
-      return '🌙'
-    case 'river':
-      return '🏞️'
-    case 'flood':
-      return '🌊'
-    case 'alert':
-      return '🚨'
-    case 'sky':
-      return '☀️'
-    default:
-      return '✨'
-  }
-}
 
 const TILE_SUBTITLES: Record<string, string> = {
   'chilly-weather': 'Temperature below 60°F',
@@ -73,34 +46,6 @@ const CUSTOM_CATEGORIES = SIMPLE_SITUATIONS.filter((s) => s.id !== 'CUSTOM')
 const LocationPickerMap = lazy(() =>
   import('../components/maps/LocationPickerMap').then((module) => ({ default: module.LocationPickerMap })),
 )
-
-function resolveCriteriaTileEmoji(criteria: AlertCriteria): string {
-  if (criteria.temperatureThreshold != null) {
-    return criteria.temperatureDirection === 'BELOW' ? '🧥' : '🔥'
-  }
-  if (criteria.rainThreshold != null) {
-    return '🌧️'
-  }
-  if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
-    return '💨'
-  }
-  if (criteria.humidityThreshold != null) {
-    return '💧'
-  }
-  if (criteria.dewPointThreshold != null) {
-    return '🌙'
-  }
-  if (criteria.skyCoverThreshold != null) {
-    return '☀️'
-  }
-  if (criteria.riverFloodCategoryThreshold) {
-    return '🌊'
-  }
-  if (criteria.riverStageThreshold != null) {
-    return '🏞️'
-  }
-  return '✨'
-}
 
 function resolveCriteriaRuleType(criteria: AlertCriteria): RuleType | null {
   if (criteria.temperatureThreshold != null && criteria.temperatureDirection) {

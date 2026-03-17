@@ -9,6 +9,7 @@ import com.weather.alert.domain.model.DeliveryFailureType;
 import com.weather.alert.domain.model.EmailMessage;
 import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.SmsMessage;
+import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.model.User;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
@@ -17,6 +18,7 @@ import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.EmailSenderPort;
 import com.weather.alert.domain.port.SmsSenderPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
+import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import com.weather.alert.domain.service.notification.SmsDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
@@ -46,6 +48,7 @@ public class ProcessAlertDeliveryTaskUseCase {
     private final NotificationDeliveryProperties properties;
     private final UserRepositoryPort userRepository;
     private final BillingPlanService billingPlanService;
+    private final WeatherDataPort weatherDataPort;
 
     @Value("${app.auth.recovery.frontend-base-url:http://localhost:5174}")
     private String frontendBaseUrl;
@@ -203,6 +206,7 @@ public class ProcessAlertDeliveryTaskUseCase {
 
     private String buildBody(Alert alert, AlertCriteria criteria, User user) {
         String dashboardUrl = buildDashboardUrl();
+        List<WeatherData> officialAlerts = loadOfficialAlerts(criteria);
         if (alert == null) {
             return """
                     Hi there,
@@ -236,6 +240,17 @@ public class ProcessAlertDeliveryTaskUseCase {
             body.append("Triggered at: ").append(alert.getAlertTime()).append('\n');
         }
 
+        if (!officialAlerts.isEmpty()) {
+            body.append("\nOfficial NOAA alerts in this area:\n");
+            officialAlerts.stream()
+                    .limit(4)
+                    .map(this::describeOfficialAlertLine)
+                    .forEach(line -> body.append("- ").append(line).append('\n'));
+            if (officialAlerts.size() > 4) {
+                body.append("- ").append(officialAlerts.size() - 4).append(" more active official alerts on the dashboard\n");
+            }
+        }
+
         String humanizedReason = humanizeReason(alert.getReason());
         if (humanizedReason != null) {
             body.append("\nWhy you received this:\n");
@@ -259,6 +274,76 @@ public class ProcessAlertDeliveryTaskUseCase {
         }
         body.append("\nSkyPanda Alerts");
         return body.toString();
+    }
+
+    private List<WeatherData> loadOfficialAlerts(AlertCriteria criteria) {
+        if (criteria == null || criteria.getLatitude() == null || criteria.getLongitude() == null) {
+            return List.of();
+        }
+
+        try {
+            return weatherDataPort.fetchAlertsForLocation(criteria.getLatitude(), criteria.getLongitude()).stream()
+                    .sorted((left, right) -> {
+                        int severityCompare = Integer.compare(resolveSeverityRank(left), resolveSeverityRank(right));
+                        if (severityCompare != 0) {
+                            return severityCompare;
+                        }
+                        Instant leftTime = left.getOnset() != null ? left.getOnset() : left.getExpires();
+                        Instant rightTime = right.getOnset() != null ? right.getOnset() : right.getExpires();
+                        if (leftTime == null && rightTime == null) {
+                            return firstNonBlank(left.getHeadline(), left.getEventType(), left.getId(), "")
+                                    .compareToIgnoreCase(firstNonBlank(right.getHeadline(), right.getEventType(), right.getId(), ""));
+                        }
+                        if (leftTime == null) {
+                            return 1;
+                        }
+                        if (rightTime == null) {
+                            return -1;
+                        }
+                        return leftTime.compareTo(rightTime);
+                    })
+                    .toList();
+        } catch (Exception ex) {
+            log.warn("Unable to load official NOAA alerts for criteria {}", criteria.getId(), ex);
+            return List.of();
+        }
+    }
+
+    private String describeOfficialAlertLine(WeatherData weatherData) {
+        List<String> parts = new ArrayList<>();
+        parts.add(firstNonBlank(weatherData.getEventType(), weatherData.getHeadline(), "Official NOAA alert"));
+        if (weatherData.getSeverity() != null && !weatherData.getSeverity().isBlank()) {
+            parts.add("severity " + weatherData.getSeverity().trim().toLowerCase());
+        }
+        if (weatherData.getExpires() != null) {
+            parts.add("until " + weatherData.getExpires());
+        }
+        if (weatherData.getLocation() != null && !weatherData.getLocation().isBlank()) {
+            parts.add("for " + weatherData.getLocation().trim());
+        }
+        return String.join(" | ", parts);
+    }
+
+    private int resolveSeverityRank(WeatherData weatherData) {
+        String severity = weatherData == null || weatherData.getSeverity() == null
+                ? ""
+                : weatherData.getSeverity().trim().toUpperCase();
+        return switch (severity) {
+            case "EXTREME" -> 0;
+            case "SEVERE" -> 1;
+            case "MODERATE" -> 2;
+            case "MINOR" -> 3;
+            default -> 4;
+        };
+    }
+
+    private String firstNonBlank(String... candidates) {
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
+            }
+        }
+        return "";
     }
 
     private String buildSmsBody(Alert alert, AlertCriteria criteria) {

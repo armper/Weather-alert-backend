@@ -914,10 +914,11 @@
   display: flex;
   flex-direction: column;
   padding: clamp(1.6rem, 4vw, 2.75rem);
+  padding-bottom: clamp(8.8rem, 15vw, 11rem);
 }
 
 .app-shell.is-overview-route .overview-page-content-fresh {
-  padding: 1.05rem 0.95rem 1rem;
+  padding: 1.05rem 0.95rem 8.8rem;
 }
 
 .overview-minimal-readout {
@@ -975,6 +976,295 @@
 .overview-minimal-condition-icon {
   font-size: 1.5rem;
   line-height: 1;
+}
+
+.overview-official-alerts {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.overview-recent-alerts {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.overview-recent-alerts-row {
+  display: grid;
+  gap: 0.8rem;
+  justify-content: start;
+}
+
+.overview-official-alert-card h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+}
+
+.overview-official-alerts-row {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.overview-official-alert-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  gap: 0.95rem;
+  align-items: center;
+  padding: 0.95rem 1rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.1)),
+    rgba(13, 27, 56, 0.2);
+  box-shadow:
+    0 18px 34px rgba(18, 38, 73, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  backdrop-filter: blur(16px) saturate(1.12);
+  text-align: left;
+  transform-origin: center top;
+  overflow: visible;
+}
+
+.overview-official-alert-card.is-dismissing {
+  pointer-events: none;
+  animation: overviewAlertDismiss 320ms cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+}
+
+.overview-official-alert-card.is-dismissing::before,
+.overview-official-alert-card.is-dismissing::after {
+  content: '';
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+}
+
+.overview-official-alert-card.is-dismissing::before {
+  left: 1.35rem;
+  top: 50%;
+  width: 3.15rem;
+  height: 3.15rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 0 0 0.3rem rgba(255, 255, 255, 0.12),
+    0 0 18px rgba(255, 255, 255, 0.32);
+  transform: translateY(-50%) scale(0.55);
+  opacity: 0;
+  animation: overviewBubbleRing 320ms ease-out forwards;
+}
+
+.overview-official-alert-card.is-dismissing::after {
+  left: 0.35rem;
+  top: calc(50% - 2.2rem);
+  width: 5.9rem;
+  height: 4.9rem;
+  background:
+    radial-gradient(circle at 50% 52%, rgba(255, 255, 255, 0.92) 0 0.28rem, transparent 0.32rem),
+    radial-gradient(circle at 16% 38%, rgba(255, 255, 255, 0.76) 0 0.2rem, transparent 0.24rem),
+    radial-gradient(circle at 28% 80%, rgba(255, 255, 255, 0.72) 0 0.16rem, transparent 0.2rem),
+    radial-gradient(circle at 74% 22%, rgba(255, 255, 255, 0.8) 0 0.18rem, transparent 0.22rem),
+    radial-gradient(circle at 90% 54%, rgba(255, 255, 255, 0.8) 0 0.2rem, transparent 0.24rem),
+    radial-gradient(circle at 68% 88%, rgba(255, 255, 255, 0.74) 0 0.16rem, transparent 0.2rem);
+  transform: scale(0.72);
+  transform-origin: 34% 50%;
+  opacity: 0;
+  filter: blur(0.2px);
+  animation: overviewBubbleBurst 320ms ease-out forwards;
+}
+
+.overview-official-alert-card.is-extreme {
+  background:
+    linear-gradient(180deg, rgba(255, 232, 232, 0.38), rgba(255, 196, 196, 0.16)),
+    rgba(117, 12, 36, 0.26);
+  border-color: rgba(255, 184, 184, 0.48);
+}
+
+.overview-official-alert-card.is-severe {
+  background:
+    linear-gradient(180deg, rgba(255, 240, 231, 0.34), rgba(255, 197, 156, 0.16)),
+    rgba(135, 57, 13, 0.24);
+  border-color: rgba(255, 202, 152, 0.42);
+}
+
+.overview-official-alert-card.is-warning {
+  background:
+    linear-gradient(180deg, rgba(255, 247, 214, 0.34), rgba(255, 231, 153, 0.14)),
+    rgba(121, 90, 8, 0.22);
+  border-color: rgba(255, 226, 143, 0.42);
+}
+
+.overview-official-alert-card.is-advisory {
+  background:
+    linear-gradient(180deg, rgba(231, 245, 255, 0.32), rgba(166, 211, 255, 0.14)),
+    rgba(14, 67, 121, 0.22);
+  border-color: rgba(176, 219, 255, 0.38);
+}
+
+.overview-official-alert-card.is-notice {
+  background:
+    linear-gradient(180deg, rgba(235, 247, 255, 0.3), rgba(203, 227, 255, 0.14)),
+    rgba(27, 73, 112, 0.2);
+  border-color: rgba(199, 225, 255, 0.34);
+}
+
+.overview-official-alert-icon {
+  display: grid;
+  place-items: center;
+  width: 4.6rem;
+  height: 4.6rem;
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 10px 18px rgba(18, 38, 73, 0.18);
+}
+
+.overview-official-alert-icon span {
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.overview-official-alert-body {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.overview-official-alert-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.overview-recent-alert-meta {
+  justify-content: flex-end;
+}
+
+button.overview-official-alert-card {
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+button.overview-official-alert-card:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button.overview-official-alert-card:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.overview-recent-alerts-row .overview-official-alert-card {
+  width: min(100%, 28rem);
+}
+
+@keyframes overviewAlertDismiss {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  32% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.06);
+    filter: blur(0);
+  }
+  58% {
+    opacity: 0.94;
+    transform: translateY(1px) scale(0.94);
+    filter: blur(0.4px);
+  }
+  82% {
+    opacity: 0.5;
+    transform: translateY(-8px) scale(0.78);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.32);
+    filter: blur(8px);
+  }
+}
+
+@keyframes overviewBubbleRing {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.55);
+  }
+  28% {
+    opacity: 0.86;
+    transform: translateY(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.7);
+  }
+}
+
+@keyframes overviewBubbleBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  26% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  46% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-0.2rem, -0.45rem) scale(1.28);
+  }
+}
+
+.overview-official-alert-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.98);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.overview-official-alert-timing,
+.overview-official-alert-headline,
+.overview-official-alert-area,
+.overview-official-alert-empty p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.overview-official-alert-timing,
+.overview-official-alert-area {
+  font-size: 0.83rem;
+}
+
+.overview-official-alert-card h3 {
+  color: #ffffff;
+  font-size: clamp(1rem, 2.2vw, 1.2rem);
+  line-height: 1.05;
+}
+
+.overview-official-alert-headline {
+  font-size: 0.92rem;
+}
+
+.overview-official-alert-area {
+  color: rgba(255, 255, 255, 0.74);
 }
 
 .overview-minimal-condition-label {

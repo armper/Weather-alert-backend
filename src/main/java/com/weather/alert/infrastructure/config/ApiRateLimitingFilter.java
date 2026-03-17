@@ -5,10 +5,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.weather.alert.infrastructure.web.ClientIpResolver;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -24,10 +25,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ApiRateLimitingFilter extends OncePerRequestFilter {
 
     private static final int TOO_MANY_REQUESTS_STATUS = 429;
-    private static final int MAX_CLIENT_IP_LENGTH = 64;
     private final int maxRequestsPerWindow;
     private final long windowMillis;
-    private final boolean trustForwardedFor;
+    private final ClientIpResolver clientIpResolver;
     private final ObjectMapper objectMapper;
     private final Map<String, RateLimitWindow> requestWindows = new ConcurrentHashMap<>();
     private volatile long nextCleanupTimeMillis = 0;
@@ -35,11 +35,11 @@ public class ApiRateLimitingFilter extends OncePerRequestFilter {
     public ApiRateLimitingFilter(
             @Value("${app.rate-limit.max-requests:120}") int maxRequestsPerWindow,
             @Value("${app.rate-limit.window-seconds:60}") long windowSeconds,
-            @Value("${app.rate-limit.trust-forwarded-for:false}") boolean trustForwardedFor,
+            ClientIpResolver clientIpResolver,
             ObjectMapper objectMapper) {
         this.maxRequestsPerWindow = maxRequestsPerWindow;
         this.windowMillis = windowSeconds * 1000;
-        this.trustForwardedFor = trustForwardedFor;
+        this.clientIpResolver = clientIpResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -83,16 +83,8 @@ public class ApiRateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String extractClientKey(HttpServletRequest request) {
-        if (trustForwardedFor) {
-            String forwardedFor = request.getHeader("X-Forwarded-For");
-            if (forwardedFor != null && !forwardedFor.isBlank()) {
-                String clientIp = forwardedFor.split(",")[0].trim();
-                if (!clientIp.isBlank() && clientIp.length() <= MAX_CLIENT_IP_LENGTH) {
-                    return clientIp;
-                }
-            }
-        }
-        return request.getRemoteAddr();
+        String clientIp = clientIpResolver.resolve(request);
+        return (clientIp == null || clientIp.isBlank()) ? "unknown" : clientIp;
     }
 
     private void cleanupExpiredWindows(long now) {

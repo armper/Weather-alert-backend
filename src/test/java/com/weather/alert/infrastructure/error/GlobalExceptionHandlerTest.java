@@ -7,6 +7,7 @@ import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
 import com.weather.alert.application.usecase.QueryAlertsUseCase;
 import com.weather.alert.infrastructure.config.SecurityConfig;
 import com.weather.alert.infrastructure.web.controller.AlertCriteriaController;
+import com.weather.alert.infrastructure.web.ClientIpResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -56,6 +57,9 @@ class GlobalExceptionHandlerTest {
 
     @MockBean
     private QueryAlertsUseCase queryAlertsUseCase;
+
+    @MockBean
+    private ClientIpResolver clientIpResolver;
 
     @Test
     void shouldReturnStructuredNotFoundError() throws Exception {

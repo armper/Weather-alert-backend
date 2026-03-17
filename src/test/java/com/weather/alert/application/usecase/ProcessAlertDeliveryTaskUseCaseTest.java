@@ -14,6 +14,7 @@ import com.weather.alert.domain.model.NotificationChannel;
 import com.weather.alert.domain.model.SmsMessage;
 import com.weather.alert.domain.model.SmsSendResult;
 import com.weather.alert.domain.model.User;
+import com.weather.alert.domain.model.WeatherData;
 import com.weather.alert.domain.port.AlertCriteriaRepositoryPort;
 import com.weather.alert.domain.port.AlertDeliveryDlqPublisherPort;
 import com.weather.alert.domain.port.AlertDeliveryRepositoryPort;
@@ -21,6 +22,7 @@ import com.weather.alert.domain.port.AlertRepositoryPort;
 import com.weather.alert.domain.port.EmailSenderPort;
 import com.weather.alert.domain.port.SmsSenderPort;
 import com.weather.alert.domain.port.UserRepositoryPort;
+import com.weather.alert.domain.port.WeatherDataPort;
 import com.weather.alert.domain.service.notification.EmailDeliveryException;
 import com.weather.alert.infrastructure.config.NotificationDeliveryProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
@@ -72,6 +76,9 @@ class ProcessAlertDeliveryTaskUseCaseTest {
     @Mock
     private BillingPlanService billingPlanService;
 
+    @Mock
+    private WeatherDataPort weatherDataPort;
+
     private ProcessAlertDeliveryTaskUseCase useCase;
 
     @BeforeEach
@@ -89,7 +96,8 @@ class ProcessAlertDeliveryTaskUseCaseTest {
                 dlqPublisher,
                 properties,
                 userRepository,
-                billingPlanService);
+                billingPlanService,
+                weatherDataPort);
         ReflectionTestUtils.setField(useCase, "frontendBaseUrl", "https://skypandaweather.com");
         lenient().when(userRepository.findById("dev-admin")).thenReturn(Optional.of(User.builder()
                 .id("dev-admin")
@@ -100,6 +108,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
                 .maxActiveAlerts(50)
                 .adSponsoredEmails(false)
                 .build());
+        lenient().when(weatherDataPort.fetchAlertsForLocation(anyDouble(), anyDouble())).thenReturn(List.of());
     }
 
     @Test
@@ -220,6 +229,46 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         verify(emailSenderPort).send(emailCaptor.capture());
         assertTrue(emailCaptor.getValue().body().contains("Sponsored message:"));
         assertTrue(emailCaptor.getValue().body().contains("Upgrade to SkyPanda Family Plan"));
+    }
+
+    @Test
+    void shouldIncludeOfficialNoaaAlertsInEmailBody() {
+        AlertDeliveryRecord delivery = pending("delivery-noaa", 0);
+        when(alertDeliveryRepository.findById("delivery-noaa")).thenReturn(Optional.of(delivery));
+        when(alertDeliveryRepository.save(any(AlertDeliveryRecord.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.findById("alert-1")).thenReturn(Optional.of(Alert.builder()
+                .id("alert-1")
+                .criteriaId("criteria-1")
+                .location("Orlando")
+                .conditionSource("CURRENT")
+                .alertTime(Instant.parse("2026-03-10T03:00:00Z"))
+                .build()));
+        when(alertCriteriaRepository.findById("criteria-1")).thenReturn(Optional.of(AlertCriteria.builder()
+                .id("criteria-1")
+                .name("Storm watch")
+                .location("Orlando")
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(80.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .build()));
+        when(weatherDataPort.fetchAlertsForLocation(28.5383, -81.3792)).thenReturn(List.of(
+                WeatherData.builder()
+                        .id("noaa-1")
+                        .eventType("Severe Thunderstorm Warning")
+                        .severity("SEVERE")
+                        .location("Orange County")
+                        .expires(Instant.parse("2026-03-10T04:30:00Z"))
+                        .build()));
+        when(emailSenderPort.send(any())).thenReturn(new EmailSendResult("provider-id-noaa"));
+
+        useCase.processTask("delivery-noaa");
+
+        ArgumentCaptor<EmailMessage> emailCaptor = ArgumentCaptor.forClass(EmailMessage.class);
+        verify(emailSenderPort).send(emailCaptor.capture());
+        assertTrue(emailCaptor.getValue().body().contains("Official NOAA alerts in this area:"));
+        assertTrue(emailCaptor.getValue().body().contains("Severe Thunderstorm Warning | severity severe | until 2026-03-10T04:30:00Z | for Orange County"));
     }
 
     @Test

@@ -49,6 +49,7 @@ export type DataState = Pick<
   | 'criteria'
   | 'alerts'
   | 'currentWeather'
+  | 'officialAlerts'
   | 'notificationPreference'
   | 'billingStatus'
   | 'adminUsers'

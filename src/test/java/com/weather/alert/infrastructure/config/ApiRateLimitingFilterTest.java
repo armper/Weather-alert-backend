@@ -1,6 +1,7 @@
 package com.weather.alert.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.weather.alert.infrastructure.web.ClientIpResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
@@ -15,7 +16,7 @@ class ApiRateLimitingFilterTest {
 
     @Test
     void shouldReturnTooManyRequestsWhenLimitExceeded() throws Exception {
-        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, false, new ObjectMapper());
+        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, new ClientIpResolver(false), new ObjectMapper());
 
         MockHttpServletRequest firstRequest = new MockHttpServletRequest("GET", "/api/weather/active");
         firstRequest.setRemoteAddr("10.0.0.1");
@@ -36,7 +37,7 @@ class ApiRateLimitingFilterTest {
 
     @Test
     void shouldBypassRateLimitForNonApiPath() throws Exception {
-        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, false, new ObjectMapper());
+        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, new ClientIpResolver(false), new ObjectMapper());
 
         MockHttpServletRequest firstRequest = new MockHttpServletRequest("GET", "/actuator/health");
         firstRequest.setRemoteAddr("10.0.0.1");
@@ -54,7 +55,7 @@ class ApiRateLimitingFilterTest {
 
     @Test
     void shouldUseForwardedForWhenPresent() throws Exception {
-        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, true, new ObjectMapper());
+        ApiRateLimitingFilter filter = new ApiRateLimitingFilter(1, 60, new ClientIpResolver(true), new ObjectMapper());
 
         MockHttpServletRequest firstRequest = new MockHttpServletRequest("GET", "/api/weather/active");
         firstRequest.setRemoteAddr("10.0.0.1");
