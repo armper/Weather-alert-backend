@@ -1480,7 +1480,7 @@ button.overview-official-alert-card:disabled {
   margin-left: auto;
   margin-right: auto;
   transform: none;
-  bottom: calc(var(--bottom-nav-content-clearance) + 0.55rem);
+  bottom: calc(var(--bottom-nav-content-clearance) + 0.9rem);
   z-index: 30;
   box-sizing: border-box;
   margin-bottom: 0;
