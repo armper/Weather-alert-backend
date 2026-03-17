@@ -143,8 +143,8 @@ app:
       password: ${APP_SECURITY_ADMIN_PASSWORD}
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET}
-      # JWT lifetime in seconds (default 3600 = 1 hour)
-      expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:3600}
+      # JWT lifetime in seconds (default 259200 = 3 days)
+      expiration-seconds: ${APP_SECURITY_JWT_EXPIRATION_SECONDS:259200}
   admin:
     jobs:
       token: ${APP_ADMIN_JOBS_TOKEN:}
