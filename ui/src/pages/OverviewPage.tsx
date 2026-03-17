@@ -135,6 +135,14 @@ function describeOfficialAlertTiming(item: WeatherCondition): string {
   return 'Issued by NOAA'
 }
 
+function resolveOfficialAlertTitle(item: WeatherCondition): string {
+  return item.eventType?.trim() || item.headline?.trim() || 'Official NOAA alert'
+}
+
+function resolveOfficialAlertArea(item: WeatherCondition, fallbackLocation: string): string {
+  return formatFriendlyLocation((item.location || fallbackLocation).replace(/\s*;\s*/g, ' • '))
+}
+
 function describeRecentAlertTiming(item: AlertEvent, now: number): string {
   const timestamp = item.sentAt ?? item.alertTime ?? item.acknowledgedAt ?? item.expiredAt
   return timestamp ? formatRelativeTimeCompact(timestamp, now) : 'recent'
@@ -154,6 +162,7 @@ export function OverviewPage() {
   const [now, setNow] = useState(() => new Date())
   const [dismissingAlertIds, setDismissingAlertIds] = useState<string[]>([])
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
+  const [expandedOfficialAlert, setExpandedOfficialAlert] = useState<WeatherCondition | null>(null)
   const recentAlertRefs = useRef(new Map<string, HTMLButtonElement>())
   const previousRecentAlertPositions = useRef(new Map<string, DOMRect>())
 
@@ -176,6 +185,23 @@ export function OverviewPage() {
       window.clearInterval(intervalId)
     }
   }, [])
+
+  useEffect(() => {
+    if (!expandedOfficialAlert) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setExpandedOfficialAlert(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [expandedOfficialAlert])
 
   const handleSaveLocation = useCallback(
     async (selection: OverviewLocationSelection) => {
@@ -422,13 +448,13 @@ export function OverviewPage() {
             <div className="overview-official-alerts-row">
               {displayOfficialAlerts.map((item) => {
                 const visual = resolveOfficialAlertVisual(item)
-                const title = item.eventType?.trim() || item.headline?.trim() || 'Official NOAA alert'
-                const area = formatFriendlyLocation(item.location || activeLocation.detail || activeLocation.name)
+                const title = resolveOfficialAlertTitle(item)
+                const area = resolveOfficialAlertArea(item, activeLocation.detail || activeLocation.name)
 
                 return (
                   <article
                     key={item.id}
-                    className={`overview-official-alert-card is-${visual.tone}`}
+                    className={`overview-official-alert-card overview-official-alert-card--official is-${visual.tone}`}
                     aria-label={`${title} for ${area}`}
                   >
                     <div className="overview-official-alert-icon" aria-hidden>
@@ -436,13 +462,17 @@ export function OverviewPage() {
                     </div>
                     <div className="overview-official-alert-body">
                       <div className="overview-official-alert-meta">
-                        <span className="overview-official-alert-chip">{item.severity?.trim() || visual.label}</span>
                         <span className="overview-official-alert-timing">{describeOfficialAlertTiming(item)}</span>
+                        <button
+                          type="button"
+                          className="overview-official-alert-more"
+                          aria-label={`More details for ${title}`}
+                          onClick={() => setExpandedOfficialAlert(item)}
+                        >
+                          ...
+                        </button>
                       </div>
                       <h3>{title}</h3>
-                      {item.headline?.trim() && item.headline.trim() !== title ? (
-                        <p className="overview-official-alert-headline">{item.headline.trim()}</p>
-                      ) : null}
                       <p className="overview-official-alert-area">{area}</p>
                     </div>
                   </article>
@@ -515,6 +545,70 @@ export function OverviewPage() {
           )}
         </section>
       </div>
+
+      {expandedOfficialAlert ? (
+        <div
+          className="overview-location-dialog-backdrop overview-official-alert-dialog-backdrop"
+          role="presentation"
+          onClick={() => setExpandedOfficialAlert(null)}
+        >
+          <div
+            className="overview-location-dialog overview-official-alert-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${resolveOfficialAlertTitle(expandedOfficialAlert)} details`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="overview-location-dialog-header overview-official-alert-dialog-header">
+              <div>
+                <p className="overview-official-alert-dialog-kicker">{describeOfficialAlertTiming(expandedOfficialAlert)}</p>
+                <h2>{resolveOfficialAlertTitle(expandedOfficialAlert)}</h2>
+                <p className="overview-location-dialog-copy">
+                  {resolveOfficialAlertArea(expandedOfficialAlert, activeLocation.detail || activeLocation.name)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="overview-official-alert-dialog-close"
+                aria-label="Close alert details"
+                onClick={() => setExpandedOfficialAlert(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overview-official-alert-dialog-content">
+              {expandedOfficialAlert.headline?.trim() &&
+              expandedOfficialAlert.headline.trim() !== resolveOfficialAlertTitle(expandedOfficialAlert) ? (
+                <p className="overview-official-alert-dialog-lead">{expandedOfficialAlert.headline.trim()}</p>
+              ) : null}
+              {expandedOfficialAlert.description?.trim() ? (
+                <p className="overview-official-alert-dialog-copy-block">{expandedOfficialAlert.description.trim()}</p>
+              ) : null}
+              <div className="overview-official-alert-dialog-meta">
+                {expandedOfficialAlert.severity?.trim() ? (
+                  <div>
+                    <span>Severity</span>
+                    <strong>{expandedOfficialAlert.severity.trim()}</strong>
+                  </div>
+                ) : null}
+                {expandedOfficialAlert.onset ? (
+                  <div>
+                    <span>Starts</span>
+                    <strong>{formatDate(expandedOfficialAlert.onset)}</strong>
+                  </div>
+                ) : null}
+                {expandedOfficialAlert.expires ? (
+                  <div>
+                    <span>Ends</span>
+                    <strong>{formatDate(expandedOfficialAlert.expires)}</strong>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

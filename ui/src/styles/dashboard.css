@@ -918,7 +918,7 @@
 }
 
 .app-shell.is-overview-route .overview-page-content-fresh {
-  padding: 1.05rem 0.95rem 8.8rem;
+  padding: 1.05rem 0.95rem max(8.8rem, calc(var(--bottom-nav-content-clearance) + 3.6rem));
 }
 
 .overview-minimal-readout {
@@ -1003,6 +1003,7 @@
 .overview-official-alerts-row {
   display: grid;
   gap: 0.8rem;
+  justify-content: start;
 }
 
 .overview-official-alert-card {
@@ -1109,6 +1110,47 @@
   border-color: rgba(199, 225, 255, 0.34);
 }
 
+.overview-official-alert-card--official {
+  width: min(100%, 28rem);
+  padding: 0.85rem 0.92rem;
+  gap: 0.85rem;
+}
+
+.overview-official-alert-card--official.is-extreme {
+  background:
+    linear-gradient(180deg, rgba(255, 232, 236, 0.48), rgba(255, 150, 170, 0.22)),
+    rgba(132, 8, 33, 0.36);
+  border-color: rgba(255, 170, 186, 0.58);
+}
+
+.overview-official-alert-card--official.is-severe {
+  background:
+    linear-gradient(180deg, rgba(255, 234, 238, 0.44), rgba(255, 166, 181, 0.2)),
+    rgba(140, 18, 42, 0.32);
+  border-color: rgba(255, 180, 194, 0.54);
+}
+
+.overview-official-alert-card--official.is-warning {
+  background:
+    linear-gradient(180deg, rgba(255, 236, 239, 0.4), rgba(255, 185, 185, 0.18)),
+    rgba(146, 34, 48, 0.29);
+  border-color: rgba(255, 194, 194, 0.48);
+}
+
+.overview-official-alert-card--official.is-advisory {
+  background:
+    linear-gradient(180deg, rgba(255, 239, 242, 0.36), rgba(255, 198, 204, 0.16)),
+    rgba(130, 47, 59, 0.26);
+  border-color: rgba(255, 205, 212, 0.44);
+}
+
+.overview-official-alert-card--official.is-notice {
+  background:
+    linear-gradient(180deg, rgba(255, 243, 245, 0.34), rgba(255, 214, 218, 0.14)),
+    rgba(120, 56, 67, 0.24);
+  border-color: rgba(255, 216, 222, 0.4);
+}
+
 .overview-official-alert-icon {
   display: grid;
   place-items: center;
@@ -1129,7 +1171,7 @@
 .overview-official-alert-body {
   min-width: 0;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.16rem;
 }
 
 .overview-official-alert-meta {
@@ -1142,6 +1184,30 @@
 
 .overview-recent-alert-meta {
   justify-content: flex-end;
+}
+
+.overview-official-alert-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.94);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.overview-official-alert-more:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 
 button.overview-official-alert-card {
@@ -1253,6 +1319,10 @@ button.overview-official-alert-card:disabled {
   font-size: 0.83rem;
 }
 
+.overview-official-alert-card--official .overview-official-alert-timing {
+  color: rgba(255, 255, 255, 0.82);
+}
+
 .overview-official-alert-card h3 {
   color: #ffffff;
   font-size: clamp(1rem, 2.2vw, 1.2rem);
@@ -1265,6 +1335,115 @@ button.overview-official-alert-card:disabled {
 
 .overview-official-alert-area {
   color: rgba(255, 255, 255, 0.74);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+}
+
+.overview-official-alert-dialog-backdrop {
+  z-index: 88;
+}
+
+.overview-official-alert-dialog {
+  position: relative;
+  width: min(100%, 32rem);
+  max-height: calc(100dvh - var(--bottom-nav-content-clearance) - 1.8rem);
+  gap: 1.1rem;
+  padding-right: 4.1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 243, 240, 0.32), rgba(255, 220, 214, 0.12)),
+    rgba(86, 46, 50, 0.32);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.overview-official-alert-dialog-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: flex-start;
+}
+
+.overview-official-alert-dialog-header > div {
+  min-width: 0;
+}
+
+.overview-official-alert-dialog-kicker {
+  margin: 0 0 0.35rem;
+  color: rgba(255, 241, 238, 0.76);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-official-alert-dialog-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.overview-official-alert-dialog-content {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.overview-official-alert-dialog-lead,
+.overview-official-alert-dialog-copy-block {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.overview-official-alert-dialog-lead {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.overview-official-alert-dialog-copy-block {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.overview-official-alert-dialog-meta {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.overview-official-alert-dialog-meta div {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.overview-official-alert-dialog-meta span {
+  color: rgba(255, 240, 236, 0.7);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-official-alert-dialog-meta strong {
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 0.92rem;
 }
 
 .overview-minimal-condition-label {
@@ -1761,7 +1940,7 @@ button.overview-official-alert-card:disabled {
   z-index: 82;
   display: grid;
   place-items: center;
-  padding: 0.9rem;
+  padding: 0.9rem 0.9rem calc(var(--bottom-nav-content-clearance) + 0.9rem);
   overflow-y: auto;
   background: rgba(5, 16, 28, 0.46);
   backdrop-filter: blur(8px);
@@ -1769,6 +1948,7 @@ button.overview-official-alert-card:disabled {
 
 .overview-location-dialog {
   width: min(100%, 72rem);
+  max-height: calc(100dvh - var(--bottom-nav-content-clearance) - 1.8rem);
   display: grid;
   gap: 1rem;
   padding: clamp(1rem, 2vw, 1.5rem);
@@ -1782,11 +1962,13 @@ button.overview-official-alert-card:disabled {
     inset 0 1px 0 rgba(255, 255, 255, 0.42);
   backdrop-filter: blur(24px) saturate(1.08);
   -webkit-backdrop-filter: blur(24px) saturate(1.08);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .overview-location-dialog--picker {
-  min-height: min(44rem, calc(100dvh - 1.8rem));
-  max-height: calc(100dvh - 1.8rem);
+  min-height: min(44rem, calc(100dvh - var(--bottom-nav-content-clearance) - 1.8rem));
+  max-height: calc(100dvh - var(--bottom-nav-content-clearance) - 1.8rem);
   overflow-y: auto;
 }
 

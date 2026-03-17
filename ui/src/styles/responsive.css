@@ -71,8 +71,31 @@
 }
 
 @media (max-width: 860px) {
+  html:has(.app-shell.has-bottom-nav),
+  html:has(.app-shell.has-bottom-nav) body,
+  html:has(.app-shell.has-bottom-nav) #root {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   .app-shell {
     padding: 1rem 1rem calc(6.4rem + env(safe-area-inset-bottom));
+  }
+
+  .app-shell.has-bottom-nav {
+    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-shell.has-bottom-nav .shell-body,
+  .app-shell.has-bottom-nav .shell-content,
+  .app-shell.has-bottom-nav .page-stack {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .app-shell.is-overview-route {
@@ -323,12 +346,12 @@
   }
 
   .overview-location-dialog-backdrop {
-    padding: 0.55rem;
+    padding: 0.55rem 0.55rem calc(var(--bottom-nav-content-clearance) + 0.55rem);
   }
 
   .overview-location-dialog--picker {
-    min-height: calc(100dvh - 1.1rem);
-    max-height: calc(100dvh - 1.1rem);
+    min-height: calc(100dvh - var(--bottom-nav-content-clearance) - 1.1rem);
+    max-height: calc(100dvh - var(--bottom-nav-content-clearance) - 1.1rem);
   }
 
   .overview-location-picker-grid {
@@ -336,7 +359,7 @@
   }
 
   .overview-page-content-fresh {
-    padding: 1.05rem 0.95rem 8.4rem;
+    padding: 1.05rem 0.95rem max(8.4rem, calc(var(--bottom-nav-content-clearance) + 3.2rem));
   }
 
   .overview-minimal-greeting {
@@ -372,6 +395,10 @@
 
   .overview-official-alert-icon span {
     font-size: 1.9rem;
+  }
+
+  .overview-official-alert-card--official .overview-official-alert-meta {
+    align-items: center;
   }
 
   .overview-minimal-forecast-strip {
@@ -466,7 +493,7 @@
 
   .settings-dialog-backdrop {
     place-items: start center;
-    padding: 0.8rem 0.8rem calc(1rem + env(safe-area-inset-bottom));
+    padding: 0.8rem 0.8rem calc(var(--bottom-nav-content-clearance) + 0.8rem);
   }
 
   .settings-dialog-actions {
@@ -625,7 +652,7 @@
 
 @media (max-width: 420px) {
   .overview-page-content-fresh {
-    padding: 0.9rem 0.7rem 8rem;
+    padding: 0.9rem 0.7rem max(8rem, calc(var(--bottom-nav-content-clearance) + 3rem));
   }
 
   .overview-minimal-temperature {
@@ -645,6 +672,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.35rem;
+  }
+
+  .overview-official-alert-card--official .overview-official-alert-meta {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .overview-official-alert-dialog {
+    width: min(100%, 30rem);
   }
 
   .overview-minimal-forecast-strip {
