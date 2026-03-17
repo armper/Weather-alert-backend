@@ -14,9 +14,9 @@ interface WeatherVisual {
   label: string
 }
 
-function resolveFromHeadline(headline?: string): { icon: string; label: string } | null {
-  if (!headline) return null
-  const normalized = headline.toLowerCase()
+function resolveFromText(value?: string): { icon: string; label: string } | null {
+  if (!value) return null
+  const normalized = value.toLowerCase()
 
   if (
     normalized.includes('snow') ||
@@ -93,7 +93,7 @@ function resolveBackgroundImage(label: string): string {
 }
 
 export function resolveWeatherVisual(item: Partial<WeatherCondition>): WeatherVisual {
-  const condition = resolveFromHeadline(item.headline) ?? resolveFromNumeric(item)
+  const condition = resolveFromText(item.headline) ?? resolveFromText(item.eventType) ?? resolveFromNumeric(item)
   return {
     ...condition,
     backgroundImage: resolveBackgroundImage(condition.label),

@@ -322,8 +322,16 @@
     align-items: stretch;
   }
 
-  .overview-location-search-row,
-  .overview-location-meta-row {
+  .overview-location-dialog-backdrop {
+    padding: 0.55rem;
+  }
+
+  .overview-location-dialog--picker {
+    min-height: calc(100dvh - 1.1rem);
+    max-height: calc(100dvh - 1.1rem);
+  }
+
+  .overview-location-picker-grid {
     grid-template-columns: 1fr;
   }
 
@@ -337,6 +345,10 @@
 
   .overview-minimal-location {
     font-size: clamp(0.92rem, 3.6vw, 1.08rem);
+  }
+
+  .overview-minimal-location-row {
+    flex-wrap: wrap;
   }
 
   .overview-minimal-temperature {

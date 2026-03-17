@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { apiRequest } from '../api'
 import backgroundOverviewImage from '../assets/background-overview.png'
 import backgroundRainImage from '../assets/background-rain.png'
-import { buildCriteriaPayload, defaultThreshold } from '../lib/criteria'
+import { buildCriteriaPayload, defaultThreshold, describeCriteria } from '../lib/criteria'
+import { formatFriendlyLocation } from '../lib/formatting'
 import {
   QUICK_START_PRESETS,
   SIMPLE_SITUATIONS,
@@ -67,6 +68,38 @@ const FLOOD_CATEGORY_LABELS: Record<string, string> = {
 
 const CUSTOM_CATEGORIES = SIMPLE_SITUATIONS.filter((s) => s.id !== 'CUSTOM')
 
+const LocationPickerMap = lazy(() =>
+  import('../components/maps/LocationPickerMap').then((module) => ({ default: module.LocationPickerMap })),
+)
+
+function resolveCriteriaTileEmoji(criteria: AlertCriteria): string {
+  if (criteria.temperatureThreshold != null) {
+    return criteria.temperatureDirection === 'BELOW' ? '🧥' : '🔥'
+  }
+  if (criteria.rainThreshold != null) {
+    return '🌧️'
+  }
+  if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
+    return '💨'
+  }
+  if (criteria.humidityThreshold != null) {
+    return '💧'
+  }
+  if (criteria.dewPointThreshold != null) {
+    return '🌙'
+  }
+  if (criteria.skyCoverThreshold != null) {
+    return '☀️'
+  }
+  if (criteria.riverFloodCategoryThreshold) {
+    return '🌊'
+  }
+  if (criteria.riverStageThreshold != null) {
+    return '🏞️'
+  }
+  return '✨'
+}
+
 function thresholdUnit(ruleType: RuleType): string {
   switch (ruleType) {
     case 'TEMP_ABOVE':
@@ -97,6 +130,9 @@ function findMatchingCriteria(preset: QuickStartPreset, criteria: AlertCriteria[
   const sensitivity = getSensitivityForSituation(preset.situationId, preset.sensitivityId)
 
   return criteria.find((c) => {
+    if ((c.name ?? '').trim() !== preset.title) {
+      return false
+    }
     switch (situation.ruleType) {
       case 'TEMP_BELOW':
         return c.temperatureDirection === 'BELOW' && c.temperatureThreshold === Number(sensitivity?.threshold ?? situation.defaultThreshold)
@@ -205,6 +241,26 @@ export function RulesPage() {
     return map
   }, [criteria])
 
+  const customRules = useMemo(() => {
+    const presetRuleIds = new Set(enabledMap.values())
+    return criteria
+      .filter((item) => !presetRuleIds.has(item.id))
+      .sort((left, right) => {
+        const leftTime = new Date(left.createdAt ?? '').getTime()
+        const rightTime = new Date(right.createdAt ?? '').getTime()
+        if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+          return (left.name ?? '').localeCompare(right.name ?? '')
+        }
+        if (Number.isNaN(leftTime)) {
+          return 1
+        }
+        if (Number.isNaN(rightTime)) {
+          return -1
+        }
+        return rightTime - leftTime
+      })
+  }, [criteria, enabledMap])
+
   const toggle = useCallback(
     async (preset: QuickStartPreset) => {
       if (!token || !me) return
@@ -289,6 +345,8 @@ export function RulesPage() {
   }, [modalSituation])
 
   const isCustomSensitivity = modalSituation?.sensitivityOptions.find((s) => s.id === selectedSensitivity)?.custom ?? false
+  const modalLatitude = Number.isFinite(Number(criteriaForm.latitude)) ? Number(criteriaForm.latitude) : Number(DEFAULT_LAT)
+  const modalLongitude = Number.isFinite(Number(criteriaForm.longitude)) ? Number(criteriaForm.longitude) : Number(DEFAULT_LON)
 
   return (
     <section className="page-stack rules-page-fresh">
@@ -318,6 +376,32 @@ export function RulesPage() {
           })}
         </div>
 
+        {customRules.length > 0 ? (
+          <section className="rules-custom-saved-section" aria-label="Custom rules">
+            <div className="rules-custom-divider rules-custom-saved-divider">
+              <span>custom rules</span>
+            </div>
+            <div className="rules-custom-saved-grid">
+              {customRules.map((item) => (
+                <article
+                  key={item.id}
+                  className={`rules-tile rules-custom-rule-tile${item.enabled === false ? ' is-muted' : ''}`}
+                >
+                  <div className="rules-custom-rule-top">
+                    <span className="rules-tile-icon">{resolveCriteriaTileEmoji(item)}</span>
+                    <span className={`rules-custom-rule-state${item.enabled === false ? ' is-muted' : ''}`}>
+                      {item.enabled === false ? 'Paused' : 'Monitoring'}
+                    </span>
+                  </div>
+                  <span className="rules-tile-name">{item.name?.trim() || 'Custom alert'}</span>
+                  <span className="rules-custom-rule-location">{formatFriendlyLocation(item.location)}</span>
+                  <span className="rules-tile-desc rules-custom-rule-condition">{describeCriteria(item)}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {/* ─── Custom Alert Builder ─── */}
         <div className="rules-custom-divider">
           <span>or build your own</span>
@@ -345,7 +429,7 @@ export function RulesPage() {
           ref={backdropRef}
           onClick={(e) => { if (e.target === backdropRef.current) closeModal() }}
         >
-          <div className={`rules-modal${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`} role="dialog" aria-label={`Create ${modalSituation.title} alert`}>
+          <div className={`rules-modal rules-modal--builder${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`} role="dialog" aria-label={`Create ${modalSituation.title} alert`}>
             <div className="rules-modal-header">
               <span className="rules-modal-icon">{resolveRuleEmoji(modalSituation.icon)}</span>
               <h2 className="rules-modal-title">{modalSituation.title}</h2>
@@ -417,14 +501,23 @@ export function RulesPage() {
                 </div>
               ) : null}
 
-              <input
-                className="auth-login-input"
-                type="text"
-                aria-label="Location name"
-                placeholder="Location (e.g. Orlando)"
-                value={criteriaForm.location}
-                onChange={(e) => setCriteriaForm((f) => ({ ...f, location: e.target.value }))}
-              />
+              <div className="rules-form-map">
+                <Suspense fallback={<div className="rules-form-map-loading" />}>
+                  <LocationPickerMap
+                    location={criteriaForm.location}
+                    latitude={modalLatitude}
+                    longitude={modalLongitude}
+                    onSelect={(selection) =>
+                      setCriteriaForm((f) => ({
+                        ...f,
+                        location: selection.location,
+                        latitude: String(selection.latitude),
+                        longitude: String(selection.longitude),
+                      }))
+                    }
+                  />
+                </Suspense>
+              </div>
 
               <input
                 className="auth-login-input"

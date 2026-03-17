@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import backgroundOverviewImage from '../assets/background-overview.png'
 import backgroundRainImage from '../assets/background-rain.png'
-import { searchPlaces, type GeocodePlace } from '../services/geocoding'
+import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import { useActionState, useDataState } from '../state/useAppState'
 import type { TravelPlan } from '../types'
@@ -75,10 +75,13 @@ export function TravelPlansPage() {
   const [lat, setLat] = useState(Number(DEFAULT_LAT))
   const [lon, setLon] = useState(Number(DEFAULT_LON))
   const [notes, setNotes] = useState('')
-  const [geoResults, setGeoResults] = useState<GeocodePlace[]>([])
-  const geoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const backdropRef = useRef<HTMLDivElement>(null)
+  const {
+    results: geoResults,
+    clearResults: clearGeoResults,
+    skipNextSearchFor: skipDestinationSearch,
+  } = usePlaceSearch(destination)
 
   /* rain background */
   const h = (currentWeather?.headline ?? '').toLowerCase()
@@ -104,7 +107,7 @@ export function TravelPlansPage() {
     setLat(Number(DEFAULT_LAT))
     setLon(Number(DEFAULT_LON))
     setNotes('')
-    setGeoResults([])
+    clearGeoResults()
     setModalStatus('idle')
     setMode('create')
   }
@@ -265,7 +268,7 @@ export function TravelPlansPage() {
           ref={backdropRef}
           onClick={(e) => { if (e.target === backdropRef.current) closeModal() }}
         >
-          <div className={`travel-modal${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`}>
+          <div className={`travel-modal travel-modal--${mode}${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`}>
             {/* header */}
             <div className="travel-modal-header">
               <span className="travel-modal-icon">{mode === 'create' ? '✈️' : '🗺️'}</span>
@@ -333,21 +336,7 @@ export function TravelPlansPage() {
                     className="travel-input"
                     placeholder="Search destination"
                     value={destination}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setDestination(val)
-                      if (geoTimer.current) clearTimeout(geoTimer.current)
-                      if (val.trim().length >= 3) {
-                        geoTimer.current = setTimeout(async () => {
-                          try {
-                            const places = await searchPlaces(val.trim())
-                            setGeoResults(places)
-                          } catch { setGeoResults([]) }
-                        }, 400)
-                      } else {
-                        setGeoResults([])
-                      }
-                    }}
+                    onChange={(e) => setDestination(e.target.value)}
                     maxLength={180}
                   />
                   {geoResults.length > 0 ? (
@@ -361,7 +350,8 @@ export function TravelPlansPage() {
                               setDestination(place.name)
                               setLat(place.latitude)
                               setLon(place.longitude)
-                              setGeoResults([])
+                              skipDestinationSearch(place.name)
+                              clearGeoResults()
                             }}
                           >
                             <strong>{place.name}</strong>
