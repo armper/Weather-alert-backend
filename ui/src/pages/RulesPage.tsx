@@ -8,7 +8,9 @@ import {
   QUICK_START_PRESETS,
   SIMPLE_SITUATIONS,
   getSensitivityForSituation,
+  getSituationForRuleType,
   getSituationConfig,
+  resolveMatchingSensitivityId,
   type QuickStartPreset,
   type RuleBuilderIcon,
   type SimpleSituationConfig,
@@ -98,6 +100,65 @@ function resolveCriteriaTileEmoji(criteria: AlertCriteria): string {
     return '🏞️'
   }
   return '✨'
+}
+
+function resolveCriteriaRuleType(criteria: AlertCriteria): RuleType | null {
+  if (criteria.temperatureThreshold != null && criteria.temperatureDirection) {
+    return criteria.temperatureDirection === 'BELOW' ? 'TEMP_BELOW' : 'TEMP_ABOVE'
+  }
+  if (criteria.rainThreshold != null) {
+    return 'RAIN'
+  }
+  if (criteria.maxWindSpeed != null) {
+    return 'WIND'
+  }
+  if (criteria.humidityThreshold != null && criteria.humidityDirection) {
+    return criteria.humidityDirection === 'BELOW' ? 'HUMIDITY_BELOW' : 'HUMIDITY_ABOVE'
+  }
+  if (criteria.dewPointThreshold != null && criteria.dewPointDirection) {
+    return criteria.dewPointDirection === 'BELOW' ? 'DEW_POINT_BELOW' : 'DEW_POINT_ABOVE'
+  }
+  if (criteria.windGustThreshold != null) {
+    return 'WIND_GUST'
+  }
+  if (criteria.skyCoverThreshold != null && criteria.skyCoverDirection) {
+    return criteria.skyCoverDirection === 'BELOW' ? 'SKY_COVER_BELOW' : 'SKY_COVER_ABOVE'
+  }
+  if (criteria.riverStageThreshold != null && criteria.riverStageDirection) {
+    return criteria.riverStageDirection === 'BELOW' ? 'RIVER_STAGE_BELOW' : 'RIVER_STAGE_ABOVE'
+  }
+  if (criteria.riverFloodCategoryThreshold) {
+    return 'RIVER_FLOOD_CATEGORY'
+  }
+  return null
+}
+
+function resolveCriteriaThreshold(criteria: AlertCriteria, ruleType: RuleType): string {
+  switch (ruleType) {
+    case 'TEMP_ABOVE':
+    case 'TEMP_BELOW':
+      return String(criteria.temperatureThreshold ?? '')
+    case 'RAIN':
+      return String(criteria.rainThreshold ?? '')
+    case 'WIND':
+      return String(criteria.maxWindSpeed ?? '')
+    case 'HUMIDITY_ABOVE':
+    case 'HUMIDITY_BELOW':
+      return String(criteria.humidityThreshold ?? '')
+    case 'DEW_POINT_ABOVE':
+    case 'DEW_POINT_BELOW':
+      return String(criteria.dewPointThreshold ?? '')
+    case 'WIND_GUST':
+      return String(criteria.windGustThreshold ?? '')
+    case 'SKY_COVER_ABOVE':
+    case 'SKY_COVER_BELOW':
+      return String(criteria.skyCoverThreshold ?? '')
+    case 'RIVER_STAGE_ABOVE':
+    case 'RIVER_STAGE_BELOW':
+      return String(criteria.riverStageThreshold ?? '')
+    case 'RIVER_FLOOD_CATEGORY':
+      return ''
+  }
 }
 
 function thresholdUnit(ruleType: RuleType): string {
@@ -228,6 +289,8 @@ export function RulesPage() {
   const [modalSituation, setModalSituation] = useState<SimpleSituationConfig | null>(null)
   const [selectedSensitivity, setSelectedSensitivity] = useState<string>('')
   const [modalStatus, setModalStatus] = useState<ModalStatus>('idle')
+  const [editingCriteria, setEditingCriteria] = useState<AlertCriteria | null>(null)
+  const [editingEnabled, setEditingEnabled] = useState(true)
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const enabledMap = useMemo(() => {
@@ -303,6 +366,8 @@ export function RulesPage() {
     if (!situation.ruleType) return
     const defaultSens = situation.sensitivityOptions[1]?.id ?? situation.sensitivityOptions[0]?.id ?? ''
     setSelectedSensitivity(defaultSens)
+    setEditingCriteria(null)
+    setEditingEnabled(true)
     const sens = situation.sensitivityOptions.find((s) => s.id === defaultSens)
     setCriteriaForm((f) => ({
       ...f,
@@ -311,12 +376,50 @@ export function RulesPage() {
       riverFloodCategoryThreshold: (sens?.floodCategory ?? situation.defaultFloodCategory ?? 'ACTION') as 'ACTION' | 'MINOR' | 'MODERATE' | 'MAJOR',
       name: '',
     }))
+    setModalStatus('idle')
+    setModalSituation(situation)
+  }
+
+  function openCustomRuleEditor(criteria: AlertCriteria) {
+    const ruleType = resolveCriteriaRuleType(criteria)
+    if (!ruleType) return
+    const situationId = getSituationForRuleType(ruleType)
+    const situation = getSituationConfig(situationId)
+    if (!situation?.ruleType) return
+
+    const threshold = resolveCriteriaThreshold(criteria, ruleType)
+    const floodCategory = criteria.riverFloodCategoryThreshold ?? situation.defaultFloodCategory ?? 'ACTION'
+
+    setEditingCriteria(criteria)
+    setEditingEnabled(criteria.enabled !== false)
+    setSelectedSensitivity(resolveMatchingSensitivityId(situationId, threshold, floodCategory))
+    setCriteriaForm((f) => ({
+      ...f,
+      name: criteria.name ?? '',
+      location: criteria.location ?? 'Orlando',
+      latitude: String(criteria.latitude ?? DEFAULT_LAT),
+      longitude: String(criteria.longitude ?? DEFAULT_LON),
+      threshold,
+      ruleType,
+      temperatureUnit: criteria.temperatureUnit ?? situation.defaultTemperatureUnit ?? 'F',
+      riverGaugeId: criteria.riverGaugeId ?? '',
+      riverFloodCategoryThreshold: floodCategory,
+      gaugeSearchRadiusKm: String(criteria.radiusKm ?? f.gaugeSearchRadiusKm ?? '80'),
+      monitorCurrent: criteria.monitorCurrent ?? situation.defaultMonitorCurrent ?? true,
+      monitorForecast: criteria.monitorForecast ?? situation.defaultMonitorForecast ?? true,
+      forecastWindowHours: String(criteria.forecastWindowHours ?? situation.defaultForecastWindowHours ?? '24'),
+      oncePerEvent: criteria.oncePerEvent ?? situation.defaultOncePerEvent ?? true,
+      rearmWindowMinutes: String(criteria.rearmWindowMinutes ?? '240'),
+    }))
+    setModalStatus('idle')
     setModalSituation(situation)
   }
 
   function closeModal() {
     setModalSituation(null)
     setModalStatus('idle')
+    setEditingCriteria(null)
+    setEditingEnabled(true)
   }
 
   function handleSensitivityPick(sensId: string) {
@@ -383,20 +486,20 @@ export function RulesPage() {
             </div>
             <div className="rules-custom-saved-grid">
               {customRules.map((item) => (
-                <article
+                <button
                   key={item.id}
-                  className={`rules-tile rules-custom-rule-tile${item.enabled === false ? ' is-muted' : ''}`}
+                  className={`rules-tile rules-custom-rule-tile${item.enabled === false ? ' is-muted' : ' is-enabled'}`}
+                  type="button"
+                  onClick={() => openCustomRuleEditor(item)}
+                  aria-label={`Edit ${item.name?.trim() || 'custom alert'}`}
                 >
                   <div className="rules-custom-rule-top">
                     <span className="rules-tile-icon">{resolveCriteriaTileEmoji(item)}</span>
-                    <span className={`rules-custom-rule-state${item.enabled === false ? ' is-muted' : ''}`}>
-                      {item.enabled === false ? 'Paused' : 'Monitoring'}
-                    </span>
                   </div>
                   <span className="rules-tile-name">{item.name?.trim() || 'Custom alert'}</span>
                   <span className="rules-custom-rule-location">{formatFriendlyLocation(item.location)}</span>
                   <span className="rules-tile-desc rules-custom-rule-condition">{describeCriteria(item)}</span>
-                </article>
+                </button>
               ))}
             </div>
           </section>
@@ -429,14 +532,33 @@ export function RulesPage() {
           ref={backdropRef}
           onClick={(e) => { if (e.target === backdropRef.current) closeModal() }}
         >
-          <div className={`rules-modal rules-modal--builder${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`} role="dialog" aria-label={`Create ${modalSituation.title} alert`}>
+          <div className={`rules-modal rules-modal--builder${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`} role="dialog" aria-label={`${editingCriteria ? 'Edit' : 'Create'} ${modalSituation.title} alert`}>
             <div className="rules-modal-header">
               <span className="rules-modal-icon">{resolveRuleEmoji(modalSituation.icon)}</span>
-              <h2 className="rules-modal-title">{modalSituation.title}</h2>
+              <h2 className="rules-modal-title">{editingCriteria ? `Edit ${modalSituation.title}` : modalSituation.title}</h2>
               <button type="button" className="rules-modal-close" aria-label="Close" onClick={closeModal}>✕</button>
             </div>
 
-            <p className="rules-modal-desc">{modalSituation.description}</p>
+            <p className="rules-modal-desc">{editingCriteria ? 'Update your saved custom rule.' : modalSituation.description}</p>
+
+            {editingCriteria ? (
+              <div className="rules-status-row" aria-label="Rule status">
+                <button
+                  type="button"
+                  className={`rules-chip${editingEnabled ? ' is-active' : ''}`}
+                  onClick={() => setEditingEnabled(true)}
+                >
+                  active
+                </button>
+                <button
+                  type="button"
+                  className={`rules-chip${!editingEnabled ? ' is-active rules-chip-muted' : ' rules-chip-muted'}`}
+                  onClick={() => setEditingEnabled(false)}
+                >
+                  paused
+                </button>
+              </div>
+            ) : null}
 
             {modalSituation.sensitivityOptions.length > 0 ? (
               <div className="rules-sensitivity-chips">
@@ -461,7 +583,18 @@ export function RulesPage() {
                 setModalStatus('saving')
                 try {
                   const payload = buildCriteriaPayload(criteriaForm, me.id)
-                  await apiRequest<AlertCriteria>('/api/criteria', { method: 'POST', token, body: payload })
+                  if (editingCriteria) {
+                    await apiRequest<AlertCriteria>(`/api/criteria/${editingCriteria.id}`, {
+                      method: 'PUT',
+                      token,
+                      body: {
+                        ...payload,
+                        enabled: editingEnabled,
+                      },
+                    })
+                  } else {
+                    await apiRequest<AlertCriteria>('/api/criteria', { method: 'POST', token, body: payload })
+                  }
                   setModalStatus('success')
                   await refresh()
                   setTimeout(() => closeModal(), 900)
@@ -533,7 +666,13 @@ export function RulesPage() {
                 className="action-bubble action-bubble-wide action-bubble-accent"
                 disabled={!canSubmitCriteria || modalStatus === 'saving' || modalStatus === 'success'}
               >
-                {modalStatus === 'saving' ? 'Creating...' : modalStatus === 'success' ? 'Created!' : modalStatus === 'error' ? 'Try Again' : 'Create Alert'}
+                {modalStatus === 'saving'
+                  ? (editingCriteria ? 'Saving...' : 'Creating...')
+                  : modalStatus === 'success'
+                    ? (editingCriteria ? 'Saved!' : 'Created!')
+                    : modalStatus === 'error'
+                      ? 'Try Again'
+                      : (editingCriteria ? 'Save changes' : 'Create Alert')}
               </button>
             </form>
           </div>

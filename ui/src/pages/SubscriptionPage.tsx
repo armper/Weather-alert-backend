@@ -22,33 +22,33 @@ const PLAN_DETAILS: Array<{
 }> = [
   {
     id: 'FREE',
-    name: 'The Basics',
-    emoji: '🌤️',
+    name: 'Home',
+    emoji: '☁️',
     monthlyPrice: '$0',
     activeAlertsLabel: '1 active alert',
     travelPlansLabel: 'No travel plans',
     emailMode: 'Includes a small sponsored link',
-    highlight: 'Perfect for your home or daily commute.',
+    highlight: 'A clean starting point for home, commute, and everyday weather.',
   },
   {
     id: 'PLUS',
-    name: 'The Family Plan',
-    emoji: '🏡',
-    monthlyPrice: '$9',
+    name: 'Neighborhood',
+    emoji: '✨',
+    monthlyPrice: '$6',
     activeAlertsLabel: '10 active alerts',
     travelPlansLabel: '3 travel plans',
     emailMode: 'Ad-free',
-    highlight: 'Keep an eye on home, work, the kids\u2019 school, weekend sports, and upcoming trips.',
+    highlight: 'More room for the places and plans you actually keep tabs on each week.',
   },
   {
     id: 'PRO',
-    name: 'The Globetrotter',
-    emoji: '🌍',
-    monthlyPrice: '$19',
+    name: 'Everywhere',
+    emoji: '🛰️',
+    monthlyPrice: '$9',
     activeAlertsLabel: '50 active alerts',
     travelPlansLabel: '15 travel plans',
     emailMode: 'Ad-free',
-    highlight: 'Ideal for frequent travelers, RVers, or keeping tabs on extended family across the country.',
+    highlight: 'Built for multi-location monitoring, frequent travel, and full family coverage.',
   },
 ]
 
@@ -135,7 +135,7 @@ export function SubscriptionPage() {
               <span className="sub-stat">
                 <strong>{currentTripCount}</strong>/{maxTravelPlans} trips
                 <span className="sub-stat-hint">
-                  {maxTravelPlans === 0 ? 'Starts on Family' : `${remainingTrips} left`}
+                  {maxTravelPlans === 0 ? 'Starts on Neighborhood' : `${remainingTrips} left`}
                 </span>
               </span>
             </div>
@@ -187,7 +187,7 @@ export function SubscriptionPage() {
         {!initialDataLoading ? (
           <p className="sub-footnote">
             {currentPlan === 'FREE'
-              ? <>You're on The Basics — <Link to="/app/rules" className="sub-link">create alerts</Link> and upgrade when you need more.</>
+              ? <>You're on Home — <Link to="/app/rules" className="sub-link">create alerts</Link> and upgrade when you need more.</>
               : 'Switch plans above or use "Manage billing" for payment methods and invoices.'}
           </p>
         ) : null}

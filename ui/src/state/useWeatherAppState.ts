@@ -1069,8 +1069,8 @@ export function useWeatherAppState() {
         kind: 'success',
         text:
           plan === 'FREE'
-            ? 'Plan downgraded to The Basics.'
-            : `Plan updated to ${plan === 'PRO' ? 'The Globetrotter' : 'The Family Plan'}.`,
+            ? 'Plan downgraded to Home.'
+            : `Plan updated to ${plan === 'PRO' ? 'Everywhere' : 'Neighborhood'}.`,
       })
       return true
     } catch (error) {
