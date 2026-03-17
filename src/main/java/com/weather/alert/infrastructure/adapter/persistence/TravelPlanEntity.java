@@ -59,6 +59,9 @@ public class TravelPlanEntity {
     @Column(name = "linked_criteria_ids", columnDefinition = "TEXT")
     private String linkedCriteriaIds;
 
+    @Column(name = "waypoints", columnDefinition = "TEXT")
+    private String waypoints;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

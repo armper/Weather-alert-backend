@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -31,6 +30,7 @@ public class TravelPlanResponse {
     private String alertCoverageMode;
     private List<String> selectedAlertTopics;
     private List<String> linkedCriteriaIds;
+    private List<RouteWaypointResponse> waypoints;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -49,6 +49,8 @@ public class TravelPlanResponse {
                 .alertCoverageMode(travelPlan.getAlertCoverageMode())
                 .selectedAlertTopics(travelPlan.getSelectedAlertTopics())
                 .linkedCriteriaIds(travelPlan.getLinkedCriteriaIds())
+                .waypoints(travelPlan.getWaypoints() == null ? List.of() :
+                        travelPlan.getWaypoints().stream().map(RouteWaypointResponse::fromDomain).toList())
                 .createdAt(travelPlan.getCreatedAt())
                 .updatedAt(travelPlan.getUpdatedAt())
                 .build();

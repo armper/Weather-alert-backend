@@ -11,6 +11,7 @@ import com.weather.alert.application.usecase.ChangeBillingPlanUseCase;
 import com.weather.alert.application.usecase.CreateBillingCheckoutSessionUseCase;
 import com.weather.alert.application.usecase.CreateBillingPortalSessionUseCase;
 import com.weather.alert.application.usecase.GetBillingStatusUseCase;
+import com.weather.alert.application.usecase.GetRouteWeatherUseCase;
 import com.weather.alert.application.usecase.HandleStripeWebhookUseCase;
 import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
 import com.weather.alert.application.usecase.ManageAlertCriteriaUseCase;
@@ -132,6 +133,9 @@ class SecurityConfigTest {
 
     @MockBean
     private ManageTravelPlansUseCase manageTravelPlansUseCase;
+
+    @MockBean
+    private GetRouteWeatherUseCase getRouteWeatherUseCase;
 
     @Test
     void shouldRequireAuthenticationForApiEndpoints() throws Exception {

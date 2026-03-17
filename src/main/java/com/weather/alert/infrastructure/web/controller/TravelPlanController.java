@@ -1,8 +1,10 @@
 package com.weather.alert.infrastructure.web.controller;
 
+import com.weather.alert.application.dto.RouteWeatherResponse;
 import com.weather.alert.application.dto.TravelPlanRequest;
 import com.weather.alert.application.dto.TravelPlanResponse;
 import com.weather.alert.application.exception.ForbiddenOperationException;
+import com.weather.alert.application.usecase.GetRouteWeatherUseCase;
 import com.weather.alert.application.usecase.ManageTravelPlansUseCase;
 import com.weather.alert.domain.model.TravelPlan;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +33,7 @@ import java.util.List;
 public class TravelPlanController {
 
     private final ManageTravelPlansUseCase manageTravelPlansUseCase;
+    private final GetRouteWeatherUseCase getRouteWeatherUseCase;
 
     @GetMapping("/user/{userId}")
     @Operation(
@@ -95,6 +98,25 @@ public class TravelPlanController {
         enforceUserAccess(authentication, existing.getUserId());
         manageTravelPlansUseCase.delete(travelPlanId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{travelPlanId}/route/weather")
+    @Operation(
+            summary = "Get current weather and active NWS alerts for every stop on a truck route",
+            description = "Returns one entry per route waypoint, ordered by sequence. "
+                    + "Each entry includes current observed conditions and any active NWS alerts at that location. "
+                    + "Requires the travel plan to have waypoints defined.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Route weather returned"),
+                    @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(mediaType = "application/problem+json")),
+                    @ApiResponse(responseCode = "404", description = "Travel plan not found", content = @Content(mediaType = "application/problem+json"))
+            })
+    public ResponseEntity<List<RouteWeatherResponse>> getRouteWeather(
+            @PathVariable String travelPlanId,
+            Authentication authentication) {
+        TravelPlan existing = manageTravelPlansUseCase.getById(travelPlanId);
+        enforceUserAccess(authentication, existing.getUserId());
+        return ResponseEntity.ok(getRouteWeatherUseCase.getRouteWeather(travelPlanId));
     }
 
     private String resolveOwnerUserIdForCreate(String requestedUserId, Authentication authentication) {
