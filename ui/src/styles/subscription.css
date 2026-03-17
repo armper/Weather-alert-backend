@@ -2,9 +2,6 @@
 
 .sub-page {
   position: relative;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .sub-page-content {
@@ -12,14 +9,9 @@
   z-index: 1;
   display: grid;
   gap: 1.2rem;
-  height: 100%;
-  min-height: 0;
   max-width: 58rem;
   margin: 0 auto;
   padding: 1rem 1rem max(3rem, calc(var(--bottom-nav-content-clearance) + 1rem));
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* ─── hero ─── */
