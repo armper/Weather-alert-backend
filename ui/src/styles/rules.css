@@ -807,29 +807,8 @@
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.65rem;
-}
-
-.rules-custom-rule-state {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.7rem;
-  padding: 0.16rem 0.58rem;
-  border-radius: 999px;
-  background: rgba(80, 160, 240, 0.22);
-  border: 1px solid rgba(120, 200, 255, 0.3);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.rules-custom-rule-state.is-muted {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.66);
 }
 
 .rules-custom-rule-location {
@@ -975,6 +954,12 @@
   gap: 0.4rem;
 }
 
+.rules-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .rules-chip {
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
@@ -997,6 +982,11 @@
   background: rgba(80, 160, 240, 0.22);
   color: #fff;
   box-shadow: 0 0 12px rgba(80, 160, 255, 0.15);
+}
+
+.rules-chip-muted {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .rules-modal-form {
