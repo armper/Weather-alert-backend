@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import backgroundOverviewImage from '../assets/background-overview.png'
-import backgroundRainImage from '../assets/background-rain.png'
+import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import type { BillingPlan } from '../types'
 import {
   useActionState,
@@ -61,10 +60,7 @@ export function SubscriptionPage() {
   const location = useLocation()
   const [pendingPlan, setPendingPlan] = useState<BillingPlan | null>(null)
 
-  /* rain background */
-  const h = (currentWeather?.headline ?? '').toLowerCase()
-  const isRaining = h.includes('rain') || h.includes('drizzle') || h.includes('shower') || h.includes('thunder') || h.includes('tstms')
-  const bgImage = isRaining ? backgroundRainImage : backgroundOverviewImage
+  const bgImage = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   /* derived billing state */
   const billingFlow = useMemo(() => new URLSearchParams(location.search).get('billing'), [location.search])

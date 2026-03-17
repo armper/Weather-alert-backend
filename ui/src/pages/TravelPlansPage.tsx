@@ -1,7 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
-import backgroundOverviewImage from '../assets/background-overview.png'
-import backgroundRainImage from '../assets/background-rain.png'
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
+import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import { useActionState, useDataState } from '../state/useAppState'
 import type { TravelPlan } from '../types'
@@ -83,10 +82,7 @@ export function TravelPlansPage() {
     skipNextSearchFor: skipDestinationSearch,
   } = usePlaceSearch(destination)
 
-  /* rain background */
-  const h = (currentWeather?.headline ?? '').toLowerCase()
-  const isRaining = h.includes('rain') || h.includes('drizzle') || h.includes('shower') || h.includes('thunder') || h.includes('tstms')
-  const bgImage = isRaining ? backgroundRainImage : backgroundOverviewImage
+  const bgImage = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   /* sort: active first, then upcoming, then past */
   const sorted = [...travelPlans].sort((a, b) => {
