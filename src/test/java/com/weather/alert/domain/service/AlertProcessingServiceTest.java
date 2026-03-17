@@ -310,6 +310,41 @@ class AlertProcessingServiceTest {
     }
 
     @Test
+    void shouldSkipPublishWhenConcurrentDuplicateSaveOccurs() {
+        AlertCriteria criteria = AlertCriteria.builder()
+                .id("criteria-race")
+                .userId("dev-admin")
+                .enabled(true)
+                .latitude(28.5383)
+                .longitude(-81.3792)
+                .temperatureThreshold(60.0)
+                .temperatureDirection(AlertCriteria.TemperatureDirection.BELOW)
+                .temperatureUnit(AlertCriteria.TemperatureUnit.F)
+                .monitorCurrent(true)
+                .monitorForecast(false)
+                .build();
+
+        WeatherData current = WeatherData.builder()
+                .id("current-race")
+                .eventType("CURRENT_CONDITIONS")
+                .temperature(12.0)
+                .build();
+
+        when(criteriaRepository.findAllEnabled()).thenReturn(List.of(criteria));
+        when(weatherDataPort.fetchActiveAlertsWithStatus()).thenReturn(WeatherFetchResult.success(List.of()));
+        when(weatherDataPort.fetchCurrentConditionsWithStatus(28.5383, -81.3792))
+                .thenReturn(WeatherFetchResult.success(Optional.of(current)));
+        when(criteriaStateRepository.findByCriteriaId(criteria.getId())).thenReturn(Optional.empty());
+        when(criteriaStateRepository.save(any(AlertCriteriaState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(alertRepository.save(any(Alert.class))).thenThrow(new DuplicateAlertException("criteria-race", "current|criteria-race|2026-01-01T10:00:00Z", null));
+
+        service.processWeatherAlerts();
+
+        verify(alertRepository, times(1)).save(any(Alert.class));
+        verify(notificationPort, never()).publishAlert(any(Alert.class));
+    }
+
+    @Test
     void shouldReuseCurrentConditionFetchForCriteriaSharingCoordinates() {
         AlertCriteria first = AlertCriteria.builder()
                 .id("criteria-a")

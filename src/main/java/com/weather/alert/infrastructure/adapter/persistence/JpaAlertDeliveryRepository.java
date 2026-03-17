@@ -15,12 +15,29 @@ import java.util.Optional;
 @Repository
 public interface JpaAlertDeliveryRepository extends JpaRepository<AlertDeliveryEntity, String> {
 
+    List<String> CLAIMABLE_STATUSES = List.of("PENDING", "RETRY_SCHEDULED");
+
     Optional<AlertDeliveryEntity> findByAlertIdAndChannel(String alertId, String channel);
 
     List<AlertDeliveryEntity> findByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(
             List<String> statuses,
             Instant nextAttemptAt,
             Pageable pageable);
+
+    @Transactional
+    @Modifying
+    @Query("""
+            update AlertDeliveryEntity d
+            set d.status = 'IN_PROGRESS',
+                d.updatedAt = :claimedAt
+            where d.id = :id
+              and d.status in :claimableStatuses
+              and (d.nextAttemptAt is null or d.nextAttemptAt <= :claimedAt)
+            """)
+    int claimForDelivery(
+            @Param("id") String id,
+            @Param("claimedAt") Instant claimedAt,
+            @Param("claimableStatuses") List<String> claimableStatuses);
 
     @Transactional
     @Modifying

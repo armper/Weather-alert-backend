@@ -507,17 +507,25 @@ public class AlertProcessingService {
             return Optional.empty();
         }
 
-        Alert savedAlert = alertRepository.save(alert);
-        if (publish) {
-            notificationPort.publishAlert(savedAlert);
+        try {
+            Alert savedAlert = alertRepository.save(alert);
+            if (publish) {
+                notificationPort.publishAlert(savedAlert);
+            }
+            log.info(
+                    "Generated alert {} for user {} based on criteria {} (eventKey={})",
+                    savedAlert.getId(),
+                    criteria.getUserId(),
+                    criteria.getId(),
+                    savedAlert.getEventKey());
+            return Optional.of(savedAlert);
+        } catch (DuplicateAlertException ex) {
+            meterRegistry.counter("weather.alert.criteria.deduped").increment();
+            log.info("Criteria decision outcome=DEDUPED criteriaId={} eventKey={} source=concurrent_save",
+                    criteria.getId(),
+                    alert.getEventKey());
+            return Optional.empty();
         }
-        log.info(
-                "Generated alert {} for user {} based on criteria {} (eventKey={})",
-                savedAlert.getId(),
-                criteria.getUserId(),
-                criteria.getId(),
-                savedAlert.getEventKey());
-        return Optional.of(savedAlert);
     }
 
     private boolean shouldMonitorCurrent(AlertCriteria criteria) {

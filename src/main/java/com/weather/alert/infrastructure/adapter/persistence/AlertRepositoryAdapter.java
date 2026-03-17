@@ -3,7 +3,9 @@ package com.weather.alert.infrastructure.adapter.persistence;
 import com.weather.alert.domain.model.Alert;
 import com.weather.alert.domain.model.PagedResult;
 import com.weather.alert.domain.port.AlertRepositoryPort;
+import com.weather.alert.domain.service.DuplicateAlertException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -22,8 +24,15 @@ public class AlertRepositoryAdapter implements AlertRepositoryPort {
     @Override
     public Alert save(Alert alert) {
         AlertEntity entity = toEntity(alert);
-        AlertEntity saved = jpaRepository.save(entity);
-        return toDomain(saved);
+        try {
+            AlertEntity saved = jpaRepository.save(entity);
+            return toDomain(saved);
+        } catch (DataIntegrityViolationException ex) {
+            if (isDuplicateEventKeyViolation(ex)) {
+                throw new DuplicateAlertException(alert.getCriteriaId(), alert.getEventKey(), ex);
+            }
+            throw ex;
+        }
     }
     
     @Override
@@ -206,6 +215,23 @@ public class AlertRepositoryAdapter implements AlertRepositoryPort {
             return Alert.AlertStatus.PENDING;
         }
         return Alert.AlertStatus.valueOf(status);
+    }
+
+    private boolean isDuplicateEventKeyViolation(DataIntegrityViolationException ex) {
+        Throwable current = ex;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toLowerCase();
+                if (normalized.contains("idx_alerts_criteria_event_key_unique")
+                        || normalized.contains("duplicate key")
+                        || normalized.contains("unique index or primary key violation")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private PagedResult<Alert> toPagedResult(Page<AlertEntity> page) {

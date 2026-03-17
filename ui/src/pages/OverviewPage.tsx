@@ -140,6 +140,11 @@ function describeRecentAlertTiming(item: AlertEvent, now: number): string {
   return timestamp ? formatRelativeTimeCompact(timestamp, now) : 'recent'
 }
 
+function resolveRecentAlertTime(item: AlertEvent): number {
+  const timestamp = new Date(item.sentAt ?? item.alertTime ?? '').getTime()
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
 export function OverviewPage() {
   const { criteria, alerts, currentWeather, officialAlerts, dailyForecast, hourlyForecast } = useDataState()
   const { loadingData, busyAlertId } = useAsyncState()
@@ -255,14 +260,15 @@ export function OverviewPage() {
     () =>
       alerts
         .filter((item) => item.status !== 'ACKNOWLEDGED' && item.status !== 'EXPIRED')
+        .filter((item) => {
+          const alertTime = resolveRecentAlertTime(item)
+          return alertTime > 0 && alertTime >= now.getTime() - 24 * 60 * 60 * 1000
+        })
         .filter((item) => !dismissedAlertIds.includes(item.id))
         .slice()
-        .sort(
-          (left, right) =>
-            new Date(right.sentAt ?? right.alertTime ?? '').getTime() - new Date(left.sentAt ?? left.alertTime ?? '').getTime(),
-        )
+        .sort((left, right) => resolveRecentAlertTime(right) - resolveRecentAlertTime(left))
         .slice(0, 7),
-    [alerts, dismissedAlertIds],
+    [alerts, dismissedAlertIds, now],
   )
   const handleDismissRecentAlert = useCallback(
     async (alertId: string) => {

@@ -68,9 +68,12 @@ public class ProcessAlertDeliveryTaskUseCase {
             return;
         }
 
+        if (!alertDeliveryRepository.claimForDelivery(deliveryId, now)) {
+            return;
+        }
+
         delivery.setStatus(AlertDeliveryStatus.IN_PROGRESS);
         delivery.setUpdatedAt(now);
-        alertDeliveryRepository.save(delivery);
 
         int attempt = normalizeAttempts(delivery) + 1;
         try {
