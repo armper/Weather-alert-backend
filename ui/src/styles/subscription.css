@@ -2,6 +2,9 @@
 
 .sub-page {
   position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .sub-page-content {
@@ -9,9 +12,14 @@
   z-index: 1;
   display: grid;
   gap: 1.2rem;
+  height: 100%;
+  min-height: 0;
   max-width: 58rem;
   margin: 0 auto;
-  padding: 1rem 1rem 3rem;
+  padding: 1rem 1rem max(3rem, calc(var(--bottom-nav-content-clearance) + 1rem));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ─── hero ─── */
@@ -235,7 +243,9 @@
   z-index: 80;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem calc(var(--bottom-nav-content-clearance) + 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: rgba(5, 16, 28, 0.55);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -243,6 +253,7 @@
 
 .sub-dialog {
   width: min(100%, 28rem);
+  max-height: calc(100dvh - var(--bottom-nav-content-clearance) - 3rem);
   display: grid;
   gap: 0.9rem;
   padding: 1.1rem;
@@ -253,6 +264,7 @@
   -webkit-backdrop-filter: blur(20px);
   color: #fff;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  overflow-y: auto;
 }
 
 .sub-dialog.is-downgrade {

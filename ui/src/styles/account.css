@@ -2,6 +2,9 @@
 
 .settings-page {
   position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .settings-page-content {
@@ -9,9 +12,14 @@
   z-index: 1;
   display: grid;
   gap: 1.2rem;
+  height: 100%;
+  min-height: 0;
   max-width: 42rem;
   margin: 0 auto;
-  padding: 1rem 1rem 3rem;
+  padding: 1rem 1rem max(3rem, calc(var(--bottom-nav-content-clearance) + 1rem));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ─── hero ─── */
@@ -402,7 +410,7 @@
   z-index: 80;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem calc(var(--bottom-nav-content-clearance) + 1.5rem);
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -413,6 +421,7 @@
 
 .settings-dialog {
   width: min(100%, 30rem);
+  max-height: calc(100dvh - var(--bottom-nav-content-clearance) - 3rem);
   display: grid;
   gap: 1rem;
   padding: 1.2rem;
@@ -423,6 +432,7 @@
   -webkit-backdrop-filter: blur(24px);
   color: #fff;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+  overflow-y: auto;
 }
 
 .settings-dialog-header {

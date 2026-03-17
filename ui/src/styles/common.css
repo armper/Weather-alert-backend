@@ -17,6 +17,7 @@ html:has(.app-shell.is-overview-route) #root {
 }
 
 .app-shell {
+  --bottom-nav-content-clearance: 0px;
   position: relative;
   min-height: 100vh;
   padding: 2rem;
@@ -24,6 +25,7 @@ html:has(.app-shell.is-overview-route) #root {
 }
 
 .app-shell.has-bottom-nav {
+  --bottom-nav-content-clearance: calc(4.75rem + env(safe-area-inset-bottom));
   padding: 1rem 1rem calc(6.4rem + env(safe-area-inset-bottom));
 }
 
