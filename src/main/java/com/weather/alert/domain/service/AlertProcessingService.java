@@ -498,12 +498,22 @@ public class AlertProcessingService {
         return value == null ? "unknown" : value;
     }
 
+    private String safeLogValue(String value) {
+        return safeValue(value)
+                .replace('\n', '_')
+                .replace('\r', '_')
+                .replace('\t', ' ');
+    }
+
     private Optional<Alert> saveAndPublishAlert(AlertCriteria criteria, WeatherData weatherData, boolean publish) {
         Alert alert = createAlert(criteria, weatherData);
         Optional<Alert> existing = alertRepository.findByCriteriaIdAndEventKey(criteria.getId(), alert.getEventKey());
         if (existing.isPresent()) {
             meterRegistry.counter("weather.alert.criteria.deduped").increment();
-            log.info("Criteria decision outcome=DEDUPED criteriaId={} eventKey={}", criteria.getId(), alert.getEventKey());
+            log.info(
+                    "Criteria decision outcome=DEDUPED criteriaId={} eventKey={}",
+                    safeLogValue(criteria.getId()),
+                    safeLogValue(alert.getEventKey()));
             return Optional.empty();
         }
 
@@ -514,16 +524,17 @@ public class AlertProcessingService {
             }
             log.info(
                     "Generated alert {} for user {} based on criteria {} (eventKey={})",
-                    savedAlert.getId(),
-                    criteria.getUserId(),
-                    criteria.getId(),
-                    savedAlert.getEventKey());
+                    safeLogValue(savedAlert.getId()),
+                    safeLogValue(criteria.getUserId()),
+                    safeLogValue(criteria.getId()),
+                    safeLogValue(savedAlert.getEventKey()));
             return Optional.of(savedAlert);
         } catch (DuplicateAlertException ex) {
             meterRegistry.counter("weather.alert.criteria.deduped").increment();
-            log.info("Criteria decision outcome=DEDUPED criteriaId={} eventKey={} source=concurrent_save",
-                    criteria.getId(),
-                    alert.getEventKey());
+            log.info(
+                    "Criteria decision outcome=DEDUPED criteriaId={} eventKey={} source=concurrent_save",
+                    safeLogValue(criteria.getId()),
+                    safeLogValue(alert.getEventKey()));
             return Optional.empty();
         }
     }
