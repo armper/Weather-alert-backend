@@ -1,59 +1,72 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { searchPlaces } from '../../../services/geocoding'
+import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
+import { usePlaceSearch } from '../../../hooks/usePlaceSearch'
 import { formatFriendlyLocation } from '../../../lib/formatting'
+import { reverseGeocode } from '../../../services/geocoding'
 import { AriaButton } from '../../ui/AriaButton'
 
-export interface OverviewLocationOption {
-  id: string
+const LocationPickerMap = lazy(() =>
+  import('../../maps/LocationPickerMap').then((module) => ({ default: module.LocationPickerMap })),
+)
+
+export interface OverviewLocationSelection {
   name: string
-  detail: string
   latitude: number
   longitude: number
-  kind: 'monitoring' | 'search' | 'device'
+  detail?: string
 }
 
 interface OverviewLocationSwitcherProps {
-  monitoringLocation: OverviewLocationOption
-  activeLocation: OverviewLocationOption
-  recentLocations: OverviewLocationOption[]
-  onSelectLocation: (location: OverviewLocationOption) => void
-  onUseCurrentLocation: () => Promise<void> | void
-  onResetToMonitoring: () => void
-  loadingLocationData: boolean
-  resolvingCurrentLocation: boolean
-  statusMessage?: string | null
+  activeLocation: OverviewLocationSelection
+  monitoringLocation: OverviewLocationSelection
+  onSaveLocation: (location: OverviewLocationSelection) => Promise<void> | void
 }
 
+const LONG_PRESS_TOOLTIP_DELAY_MS = 420
+
 export function OverviewLocationSwitcher({
-  monitoringLocation,
   activeLocation,
-  recentLocations,
-  onSelectLocation,
-  onUseCurrentLocation,
-  onResetToMonitoring,
-  resolvingCurrentLocation,
-  statusMessage,
+  monitoringLocation,
+  onSaveLocation,
 }: OverviewLocationSwitcherProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<OverviewLocationOption[]>([])
-  const [searching, setSearching] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
+  const titleId = useId()
+  const tooltipTimerRef = useRef<number | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
 
-  const isViewingAlternate = activeLocation.id !== monitoringLocation.id
-  const recentLocationsToShow = useMemo(
-    () => recentLocations.filter((item) => item.id !== activeLocation.id).slice(0, 4),
-    [activeLocation.id, recentLocations],
-  )
+  const [isOpen, setIsOpen] = useState(false)
+  const [resolvingCurrentLocation, setResolvingCurrentLocation] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const [query, setQuery] = useState(activeLocation.name)
+  const [draftLocation, setDraftLocation] = useState(activeLocation)
+  const [hasTypedQuery, setHasTypedQuery] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const {
+    results,
+    searching,
+    searchError,
+    clearResults,
+    skipNextSearchFor,
+  } = usePlaceSearch(query, { debounceMs: 320, enabled: isOpen && hasTypedQuery })
+
+  const isViewingCustomLocation =
+    Math.abs(activeLocation.latitude - monitoringLocation.latitude) > 0.0001 ||
+    Math.abs(activeLocation.longitude - monitoringLocation.longitude) > 0.0001 ||
+    formatFriendlyLocation(activeLocation.name) !== formatFriendlyLocation(monitoringLocation.name)
 
   useEffect(() => {
     if (!isOpen) {
       return
     }
 
+    setQuery(activeLocation.name)
+    clearResults()
+    setDraftLocation(activeLocation)
+    setHasTypedQuery(false)
+    setLocationError(null)
+
     const timeoutId = window.setTimeout(() => {
       searchInputRef.current?.focus()
+      searchInputRef.current?.select()
     }, 30)
 
     const handleEscape = (event: KeyboardEvent) => {
@@ -68,159 +81,265 @@ export function OverviewLocationSwitcher({
       window.clearTimeout(timeoutId)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [isOpen])
+  }, [activeLocation, clearResults, isOpen])
 
-  async function handleSearch() {
-    if (!query.trim()) {
-      setResults([])
+  useEffect(() => {
+    return () => {
+      if (tooltipTimerRef.current != null) {
+        window.clearTimeout(tooltipTimerRef.current)
+      }
+    }
+  }, [])
+
+  function openModal() {
+    setShowTooltip(false)
+    setIsOpen(true)
+  }
+
+  function closeModal() {
+    setIsOpen(false)
+    clearResults()
+    setResolvingCurrentLocation(false)
+    setLocationError(null)
+  }
+
+  function applyDraftLocation(location: OverviewLocationSelection) {
+    setDraftLocation(location)
+    setQuery(location.name)
+    skipNextSearchFor(location.name)
+    clearResults()
+    setHasTypedQuery(false)
+    setLocationError(null)
+  }
+
+  function beginTooltipLongPress() {
+    if (tooltipTimerRef.current != null) {
+      window.clearTimeout(tooltipTimerRef.current)
+    }
+
+    tooltipTimerRef.current = window.setTimeout(() => {
+      setShowTooltip(true)
+    }, LONG_PRESS_TOOLTIP_DELAY_MS)
+  }
+
+  function endTooltipLongPress() {
+    if (tooltipTimerRef.current != null) {
+      window.clearTimeout(tooltipTimerRef.current)
+      tooltipTimerRef.current = null
+    }
+    setShowTooltip(false)
+  }
+
+  async function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      setLocationError('Current location is not available on this device.')
       return
     }
 
-    setSearching(true)
-    setSearchError(null)
+    setResolvingCurrentLocation(true)
+    clearResults()
+    setLocationError(null)
 
     try {
-      const places = await searchPlaces(query)
-      const mapped = places.map((place) => ({
-        id: `search:${place.latitude.toFixed(4)},${place.longitude.toFixed(4)}`,
-        name: place.name,
-        detail: place.displayName,
-        latitude: place.latitude,
-        longitude: place.longitude,
-        kind: 'search' as const,
-      }))
-      setResults(mapped)
-      if (mapped.length === 0) {
-        setSearchError('No matching location found. Try a city, ZIP code, or landmark.')
-      }
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10_000,
+          maximumAge: 60_000,
+        })
+      })
+
+      const latitude = position.coords.latitude
+      const longitude = position.coords.longitude
+      const place = await reverseGeocode(latitude, longitude)
+
+      applyDraftLocation({
+        name: place?.name ?? 'Current location',
+        detail: place?.displayName,
+        latitude,
+        longitude,
+      })
     } catch {
-      setSearchError('Location search is unavailable right now. Try again in a moment.')
+      setLocationError('SkyPanda could not read your current location.')
     } finally {
-      setSearching(false)
+      setResolvingCurrentLocation(false)
     }
   }
 
-  function applySelection(location: OverviewLocationOption) {
-    onSelectLocation(location)
-    setQuery('')
-    setResults([])
-    setSearchError(null)
-    setIsOpen(false)
+  async function handleSave() {
+    setSaving(true)
+
+    try {
+      await onSaveLocation(draftLocation)
+      closeModal()
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <>
-      <AriaButton className="overview-location-inline-trigger" onPress={() => setIsOpen(true)}>
-        Change location
-      </AriaButton>
+      <div className="overview-location-trigger-shell">
+        <button
+          aria-label="Change location"
+          aria-describedby={showTooltip ? titleId : undefined}
+          aria-haspopup="dialog"
+          className={`overview-location-icon-trigger${showTooltip ? ' is-tooltip-visible' : ''}`}
+          data-tooltip="Change location"
+          onClick={openModal}
+          onTouchCancel={endTooltipLongPress}
+          onTouchEnd={endTooltipLongPress}
+          onTouchStart={beginTooltipLongPress}
+          title="Change location"
+          type="button"
+        >
+          <svg aria-hidden="true" className="overview-location-icon" viewBox="0 0 24 24">
+            <path
+              d="M12 20.25c-1.72-2.04-5.75-6.82-5.75-10.5a5.75 5.75 0 1 1 11.5 0c0 3.68-4.03 8.46-5.75 10.5Z"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.6"
+            />
+            <circle cx="12" cy="9.75" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path
+              d="M17.2 16.1h4.1m-2.05-2.05v4.1"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.6"
+            />
+          </svg>
+        </button>
+        <span className="overview-location-trigger-tooltip" id={titleId} role="tooltip">
+          Change location
+        </span>
+      </div>
 
       {isOpen ? (
-        <div className="overview-location-dialog-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
+        <div className="overview-location-dialog-backdrop" role="presentation" onClick={closeModal}>
           <div
-            className="overview-location-dialog"
-            role="dialog"
+            aria-labelledby={`${titleId}-dialog`}
             aria-modal="true"
-            aria-labelledby="overview-location-dialog-title"
+            className="overview-location-dialog overview-location-dialog--picker"
             onClick={(event) => event.stopPropagation()}
+            role="dialog"
           >
             <div className="overview-location-dialog-header">
               <div>
-                <p className="eyebrow">Explore Forecasts</p>
-                <h2 id="overview-location-dialog-title">Check another location</h2>
+                <h2 id={`${titleId}-dialog`}>Change location</h2>
                 <p className="overview-location-dialog-copy">
-                  Browse live weather and forecast discussions somewhere else without changing the places SkyPanda is actively watching.
+                  Search or tap the map to update the weather shown here.
                 </p>
               </div>
-              <AriaButton className="ghost button-inline overview-location-close" onPress={() => setIsOpen(false)}>
-                Done
+              <AriaButton className="ghost button-inline overview-location-close" onPress={closeModal}>
+                Close
               </AriaButton>
             </div>
 
-            <div className="overview-location-search-row">
-              <label className="overview-location-search-field" htmlFor="overview-location-search">
-                <span>Search another place</span>
-                <input
-                  ref={searchInputRef}
-                  id="overview-location-search"
-                  className="aria-input"
-                  value={query}
-                  placeholder="City, ZIP, park, airport..."
-                  onChange={(event) => setQuery(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      void handleSearch()
-                    }
-                  }}
-                />
-              </label>
-              <div className="overview-location-search-actions">
-                <AriaButton className="ghost button-inline overview-location-action" onPress={() => void handleSearch()} isDisabled={searching}>
-                  {searching ? 'Searching...' : 'Search'}
-                </AriaButton>
-                <AriaButton
-                  className="ghost button-inline overview-location-action"
-                  onPress={async () => {
-                    await onUseCurrentLocation()
-                    setIsOpen(false)
-                  }}
-                  isDisabled={resolvingCurrentLocation}
-                >
-                  {resolvingCurrentLocation ? 'Locating...' : 'Use my location'}
-                </AriaButton>
-                {isViewingAlternate ? (
+            <div className="overview-location-picker-grid">
+              <div className="overview-location-search-column">
+                <div className="overview-location-search-wrapper">
+                  <label className="overview-location-search-field" htmlFor={`${titleId}-search`}>
+                    <span>Find a place</span>
+                    <input
+                      ref={searchInputRef}
+                      autoComplete="off"
+                      className="travel-input overview-location-search-input"
+                      id={`${titleId}-search`}
+                      maxLength={180}
+                      onChange={(event) => {
+                        setHasTypedQuery(true)
+                        setQuery(event.target.value)
+                        setLocationError(null)
+                      }}
+                      placeholder="City, ZIP, landmark"
+                      value={query}
+                    />
+                  </label>
+
+                  {results.length > 0 ? (
+                    <ul className="travel-geo-results overview-location-results">
+                      {results.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            className="travel-geo-result"
+                            onClick={() =>
+                              applyDraftLocation({
+                                name: item.name,
+                                detail: item.displayName,
+                                latitude: item.latitude,
+                                longitude: item.longitude,
+                              })
+                            }
+                            type="button"
+                          >
+                            <strong>{formatFriendlyLocation(item.name)}</strong>
+                            <span>{item.displayName}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+
+                <div className="overview-location-search-actions">
                   <AriaButton
-                    className="button-inline overview-location-reset"
-                    onPress={() => {
-                      onResetToMonitoring()
-                      setIsOpen(false)
-                    }}
+                    className="ghost button-inline overview-location-action"
+                    isDisabled={resolvingCurrentLocation}
+                    onPress={() => void handleUseCurrentLocation()}
                   >
-                    Back to monitored area
+                    {resolvingCurrentLocation ? 'Locating...' : 'Use current location'}
                   </AriaButton>
-                ) : null}
-              </div>
-            </div>
-
-            {searchError ? <p className="field-error">{searchError}</p> : null}
-            {statusMessage ? <p className="muted small overview-location-status">{statusMessage}</p> : null}
-
-            {results.length > 0 ? (
-              <div className="overview-location-search-results" role="listbox" aria-label="Overview location results">
-                {results.map((item) => (
-                  <AriaButton key={item.id} className="overview-location-search-result" onPress={() => applySelection(item)}>
-                    <span className="overview-location-result-name">{formatFriendlyLocation(item.name)}</span>
-                    <span className="overview-location-result-detail">{item.detail}</span>
-                  </AriaButton>
-                ))}
-              </div>
-            ) : null}
-
-            <div className="overview-location-meta-row">
-              <div className="overview-location-meta-card">
-                <span className="overview-location-meta-label">Now viewing</span>
-                <strong>{formatFriendlyLocation(activeLocation.name)}</strong>
-                <span>{activeLocation.detail}</span>
-              </div>
-              <div className="overview-location-meta-card">
-                <span className="overview-location-meta-label">Alerts stay tied to</span>
-                <strong>{formatFriendlyLocation(monitoringLocation.name)}</strong>
-                <span>{monitoringLocation.detail}</span>
-              </div>
-            </div>
-
-            {recentLocationsToShow.length > 0 ? (
-              <div className="overview-location-recent-row">
-                <span className="overview-location-recent-label">Recent places</span>
-                <div className="overview-location-recent-chips">
-                  {recentLocationsToShow.map((item) => (
-                    <AriaButton key={item.id} className="overview-location-chip" onPress={() => applySelection(item)}>
-                      {formatFriendlyLocation(item.name)}
+                  {isViewingCustomLocation ? (
+                    <AriaButton
+                      className="ghost button-inline overview-location-action"
+                      isDisabled={saving}
+                      onPress={() => applyDraftLocation(monitoringLocation)}
+                    >
+                      Use monitored location
                     </AriaButton>
-                  ))}
+                  ) : null}
+                </div>
+
+                {searching ? <p className="muted small overview-location-status">Finding places…</p> : null}
+                {locationError ?? searchError ? <p className="field-error">{locationError ?? searchError}</p> : null}
+
+                <div className="overview-location-selection-card">
+                  <span className="overview-location-selection-label">Selected location</span>
+                  <strong>{formatFriendlyLocation(draftLocation.name)}</strong>
+                  <span>{draftLocation.detail ?? `${draftLocation.latitude.toFixed(3)}, ${draftLocation.longitude.toFixed(3)}`}</span>
                 </div>
               </div>
-            ) : null}
+
+              <div className="overview-location-map-panel">
+                <Suspense fallback={<div className="overview-location-map-loading" />}>
+                  <LocationPickerMap
+                    latitude={draftLocation.latitude}
+                    location={draftLocation.name}
+                    longitude={draftLocation.longitude}
+                    onSelect={({ location, latitude, longitude }) => {
+                      applyDraftLocation({
+                        name: location,
+                        latitude,
+                        longitude,
+                      })
+                    }}
+                    showSearchControls={false}
+                  />
+                </Suspense>
+              </div>
+            </div>
+
+            <div className="overview-location-dialog-footer">
+              <AriaButton className="ghost button-inline overview-location-action" isDisabled={saving} onPress={closeModal}>
+                Cancel
+              </AriaButton>
+              <AriaButton className="button-inline overview-location-save" isDisabled={saving} onPress={() => void handleSave()}>
+                {saving ? 'Updating...' : 'Update location'}
+              </AriaButton>
+            </div>
           </div>
         </div>
       ) : null}
