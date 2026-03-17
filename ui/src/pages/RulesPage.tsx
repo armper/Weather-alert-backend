@@ -1,7 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { apiRequest } from '../api'
-import backgroundOverviewImage from '../assets/background-overview.png'
-import backgroundRainImage from '../assets/background-rain.png'
 import { buildCriteriaPayload, defaultThreshold, describeCriteria } from '../lib/criteria'
 import { formatFriendlyLocation } from '../lib/formatting'
 import { resolveCriteriaTileEmoji, resolveRuleEmoji } from '../lib/ruleIcons'
@@ -15,6 +13,7 @@ import {
   type QuickStartPreset,
   type SimpleSituationConfig,
 } from '../lib/ruleBuilder'
+import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import type { RuleType } from '../state/types'
 import { useAsyncState, useDataState, useFormState, useSessionState } from '../state/useAppState'
@@ -225,9 +224,7 @@ export function RulesPage() {
   const { criteriaForm, setCriteriaForm } = useFormState()
   const { canSubmitCriteria } = useAsyncState()
 
-  const h = (currentWeather?.headline ?? '').toLowerCase()
-  const isRaining = h.includes('rain') || h.includes('drizzle') || h.includes('shower') || h.includes('thunder') || h.includes('tstms')
-  const rulesBackground = isRaining ? backgroundRainImage : backgroundOverviewImage
+  const rulesBackground = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   const [pendingState, setPendingState] = useState<Map<string, boolean>>(() => new Map())
   const abortControllers = useRef(new Map<string, AbortController>())

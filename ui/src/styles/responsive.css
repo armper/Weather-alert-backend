@@ -26,39 +26,13 @@
   .criteria-section-header,
   .guided-step-header,
   .preset-loaded-banner,
-  .overview-watch-header,
-  .travel-page-header,
-  .travel-card-header,
-  .travel-card-footer,
-  .travel-map-toolbar {
+  .overview-watch-header {
     flex-direction: column;
     align-items: stretch;
   }
 
   .rule-monitoring-layout {
     grid-template-columns: 1fr;
-  }
-
-  .travel-feature-panel,
-  .travel-summary-grid,
-  .travel-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .travel-mode-grid,
-  .travel-topic-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .travel-rule-option,
-  .travel-coverage-panel-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .travel-rule-side {
-    justify-items: start;
-    text-align: left;
   }
 
   .guided-rule-layout {
@@ -98,25 +72,39 @@
     overflow: hidden;
   }
 
-  .app-shell.is-overview-route {
+  .app-shell.has-bottom-nav :is(.settings-page, .sub-page, .travel-page-fresh) {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell.has-bottom-nav :is(.settings-page-content, .sub-page-content, .travel-page-content) {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-shell.is-immersive-route {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
   }
 
-  .app-shell.is-overview-route .shell-body,
-  .app-shell.is-overview-route .shell-content {
+  .app-shell.is-immersive-route .shell-body,
+  .app-shell.is-immersive-route .shell-content {
     height: 100%;
     overflow: hidden;
   }
 
-  .app-shell.is-overview-route .overview-page-stack {
+  .app-shell.is-immersive-route .overview-page-stack {
     height: 100%;
     overflow: hidden;
     touch-action: none;
   }
 
-  .app-shell.is-overview-route .overview-page-content-fresh {
+  .app-shell.is-immersive-route .overview-page-content-fresh {
     height: 100%;
     overflow: hidden;
   }
@@ -407,7 +395,7 @@
     border-radius: 1.15rem;
   }
 
-  .app-shell.is-overview-route .overview-minimal-forecast-strip {
+  .app-shell.is-immersive-route .overview-minimal-forecast-strip {
     position: fixed;
     left: 0.95rem;
     right: 0.95rem;
@@ -478,10 +466,6 @@
     grid-template-columns: 1fr;
   }
 
-  .travel-card-grid {
-    grid-template-columns: 1fr;
-  }
-
   .button-row {
     flex-direction: column;
   }
@@ -516,8 +500,7 @@
 
   .travel-preset-chip,
   .travel-mode-button,
-  .travel-topic-button,
-  .travel-rule-option {
+  .travel-topic-button {
     width: 100%;
   }
 
@@ -689,7 +672,7 @@
     border-radius: 1rem;
   }
 
-  .app-shell.is-overview-route .overview-minimal-forecast-strip {
+  .app-shell.is-immersive-route .overview-minimal-forecast-strip {
     left: 0.7rem;
     right: 0.7rem;
     width: auto;

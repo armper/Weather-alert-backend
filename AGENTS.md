@@ -48,6 +48,9 @@
 - Follow Conventional Commit style seen in history: `feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`.
 - Keep commits scoped and descriptive (one logical change per commit).
 - Do not push directly to `main` for feature or fix work. Open a pull request and wait for CI to pass before merging.
+- For this repo, when asked to "merge to main", the expected workflow is: create a `codex/*` feature branch, commit, push, open a PR, wait for required GitHub checks to pass, then merge the PR into `main` using an allowed method.
+- GitHub does not allow approving your own PR here, so do not treat "approve and merge" as literal self-approval.
+- Repository settings currently disallow merge commits and do not allow PR auto-merge, so use `gh pr merge --squash` after checks pass unless repo settings change.
 - PRs should include:
   - concise summary and motivation,
   - linked issue/ticket (if applicable),
