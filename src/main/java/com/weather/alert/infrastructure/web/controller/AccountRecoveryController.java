@@ -8,6 +8,7 @@ import com.weather.alert.application.dto.MessageResponse;
 import com.weather.alert.application.dto.RecoveryRequestResponse;
 import com.weather.alert.application.dto.UsernameRecoveryResponse;
 import com.weather.alert.application.usecase.ManageAccountRecoveryUseCase;
+import com.weather.alert.infrastructure.web.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountRecoveryController {
 
     private final ManageAccountRecoveryUseCase manageAccountRecoveryUseCase;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/username/request")
     @Operation(
@@ -144,9 +146,6 @@ public class AccountRecoveryController {
     }
 
     private String clientIp(HttpServletRequest request) {
-        if (request == null || request.getRemoteAddr() == null || request.getRemoteAddr().isBlank()) {
-            return "unknown";
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolve(request);
     }
 }

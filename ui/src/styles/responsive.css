@@ -336,7 +336,7 @@
   }
 
   .overview-page-content-fresh {
-    padding: 1.05rem 0.95rem 1rem;
+    padding: 1.05rem 0.95rem 8.4rem;
   }
 
   .overview-minimal-greeting {
@@ -353,6 +353,25 @@
 
   .overview-minimal-temperature {
     font-size: clamp(2.45rem, 12vw, 3.5rem);
+  }
+
+  .overview-official-alerts {
+    gap: 0.75rem;
+  }
+
+  .overview-official-alert-card {
+    grid-template-columns: 3.8rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.82rem 0.88rem;
+  }
+
+  .overview-official-alert-icon {
+    width: 3.8rem;
+    height: 3.8rem;
+  }
+
+  .overview-official-alert-icon span {
+    font-size: 1.9rem;
   }
 
   .overview-minimal-forecast-strip {
@@ -606,11 +625,26 @@
 
 @media (max-width: 420px) {
   .overview-page-content-fresh {
-    padding: 0.9rem 0.7rem 1rem;
+    padding: 0.9rem 0.7rem 8rem;
   }
 
   .overview-minimal-temperature {
     font-size: clamp(2.15rem, 11.5vw, 3rem);
+  }
+
+  .overview-official-alert-card {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-official-alert-icon {
+    width: 3.4rem;
+    height: 3.4rem;
+  }
+
+  .overview-official-alert-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .overview-minimal-forecast-strip {

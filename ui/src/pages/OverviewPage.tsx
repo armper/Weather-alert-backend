@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { apiRequest, toErrorMessage } from '../api'
 import { OverviewLocationSwitcher, type OverviewLocationSelection } from '../components/features/dashboard/OverviewLocationSwitcher'
-import { formatFriendlyLocation, formatPercentOrNA, formatTemperature } from '../lib/formatting'
+import { formatDate, formatFriendlyLocation, formatPercentOrNA, formatRelativeTime, formatRelativeTimeCompact, formatTemperature } from '../lib/formatting'
+import { resolveOfficialAlertVisual } from '../lib/officialAlerts'
+import { resolveCriteriaTileEmoji } from '../lib/ruleIcons'
 import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
-import { useAsyncState, useDataState, useNoticeState, useSessionState } from '../state/useAppState'
+import { useActionState, useAsyncState, useDataState, useNoticeState, useSessionState } from '../state/useAppState'
+import type { AlertEvent } from '../types'
 import type { WeatherCondition } from '../types'
 
 interface MinimalForecastItem {
@@ -18,6 +21,7 @@ interface MinimalForecastItem {
 interface CustomOverviewView {
   location: OverviewLocationSelection
   weather: WeatherCondition | null
+  officialAlerts: WeatherCondition[]
   dailyForecast: WeatherCondition[]
   hourlyForecast: WeatherCondition[]
 }
@@ -86,12 +90,67 @@ function areLocationsEquivalent(left: OverviewLocationSelection, right: Overview
   return Math.abs(left.latitude - right.latitude) < 0.0001 && Math.abs(left.longitude - right.longitude) < 0.0001
 }
 
+function resolveAlertRank(item: WeatherCondition): number {
+  const { tone } = resolveOfficialAlertVisual(item)
+  return (
+    {
+      extreme: 0,
+      severe: 1,
+      warning: 2,
+      advisory: 3,
+      notice: 4,
+    } as const
+  )[tone]
+}
+
+function sortOfficialAlerts(items: WeatherCondition[]): WeatherCondition[] {
+  return [...items].sort((left, right) => {
+    const rankCompare = resolveAlertRank(left) - resolveAlertRank(right)
+    if (rankCompare !== 0) {
+      return rankCompare
+    }
+
+    const leftTime = new Date(left.onset ?? left.expires ?? '').getTime()
+    const rightTime = new Date(right.onset ?? right.expires ?? '').getTime()
+    if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+      return (left.headline ?? left.eventType ?? left.id).localeCompare(right.headline ?? right.eventType ?? right.id)
+    }
+    if (Number.isNaN(leftTime)) {
+      return 1
+    }
+    if (Number.isNaN(rightTime)) {
+      return -1
+    }
+    return leftTime - rightTime
+  })
+}
+
+function describeOfficialAlertTiming(item: WeatherCondition): string {
+  if (item.expires) {
+    return `Until ${formatDate(item.expires)}`
+  }
+  if (item.onset) {
+    return `Started ${formatRelativeTime(item.onset)}`
+  }
+  return 'Issued by NOAA'
+}
+
+function describeRecentAlertTiming(item: AlertEvent, now: number): string {
+  const timestamp = item.sentAt ?? item.alertTime ?? item.acknowledgedAt ?? item.expiredAt
+  return timestamp ? formatRelativeTimeCompact(timestamp, now) : 'recent'
+}
+
 export function OverviewPage() {
-  const { criteria, currentWeather, dailyForecast, hourlyForecast } = useDataState()
-  const { loadingData } = useAsyncState()
+  const { criteria, alerts, currentWeather, officialAlerts, dailyForecast, hourlyForecast } = useDataState()
+  const { loadingData, busyAlertId } = useAsyncState()
+  const { handleAcknowledgeAlert } = useActionState()
   const { token } = useSessionState()
   const { setNotice } = useNoticeState()
   const [now, setNow] = useState(() => new Date())
+  const [dismissingAlertIds, setDismissingAlertIds] = useState<string[]>([])
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
+  const recentAlertRefs = useRef(new Map<string, HTMLButtonElement>())
+  const previousRecentAlertPositions = useRef(new Map<string, DOMRect>())
 
   const monitoringLocation = useMemo<OverviewLocationSelection>(() => {
     const monitoredCriteria = criteria[0]
@@ -128,10 +187,13 @@ export function OverviewPage() {
         const latitude = encodeURIComponent(String(selection.latitude))
         const longitude = encodeURIComponent(String(selection.longitude))
 
-        const [weather, nextDailyForecast, nextHourlyForecast] = await Promise.all([
+        const [weather, nextOfficialAlerts, nextDailyForecast, nextHourlyForecast] = await Promise.all([
           apiRequest<WeatherCondition>(`/api/weather/conditions/current?latitude=${latitude}&longitude=${longitude}`, {
             token,
           }).catch(() => null),
+          apiRequest<WeatherCondition[]>(`/api/weather/location?latitude=${latitude}&longitude=${longitude}`, {
+            token,
+          }).catch(() => [] as WeatherCondition[]),
           apiRequest<WeatherCondition[]>(`/api/weather/conditions/daily?latitude=${latitude}&longitude=${longitude}`, {
             token,
           }).catch(() => [] as WeatherCondition[]),
@@ -152,6 +214,7 @@ export function OverviewPage() {
             detail: weather?.location?.trim() || selection.detail,
           },
           weather,
+          officialAlerts: sortOfficialAlerts(nextOfficialAlerts),
           dailyForecast: nextDailyForecast,
           hourlyForecast: nextHourlyForecast,
         })
@@ -169,6 +232,10 @@ export function OverviewPage() {
     customLocationView != null && !areLocationsEquivalent(customLocationView.location, monitoringLocation)
   const activeLocation = usingCustomLocation ? customLocationView.location : monitoringLocation
   const displayWeather = usingCustomLocation ? customLocationView.weather : currentWeather
+  const displayOfficialAlerts = useMemo(
+    () => sortOfficialAlerts(usingCustomLocation ? customLocationView?.officialAlerts ?? [] : officialAlerts),
+    [customLocationView, officialAlerts, usingCustomLocation],
+  )
   const displayDailyForecast = usingCustomLocation ? customLocationView.dailyForecast : dailyForecast
   const displayHourlyForecast = usingCustomLocation ? customLocationView.hourlyForecast : hourlyForecast
   const weatherVisualSource = useMemo(
@@ -183,6 +250,97 @@ export function OverviewPage() {
   const conditionIcon = weatherVisual.icon
   const conditionLabel = weatherVisual.label
   const backgroundImage = weatherVisual.backgroundImage
+  const criteriaById = useMemo(() => new Map(criteria.map((item) => [item.id, item])), [criteria])
+  const recentTriggeredAlerts = useMemo(
+    () =>
+      alerts
+        .filter((item) => item.status !== 'ACKNOWLEDGED' && item.status !== 'EXPIRED')
+        .filter((item) => !dismissedAlertIds.includes(item.id))
+        .slice()
+        .sort(
+          (left, right) =>
+            new Date(right.sentAt ?? right.alertTime ?? '').getTime() - new Date(left.sentAt ?? left.alertTime ?? '').getTime(),
+        )
+        .slice(0, 7),
+    [alerts, dismissedAlertIds],
+  )
+  const handleDismissRecentAlert = useCallback(
+    async (alertId: string) => {
+      if (dismissingAlertIds.includes(alertId) || dismissedAlertIds.includes(alertId)) {
+        return
+      }
+
+      setDismissingAlertIds((current) => [...current, alertId])
+      const acknowledgePromise = handleAcknowledgeAlert(alertId)
+      await new Promise((resolve) => window.setTimeout(resolve, 240))
+      setDismissedAlertIds((current) => (current.includes(alertId) ? current : [...current, alertId]))
+
+      const acknowledged = await acknowledgePromise
+      if (!acknowledged) {
+        setDismissingAlertIds((current) => current.filter((id) => id !== alertId))
+        setDismissedAlertIds((current) => current.filter((id) => id !== alertId))
+        return
+      }
+      setDismissingAlertIds((current) => current.filter((id) => id !== alertId))
+    },
+    [dismissedAlertIds, dismissingAlertIds, handleAcknowledgeAlert],
+  )
+
+  const setRecentAlertRef = useCallback((alertId: string, node: HTMLButtonElement | null) => {
+    if (node) {
+      recentAlertRefs.current.set(alertId, node)
+      return
+    }
+    recentAlertRefs.current.delete(alertId)
+  }, [])
+
+  useLayoutEffect(() => {
+    const nextPositions = new Map<string, DOMRect>()
+
+    recentTriggeredAlerts.forEach((item) => {
+      const node = recentAlertRefs.current.get(item.id)
+      if (!node) {
+        return
+      }
+
+      const nextRect = node.getBoundingClientRect()
+      nextPositions.set(item.id, nextRect)
+
+      const previousRect = previousRecentAlertPositions.current.get(item.id)
+      if (!previousRect) {
+        return
+      }
+
+      const deltaY = previousRect.top - nextRect.top
+      if (Math.abs(deltaY) < 1) {
+        return
+      }
+
+      node.style.transition = 'none'
+      node.style.transform = `translateY(${deltaY}px)`
+      node.style.willChange = 'transform'
+
+      requestAnimationFrame(() => {
+        const liveNode = recentAlertRefs.current.get(item.id)
+        if (!liveNode) {
+          return
+        }
+        liveNode.style.transition = 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)'
+        liveNode.style.transform = ''
+      })
+
+      window.setTimeout(() => {
+        const liveNode = recentAlertRefs.current.get(item.id)
+        if (!liveNode) {
+          return
+        }
+        liveNode.style.transition = ''
+        liveNode.style.willChange = ''
+      }, 240)
+    })
+
+    previousRecentAlertPositions.current = nextPositions
+  }, [recentTriggeredAlerts])
   const greetingLabel = useMemo(() => {
     const hour = now.getHours()
     if (hour < 12) {
@@ -252,6 +410,78 @@ export function OverviewPage() {
             <span className="overview-minimal-condition-icon">{conditionIcon}</span>
           </p>
         </div>
+
+        {displayOfficialAlerts.length > 0 ? (
+          <section className="overview-official-alerts" aria-label="Active alerts">
+            <div className="overview-official-alerts-row">
+              {displayOfficialAlerts.map((item) => {
+                const visual = resolveOfficialAlertVisual(item)
+                const title = item.eventType?.trim() || item.headline?.trim() || 'Official NOAA alert'
+                const area = formatFriendlyLocation(item.location || activeLocation.detail || activeLocation.name)
+
+                return (
+                  <article
+                    key={item.id}
+                    className={`overview-official-alert-card is-${visual.tone}`}
+                    aria-label={`${title} for ${area}`}
+                  >
+                    <div className="overview-official-alert-icon" aria-hidden>
+                      <span>{visual.icon}</span>
+                    </div>
+                    <div className="overview-official-alert-body">
+                      <div className="overview-official-alert-meta">
+                        <span className="overview-official-alert-chip">{item.severity?.trim() || visual.label}</span>
+                        <span className="overview-official-alert-timing">{describeOfficialAlertTiming(item)}</span>
+                      </div>
+                      <h3>{title}</h3>
+                      {item.headline?.trim() && item.headline.trim() !== title ? (
+                        <p className="overview-official-alert-headline">{item.headline.trim()}</p>
+                      ) : null}
+                      <p className="overview-official-alert-area">{area}</p>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {recentTriggeredAlerts.length > 0 ? (
+          <section className="overview-recent-alerts" aria-label="Recent alerts">
+            <div className="overview-recent-alerts-row">
+              {recentTriggeredAlerts.map((item) => {
+                const criteriaItem = item.criteriaId ? criteriaById.get(item.criteriaId) : undefined
+                const visual = resolveOfficialAlertVisual(item)
+                const title = criteriaItem?.name?.trim() || item.eventType?.trim() || item.headline?.trim() || 'Alert'
+                const area = formatFriendlyLocation(item.location || 'Selected area')
+                const icon = criteriaItem ? resolveCriteriaTileEmoji(criteriaItem) : visual.icon
+
+                return (
+                  <button
+                    key={item.id}
+                    ref={(node) => setRecentAlertRef(item.id, node)}
+                    type="button"
+                    className={`overview-official-alert-card is-${visual.tone}${dismissingAlertIds.includes(item.id) ? ' is-dismissing' : ''}`}
+                    aria-label={`${title} in ${area}`}
+                    disabled={busyAlertId === item.id || dismissingAlertIds.includes(item.id)}
+                    onClick={() => void handleDismissRecentAlert(item.id)}
+                  >
+                    <div className="overview-official-alert-icon" aria-hidden>
+                      <span>{icon}</span>
+                    </div>
+                    <div className="overview-official-alert-body">
+                      <div className="overview-official-alert-meta overview-recent-alert-meta">
+                        <span className="overview-official-alert-timing">{describeRecentAlertTiming(item, now.getTime())}</span>
+                      </div>
+                      <h3>{title}</h3>
+                      <p className="overview-official-alert-area">{area}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        ) : null}
 
         <section
           className={`overview-minimal-forecast-strip${isForecastLoading ? ' is-loading' : ''}`}

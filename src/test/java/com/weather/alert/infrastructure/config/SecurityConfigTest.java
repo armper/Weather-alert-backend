@@ -26,6 +26,7 @@ import com.weather.alert.infrastructure.error.CorrelationIdFilter;
 import com.weather.alert.infrastructure.error.RestAccessDeniedHandler;
 import com.weather.alert.infrastructure.error.RestAuthenticationEntryPoint;
 import com.weather.alert.infrastructure.error.SecurityErrorResponseWriter;
+import com.weather.alert.infrastructure.web.ClientIpResolver;
 import com.weather.alert.infrastructure.web.controller.AlertCriteriaController;
 import com.weather.alert.infrastructure.web.controller.AccountRecoveryController;
 import com.weather.alert.infrastructure.web.controller.AuthController;
@@ -132,6 +133,9 @@ class SecurityConfigTest {
 
     @MockBean
     private ManageTravelPlansUseCase manageTravelPlansUseCase;
+
+    @MockBean
+    private ClientIpResolver clientIpResolver;
 
     @Test
     void shouldRequireAuthenticationForApiEndpoints() throws Exception {
