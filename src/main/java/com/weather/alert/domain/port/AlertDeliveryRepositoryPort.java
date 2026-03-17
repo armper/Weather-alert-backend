@@ -17,5 +17,7 @@ public interface AlertDeliveryRepositoryPort {
 
     List<AlertDeliveryRecord> findDueForDelivery(Instant now, int limit);
 
+    boolean claimForDelivery(String id, Instant claimedAt);
+
     int deleteByCreatedAtBefore(Instant cutoff);
 }

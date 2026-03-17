@@ -43,8 +43,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -109,6 +109,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
                 .adSponsoredEmails(false)
                 .build());
         lenient().when(weatherDataPort.fetchAlertsForLocation(anyDouble(), anyDouble())).thenReturn(List.of());
+        lenient().when(alertDeliveryRepository.claimForDelivery(any(), any(Instant.class))).thenReturn(true);
     }
 
     @Test
@@ -152,12 +153,13 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         assertTrue(emailCaptor.getValue().body().contains("SkyPanda Alerts"));
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
-        verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
+        verify(alertDeliveryRepository).save(captor.capture());
         AlertDeliveryRecord finalState = captor.getValue();
         assertEquals(AlertDeliveryStatus.SENT, finalState.getStatus());
         assertEquals(1, finalState.getAttemptCount());
         assertEquals("provider-id-1", finalState.getProviderMessageId());
         assertNotNull(finalState.getSentAt());
+        verify(alertDeliveryRepository).claimForDelivery(eq("delivery-1"), any(Instant.class));
         verify(alertRepository).markAsSent("alert-1", finalState.getSentAt());
         verify(dlqPublisher, never()).publishFailure(any(), any(), any());
     }
@@ -315,7 +317,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         assertTrue(smsCaptor.getValue().body().contains("Orlando"));
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
-        verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
+        verify(alertDeliveryRepository).save(captor.capture());
         AlertDeliveryRecord finalState = captor.getValue();
         assertEquals(AlertDeliveryStatus.SENT, finalState.getStatus());
         assertEquals("sms-provider-id-1", finalState.getProviderMessageId());
@@ -335,7 +337,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         useCase.processTask("delivery-1");
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
-        verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
+        verify(alertDeliveryRepository).save(captor.capture());
         AlertDeliveryRecord finalState = captor.getValue();
         assertEquals(AlertDeliveryStatus.RETRY_SCHEDULED, finalState.getStatus());
         assertEquals(1, finalState.getAttemptCount());
@@ -358,7 +360,7 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         useCase.processTask("delivery-1");
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
-        verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
+        verify(alertDeliveryRepository).save(captor.capture());
         AlertDeliveryRecord finalState = captor.getValue();
         assertEquals(AlertDeliveryStatus.FAILED, finalState.getStatus());
         assertEquals(1, finalState.getAttemptCount());
@@ -379,11 +381,25 @@ class ProcessAlertDeliveryTaskUseCaseTest {
         useCase.processTask("delivery-1");
 
         ArgumentCaptor<AlertDeliveryRecord> captor = ArgumentCaptor.forClass(AlertDeliveryRecord.class);
-        verify(alertDeliveryRepository, atLeast(2)).save(captor.capture());
+        verify(alertDeliveryRepository).save(captor.capture());
         AlertDeliveryRecord finalState = captor.getValue();
         assertEquals(AlertDeliveryStatus.FAILED, finalState.getStatus());
         assertEquals(3, finalState.getAttemptCount());
         verify(dlqPublisher).publishFailure(any(AlertDeliveryRecord.class), any(), any());
+    }
+
+    @Test
+    void shouldSkipWhenDeliveryAlreadyClaimedByAnotherWorker() {
+        AlertDeliveryRecord delivery = pending("delivery-race", 0);
+        when(alertDeliveryRepository.findById("delivery-race")).thenReturn(Optional.of(delivery));
+        when(alertDeliveryRepository.claimForDelivery(eq("delivery-race"), any(Instant.class))).thenReturn(false);
+
+        useCase.processTask("delivery-race");
+
+        verify(alertDeliveryRepository, never()).save(any(AlertDeliveryRecord.class));
+        verify(emailSenderPort, never()).send(any());
+        verify(smsSenderPort, never()).send(any());
+        verify(alertRepository, never()).markAsSent(any(), any(Instant.class));
     }
 
     private AlertDeliveryRecord pending(String id, int attempts) {

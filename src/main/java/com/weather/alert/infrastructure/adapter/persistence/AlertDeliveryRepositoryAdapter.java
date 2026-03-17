@@ -46,6 +46,11 @@ public class AlertDeliveryRepositoryAdapter implements AlertDeliveryRepositoryPo
     }
 
     @Override
+    public boolean claimForDelivery(String id, Instant claimedAt) {
+        return jpaRepository.claimForDelivery(id, claimedAt, JpaAlertDeliveryRepository.CLAIMABLE_STATUSES) > 0;
+    }
+
+    @Override
     public int deleteByCreatedAtBefore(Instant cutoff) {
         return jpaRepository.deleteByCreatedAtBefore(cutoff);
     }
