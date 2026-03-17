@@ -48,7 +48,7 @@ public class AuthController {
     private final JwtEncoder jwtEncoder;
     private final ClientIpResolver clientIpResolver;
 
-    @Value("${app.security.jwt.expiration-seconds:3600}")
+    @Value("${app.security.jwt.expiration-seconds:259200}")
     private long jwtExpirationSeconds;
 
     @PostMapping("/token")
