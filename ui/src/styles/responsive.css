@@ -402,7 +402,7 @@
     width: auto;
     max-width: calc(100vw - 1.9rem);
     transform: none;
-    bottom: calc(3.95rem + env(safe-area-inset-bottom));
+    bottom: calc(var(--bottom-nav-content-clearance) + 0.5rem);
     z-index: 30;
     box-sizing: border-box;
   }
@@ -677,7 +677,7 @@
     right: 0.7rem;
     width: auto;
     transform: none;
-    bottom: calc(3.85rem + env(safe-area-inset-bottom));
+    bottom: calc(var(--bottom-nav-content-clearance) + 0.35rem);
   }
 
   .overview-minimal-forecast-row {
