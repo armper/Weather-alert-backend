@@ -1,13 +1,19 @@
 import { Suspense, lazy, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  AccountPageRoute,
+  AdminPageRoute,
+  OverviewPageRoute,
+  RulesPageRoute,
+  SubscriptionPageRoute,
+  TravelPlansPageRoute,
+} from './appTabPages'
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout'
 import { RequireAuth } from './components/layout/RequireAuth'
 import { LoadingPlaceholder } from './components/common/LoadingPlaceholder'
 import { AppStateProvider } from './state/AppStateContext'
 import { useSessionState } from './state/useAppState'
 
-const AccountPage = lazy(() => import('./pages/AccountPage').then((module) => ({ default: module.AccountPage })))
-const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({ default: module.AdminPage })))
 const AboutPage = lazy(() => import('./pages/AboutPage').then((module) => ({ default: module.AboutPage })))
 const AuthForgotPasswordPage = lazy(() =>
   import('./pages/AuthForgotPasswordPage').then((module) => ({ default: module.AuthForgotPasswordPage })),
@@ -21,18 +27,10 @@ const AuthRegisterPage = lazy(() => import('./pages/AuthRegisterPage').then((mod
 const AuthVerifyEmailPage = lazy(() =>
   import('./pages/AuthVerifyEmailPage').then((module) => ({ default: module.AuthVerifyEmailPage })),
 )
-const OverviewPage = lazy(() => import('./pages/OverviewPage').then((module) => ({ default: module.OverviewPage })))
 const PrivacyPolicyPage = lazy(() =>
   import('./pages/PrivacyPolicyPage').then((module) => ({ default: module.PrivacyPolicyPage })),
 )
-const RulesPage = lazy(() => import('./pages/RulesPage').then((module) => ({ default: module.RulesPage })))
 const SmsConsentPage = lazy(() => import('./pages/SmsConsentPage').then((module) => ({ default: module.SmsConsentPage })))
-const SubscriptionPage = lazy(() =>
-  import('./pages/SubscriptionPage').then((module) => ({ default: module.SubscriptionPage })),
-)
-const TravelPlansPage = lazy(() =>
-  import('./pages/TravelPlansPage').then((module) => ({ default: module.TravelPlansPage })),
-)
 
 function PageSuspense({ children }: { children: ReactNode }) {
   return (
@@ -118,12 +116,12 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<PageSuspense><OverviewPage /></PageSuspense>} />
-        <Route path="rules" element={<PageSuspense><RulesPage /></PageSuspense>} />
-        <Route path="travel" element={<PageSuspense><TravelPlansPage /></PageSuspense>} />
-        <Route path="subscription" element={<PageSuspense><SubscriptionPage /></PageSuspense>} />
-        <Route path="account" element={<PageSuspense><AccountPage /></PageSuspense>} />
-        <Route path="admin" element={<PageSuspense><AdminPage /></PageSuspense>} />
+        <Route path="overview" element={<PageSuspense><OverviewPageRoute /></PageSuspense>} />
+        <Route path="rules" element={<PageSuspense><RulesPageRoute /></PageSuspense>} />
+        <Route path="travel" element={<PageSuspense><TravelPlansPageRoute /></PageSuspense>} />
+        <Route path="subscription" element={<PageSuspense><SubscriptionPageRoute /></PageSuspense>} />
+        <Route path="account" element={<PageSuspense><AccountPageRoute /></PageSuspense>} />
+        <Route path="admin" element={<PageSuspense><AdminPageRoute /></PageSuspense>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -95,18 +95,24 @@
   .app-shell.is-immersive-route .shell-body,
   .app-shell.is-immersive-route .shell-content {
     height: 100%;
-    overflow: hidden;
+  }
+
+  .app-shell.is-immersive-route .shell-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   .app-shell.is-immersive-route .overview-page-stack {
-    height: 100%;
-    overflow: hidden;
-    touch-action: none;
+    min-height: 100%;
+    overflow: visible;
+    touch-action: pan-y;
   }
 
   .app-shell.is-immersive-route .overview-page-content-fresh {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    max-height: none;
+    overflow: visible;
   }
 
   .shell-header {
@@ -202,6 +208,41 @@
     border-color: transparent;
     color: #ffffff;
     transform: translateY(-1px);
+  }
+
+  .shell-mobile-nav-icon-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.9rem;
+    height: 2.9rem;
+    border-radius: 1rem;
+    border: 1px solid transparent;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transition:
+      border-color 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease,
+      backdrop-filter 180ms ease,
+      -webkit-backdrop-filter 180ms ease,
+      transform 120ms ease;
+  }
+
+  .shell-mobile-nav-link.active .shell-mobile-nav-icon-frame {
+    border-color: rgba(120, 200, 255, 0.4);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)),
+      rgba(130, 170, 224, 0.12);
+    box-shadow:
+      0 0 0 1px rgba(100, 185, 255, 0.12),
+      0 10px 22px rgba(31, 58, 112, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px) saturate(1.08);
+    -webkit-backdrop-filter: blur(10px) saturate(1.08);
   }
 
   .shell-mobile-nav-icon {
@@ -402,7 +443,7 @@
     width: auto;
     max-width: calc(100vw - 1.9rem);
     transform: none;
-    bottom: calc(var(--bottom-nav-content-clearance) + 0.95rem);
+    bottom: max(0.95rem, var(--bottom-nav-floating-clearance));
     z-index: 30;
     box-sizing: border-box;
   }
@@ -681,7 +722,7 @@
     right: 0.7rem;
     width: auto;
     transform: none;
-    bottom: calc(var(--bottom-nav-content-clearance) + 0.8rem);
+    bottom: max(0.8rem, var(--bottom-nav-floating-clearance));
   }
 
   .overview-minimal-forecast-row {

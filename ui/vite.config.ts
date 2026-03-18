@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: true,
       port: 5174,
       proxy: {
         '/api': sharedProxy,

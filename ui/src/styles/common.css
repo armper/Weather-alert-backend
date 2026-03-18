@@ -18,14 +18,33 @@ html:has(.app-shell.is-immersive-route) #root {
 
 .app-shell {
   --bottom-nav-content-clearance: 0px;
+  --bottom-nav-floating-clearance: 0px;
   position: relative;
   min-height: 100vh;
   padding: 2rem;
   color: var(--text-primary);
 }
 
+.app-shell-route-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: #223f73;
+}
+
+.app-shell-route-background-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
 .app-shell.has-bottom-nav {
   --bottom-nav-content-clearance: calc(4.75rem + env(safe-area-inset-bottom));
+  --bottom-nav-floating-clearance: calc(6.4rem + env(safe-area-inset-bottom));
   padding: 1rem 1rem calc(6.4rem + env(safe-area-inset-bottom));
 }
 
@@ -56,19 +75,21 @@ html:has(.app-shell.is-immersive-route) #root {
 
 .app-shell.is-immersive-route .shell-content {
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-shell.is-immersive-route .overview-page-stack {
-  height: 100%;
-  overflow: hidden;
-  touch-action: none;
+  min-height: 100%;
+  overflow: visible;
+  touch-action: pan-y;
 }
 
 .app-shell.is-immersive-route .overview-page-content-fresh {
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  max-height: none;
+  overflow: visible;
 }
 
 .app-shell.is-immersive-route,
@@ -122,6 +143,41 @@ html:has(.app-shell.is-immersive-route) #root {
   border-color: transparent;
   color: #ffffff;
   transform: translateY(-1px);
+}
+
+.app-shell.has-bottom-nav .shell-mobile-nav-icon-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    backdrop-filter 180ms ease,
+    -webkit-backdrop-filter 180ms ease,
+    transform 120ms ease;
+}
+
+.app-shell.has-bottom-nav .shell-mobile-nav-link.active .shell-mobile-nav-icon-frame {
+  border-color: rgba(120, 200, 255, 0.4);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)),
+    rgba(130, 170, 224, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(100, 185, 255, 0.12),
+    0 10px 22px rgba(31, 58, 112, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
 }
 
 .app-shell.has-bottom-nav .shell-mobile-nav-icon {
@@ -1656,6 +1712,8 @@ button:disabled {
 }
 
 .shell-body {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 1300px;
   margin: 0 auto;
@@ -1716,6 +1774,123 @@ button:disabled {
 
 .shell-content {
   min-width: 0;
+  position: relative;
+  touch-action: pan-y;
+}
+
+.shell-route-stage {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+.shell-route-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  width: 100%;
+  opacity: 1;
+  filter: none;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  clip-path: inset(0 0 0 0);
+  z-index: 1;
+}
+
+.shell-route-layer--current {
+  z-index: 2;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.shell-route-layer--preview {
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.shell-content.is-swipe-dragging .shell-route-layer--current {
+  transform: translate3d(var(--shell-swipe-drag-offset, 0px), 0, 0);
+  opacity: 1;
+  transition: none;
+}
+
+.shell-content.is-swipe-dragging .shell-route-layer--preview {
+  opacity: 1;
+  transition: none;
+}
+
+.shell-content.is-swipe-dragging[data-swipe-direction='forward'] .shell-route-layer--preview {
+  transform: translate3d(calc(100% + 1.5rem + var(--shell-swipe-drag-offset, 0px)), 0, 0);
+}
+
+.shell-content.is-swipe-dragging[data-swipe-direction='backward'] .shell-route-layer--preview {
+  transform: translate3d(calc(-100% - 1.5rem + var(--shell-swipe-drag-offset, 0px)), 0, 0);
+}
+
+.shell-content.is-route-transitioning {
+  overflow: hidden;
+}
+
+.shell-content.is-swipe-dragging .shell-route-stage,
+.shell-content.is-route-transitioning .shell-route-stage {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shell-content.is-route-transitioning .shell-route-layer {
+  will-change: transform, clip-path;
+  transition:
+    transform var(--shell-route-transition-duration, 280ms) cubic-bezier(0.22, 1, 0.36, 1),
+    clip-path var(--shell-route-transition-duration, 280ms) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell.is-immersive-route .shell-route-stage,
+.app-shell.is-immersive-route .shell-route-layer {
+  height: 100%;
+}
+
+.shell-content.is-route-transitioning[data-swipe-direction='forward'] .shell-route-layer--previous {
+  transform: translate3d(var(--shell-swipe-release-offset, 0px), 0, 0);
+}
+
+.shell-content.is-route-transitioning[data-swipe-direction='forward'] .shell-route-layer--current {
+  transform: translate3d(calc(100% + 1.5rem), 0, 0);
+}
+
+.shell-content.is-route-transitioning[data-swipe-direction='backward'] .shell-route-layer--previous {
+  transform: translate3d(var(--shell-swipe-release-offset, 0px), 0, 0);
+}
+
+.shell-content.is-route-transitioning[data-swipe-direction='backward'] .shell-route-layer--current {
+  transform: translate3d(calc(-100% - 1.5rem), 0, 0);
+}
+
+.shell-content.is-route-transition-running[data-swipe-direction='forward'] .shell-route-layer--previous {
+  transform: translate3d(-58%, 0, 0);
+  clip-path: inset(0 34% 0 0);
+}
+
+.shell-content.is-route-transition-running[data-swipe-direction='forward'] .shell-route-layer--current {
+  transform: translate3d(0, 0, 0);
+}
+
+.shell-content.is-route-transition-running[data-swipe-direction='backward'] .shell-route-layer--previous {
+  transform: translate3d(58%, 0, 0);
+  clip-path: inset(0 0 0 34%);
+}
+
+.shell-content.is-route-transition-running[data-swipe-direction='backward'] .shell-route-layer--current {
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-route-layer,
+  .shell-route-layer--current,
+  .shell-content.is-route-transitioning .shell-route-layer {
+    transition-duration: 1ms;
+  }
 }
 
 .app-main {
@@ -1824,6 +1999,24 @@ button:disabled {
   background: var(--chip-bg-active);
   border-color: var(--chip-border-active);
   color: var(--accent-700);
+}
+
+.shell-mobile-nav-icon-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 0.9rem;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.shell-mobile-nav-link.active .shell-mobile-nav-icon-frame {
+  border-color: var(--chip-border-active);
+  background: var(--chip-bg-active);
+  box-shadow: 0 6px 14px rgba(var(--accent-deep-rgb), 0.08);
 }
 
 .shell-mobile-nav-icon {

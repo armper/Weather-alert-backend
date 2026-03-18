@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import type { BillingPlan } from '../types'
 import {
   useActionState,
@@ -53,14 +52,12 @@ const PLAN_DETAILS: Array<{
 
 export function SubscriptionPage() {
   const { me, initialDataLoading, refresh } = useSessionState()
-  const { criteria, travelPlans, billingStatus, currentWeather } = useDataState()
+  const { criteria, travelPlans, billingStatus } = useDataState()
   const { checkoutPlan, changingPlan, openingBillingPortal } = useAsyncState()
   const { handleStartCheckout, handleChangePlan, handleOpenBillingPortal } = useActionState()
 
   const location = useLocation()
   const [pendingPlan, setPendingPlan] = useState<BillingPlan | null>(null)
-
-  const bgImage = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   /* derived billing state */
   const billingFlow = useMemo(() => new URLSearchParams(location.search).get('billing'), [location.search])
@@ -113,10 +110,6 @@ export function SubscriptionPage() {
 
   return (
     <section className="page-stack sub-page">
-      <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={bgImage} alt="" />
-      </div>
-
       <div className="sub-page-content">
         {/* ── hero ── */}
         <div className="sub-hero">

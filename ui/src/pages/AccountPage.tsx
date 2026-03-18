@@ -1,6 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { useThemePreference, type ThemePreference } from '../theme'
 import {
   useActionState,
@@ -23,7 +22,7 @@ const FALLBACK_OPTIONS = [
 
 export function AccountPage() {
   const { me, initialDataLoading } = useSessionState()
-  const { notificationPreference, currentWeather } = useDataState()
+  const { notificationPreference } = useDataState()
   const { profileForm, setProfileForm, passwordForm, setPasswordForm } = useFormState()
   const { deletingAccount, savingProfile } = useAsyncState()
   const {
@@ -119,14 +118,8 @@ export function AccountPage() {
     { id: 'dark', label: 'Dark', emoji: '🌙', detail: 'Twilight palette always.' },
   ]
 
-  const bgImage = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
-
   return (
     <section className="page-stack settings-page">
-      <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={bgImage} alt="" />
-      </div>
-
       <div className="settings-page-content">
         {/* ── hero ── */}
         <div className="settings-hero">
