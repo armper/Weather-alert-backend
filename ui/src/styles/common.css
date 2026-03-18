@@ -73,19 +73,21 @@ html:has(.app-shell.is-immersive-route) #root {
 
 .app-shell.is-immersive-route .shell-content {
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-shell.is-immersive-route .overview-page-stack {
-  height: 100%;
-  overflow: hidden;
-  touch-action: none;
+  min-height: 100%;
+  overflow: visible;
+  touch-action: pan-y;
 }
 
 .app-shell.is-immersive-route .overview-page-content-fresh {
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  max-height: none;
+  overflow: visible;
 }
 
 .app-shell.is-immersive-route,
@@ -1778,6 +1780,8 @@ button:disabled {
   display: grid;
   min-width: 0;
   min-height: 0;
+  position: relative;
+  isolation: isolate;
 }
 
 .shell-route-layer {
@@ -1787,30 +1791,31 @@ button:disabled {
   opacity: 1;
   filter: none;
   transform-origin: center center;
+  backface-visibility: hidden;
+  clip-path: inset(0 0 0 0);
+  z-index: 1;
 }
 
 .shell-route-layer--current {
+  z-index: 2;
   transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease;
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shell-route-layer--preview {
   pointer-events: none;
   opacity: 0;
-  transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .shell-content.is-swipe-dragging .shell-route-layer--current {
   transform: translate3d(var(--shell-swipe-drag-offset, 0px), 0, 0);
-  opacity: calc(1 - (var(--shell-swipe-progress, 0) * 0.38));
+  opacity: 1;
   transition: none;
 }
 
 .shell-content.is-swipe-dragging .shell-route-layer--preview {
-  opacity: calc(0.16 + (var(--shell-swipe-progress, 0) * 0.84));
+  opacity: 1;
   transition: none;
 }
 
@@ -1826,16 +1831,17 @@ button:disabled {
   overflow: hidden;
 }
 
+.shell-content.is-swipe-dragging .shell-route-stage,
 .shell-content.is-route-transitioning .shell-route-stage {
+  overflow: hidden;
   pointer-events: none;
 }
 
 .shell-content.is-route-transitioning .shell-route-layer {
-  will-change: transform, opacity;
+  will-change: transform, clip-path;
   transition:
     transform var(--shell-route-transition-duration, 280ms) cubic-bezier(0.22, 1, 0.36, 1),
-    opacity var(--shell-route-transition-duration, 280ms) ease,
-    filter var(--shell-route-transition-duration, 280ms) ease;
+    clip-path var(--shell-route-transition-duration, 280ms) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .app-shell.is-immersive-route .shell-route-stage,
@@ -1860,9 +1866,8 @@ button:disabled {
 }
 
 .shell-content.is-route-transition-running[data-swipe-direction='forward'] .shell-route-layer--previous {
-  transform: translate3d(-34%, 0, 0) scale(0.985);
-  opacity: 0.22;
-  filter: blur(2px) saturate(0.9);
+  transform: translate3d(-58%, 0, 0);
+  clip-path: inset(0 34% 0 0);
 }
 
 .shell-content.is-route-transition-running[data-swipe-direction='forward'] .shell-route-layer--current {
@@ -1870,9 +1875,8 @@ button:disabled {
 }
 
 .shell-content.is-route-transition-running[data-swipe-direction='backward'] .shell-route-layer--previous {
-  transform: translate3d(34%, 0, 0) scale(0.985);
-  opacity: 0.22;
-  filter: blur(2px) saturate(0.9);
+  transform: translate3d(58%, 0, 0);
+  clip-path: inset(0 0 0 34%);
 }
 
 .shell-content.is-route-transition-running[data-swipe-direction='backward'] .shell-route-layer--current {

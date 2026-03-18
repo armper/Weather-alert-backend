@@ -95,18 +95,24 @@
   .app-shell.is-immersive-route .shell-body,
   .app-shell.is-immersive-route .shell-content {
     height: 100%;
-    overflow: hidden;
+  }
+
+  .app-shell.is-immersive-route .shell-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   .app-shell.is-immersive-route .overview-page-stack {
-    height: 100%;
-    overflow: hidden;
-    touch-action: none;
+    min-height: 100%;
+    overflow: visible;
+    touch-action: pan-y;
   }
 
   .app-shell.is-immersive-route .overview-page-content-fresh {
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
+    max-height: none;
+    overflow: visible;
   }
 
   .shell-header {
