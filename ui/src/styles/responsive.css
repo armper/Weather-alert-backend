@@ -443,7 +443,7 @@
     width: auto;
     max-width: calc(100vw - 1.9rem);
     transform: none;
-    bottom: calc(var(--bottom-nav-content-clearance) + 0.95rem);
+    bottom: max(0.95rem, var(--bottom-nav-floating-clearance));
     z-index: 30;
     box-sizing: border-box;
   }
@@ -722,7 +722,7 @@
     right: 0.7rem;
     width: auto;
     transform: none;
-    bottom: calc(var(--bottom-nav-content-clearance) + 0.8rem);
+    bottom: max(0.8rem, var(--bottom-nav-floating-clearance));
   }
 
   .overview-minimal-forecast-row {

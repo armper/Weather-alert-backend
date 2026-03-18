@@ -1,7 +1,6 @@
 import {
   Suspense,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -10,7 +9,8 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { APP_ADMIN_NAV_ITEM, APP_PRIMARY_NAV_ITEMS, getAppTabPreviewComponent, preloadAppTabPreview } from '../../appTabRoutes'
+import { AppTabPreview } from '../../appTabPages'
+import { APP_ADMIN_NAV_ITEM, APP_PRIMARY_NAV_ITEMS, preloadAppTabPreview } from '../../appTabRoutes'
 import { LoadingPlaceholder } from '../common/LoadingPlaceholder'
 import { resolveWeatherVisual } from '../../lib/weatherVisuals'
 import { useDataState } from '../../state/useAppState'
@@ -215,15 +215,11 @@ export function AppShell({ children }: AppShellProps) {
   const routeTransitionDurationMs = prefersReducedMotion ? 1 : SWIPE_ROUTE_TRANSITION_MS
   const isSwipeDragging = Math.abs(dragOffsetPx) > 0
   const activeSwipeDirection = routeTransition?.direction ?? dragDirection
-  const previewComponent = useMemo(
-    () => (previewRoutePath ? getAppTabPreviewComponent(previewRoutePath) : null),
-    [previewRoutePath],
-  )
+  const dragProgressBaseWidth = typeof window === 'undefined' ? 1 : window.innerWidth
   const dragProgress = Math.min(
-    Math.abs(dragOffsetPx) / Math.max((contentRef.current?.clientWidth ?? window.innerWidth) * 0.24, 1),
+    Math.abs(dragOffsetPx) / Math.max(dragProgressBaseWidth * 0.24, 1),
     1,
   )
-  const PreviewComponent = previewComponent
   const shellContentStyle = {
     '--shell-swipe-drag-offset': `${dragOffsetPx}px`,
     '--shell-swipe-progress': `${dragProgress}`,
@@ -577,7 +573,7 @@ export function AppShell({ children }: AppShellProps) {
             ) : (
               <>
                 <div className="shell-route-layer shell-route-layer--current">{children}</div>
-                {previewComponent ? (
+                {previewRoutePath ? (
                   <div className="shell-route-layer shell-route-layer--preview" aria-hidden="true">
                     <Suspense
                       fallback={(
@@ -592,7 +588,7 @@ export function AppShell({ children }: AppShellProps) {
                         </section>
                       )}
                     >
-                      {PreviewComponent ? <PreviewComponent /> : null}
+                      <AppTabPreview path={previewRoutePath} />
                     </Suspense>
                   </div>
                 ) : null}

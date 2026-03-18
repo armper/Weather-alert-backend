@@ -7,7 +7,7 @@ import {
   RulesPageRoute,
   SubscriptionPageRoute,
   TravelPlansPageRoute,
-} from './appTabRoutes'
+} from './appTabPages'
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout'
 import { RequireAuth } from './components/layout/RequireAuth'
 import { LoadingPlaceholder } from './components/common/LoadingPlaceholder'
