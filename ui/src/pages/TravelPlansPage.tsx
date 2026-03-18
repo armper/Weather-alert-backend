@@ -1,6 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
-import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import { useActionState, useDataState } from '../state/useAppState'
 import type { TravelPlan } from '../types'
@@ -59,7 +58,7 @@ function daysLabel(plan: TravelPlan) {
 /* ─── component ─── */
 
 export function TravelPlansPage() {
-  const { travelPlans, currentWeather } = useDataState()
+  const { travelPlans } = useDataState()
   const { handleCreateTravelPlan, handleUpdateTravelPlan, handleDeleteTravelPlan } = useActionState()
 
   const [mode, setMode] = useState<ModalMode>('closed')
@@ -81,8 +80,6 @@ export function TravelPlansPage() {
     clearResults: clearGeoResults,
     skipNextSearchFor: skipDestinationSearch,
   } = usePlaceSearch(destination)
-
-  const bgImage = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   /* sort: active first, then upcoming, then past */
   const sorted = [...travelPlans].sort((a, b) => {
@@ -195,10 +192,6 @@ export function TravelPlansPage() {
 
   return (
     <section className="page-stack travel-page-fresh">
-      <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={bgImage} alt="" />
-      </div>
-
       <div className="travel-page-content">
         {empty ? (
           /* ── empty state ── */

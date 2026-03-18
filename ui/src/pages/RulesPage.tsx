@@ -13,7 +13,6 @@ import {
   type QuickStartPreset,
   type SimpleSituationConfig,
 } from '../lib/ruleBuilder'
-import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import type { RuleType } from '../state/types'
 import { useAsyncState, useDataState, useFormState, useSessionState } from '../state/useAppState'
@@ -220,11 +219,9 @@ function buildPresetPayload(preset: QuickStartPreset, userId: string): Record<st
 
 export function RulesPage() {
   const { token, me, refresh } = useSessionState()
-  const { criteria, currentWeather } = useDataState()
+  const { criteria } = useDataState()
   const { criteriaForm, setCriteriaForm } = useFormState()
   const { canSubmitCriteria } = useAsyncState()
-
-  const rulesBackground = resolveWeatherVisual(currentWeather ?? {}).backgroundImage
 
   const [pendingState, setPendingState] = useState<Map<string, boolean>>(() => new Map())
   const abortControllers = useRef(new Map<string, AbortController>())
@@ -395,10 +392,6 @@ export function RulesPage() {
 
   return (
     <section className="page-stack rules-page-fresh">
-      <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={rulesBackground} alt="" />
-      </div>
-
       <div className="rules-page-content">
         <div className="rules-tile-grid">
           {QUICK_START_PRESETS.map((preset) => {

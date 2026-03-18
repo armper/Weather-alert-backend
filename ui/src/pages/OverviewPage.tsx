@@ -280,7 +280,6 @@ export function OverviewPage() {
   const weatherVisual = resolveWeatherVisual(weatherVisualSource)
   const conditionIcon = weatherVisual.icon
   const conditionLabel = weatherVisual.label
-  const backgroundImage = weatherVisual.backgroundImage
   const criteriaById = useMemo(() => new Map(criteria.map((item) => [item.id, item])), [criteria])
   const recentTriggeredAlerts = useMemo(
     () =>
@@ -419,10 +418,6 @@ export function OverviewPage() {
 
   return (
     <section className="page-stack overview-page-stack">
-      <div className="overview-page-background" aria-hidden="true">
-        <img className="overview-page-background-image" src={backgroundImage} alt="" />
-      </div>
-
       <div className="overview-page-content overview-page-content-fresh">
         <p className="overview-minimal-greeting" aria-live="polite">
           {greetingLabel}
