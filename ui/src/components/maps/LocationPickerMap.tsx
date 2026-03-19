@@ -81,14 +81,17 @@ export function LocationPickerMap({
   const handleMapClick = useCallback(
     (event: MapMouseEvent) => {
       const { lat, lng } = event.lngLat
-      const fallbackName = `Selected point (${lat.toFixed(3)}, ${lng.toFixed(3)})`
-      onSelect({ location: fallbackName, latitude: lat, longitude: lng })
-
-      void reverseGeocode(lat, lng).then((place) => {
-        if (place) {
-          onSelect({ location: place.name, latitude: place.latitude, longitude: place.longitude })
-        }
-      })
+      void reverseGeocode(lat, lng)
+        .then((place) => {
+          onSelect({
+            location: place?.name ?? 'Selected area',
+            latitude: place?.latitude ?? lat,
+            longitude: place?.longitude ?? lng,
+          })
+        })
+        .catch(() => {
+          onSelect({ location: 'Selected area', latitude: lat, longitude: lng })
+        })
     },
     [onSelect],
   )

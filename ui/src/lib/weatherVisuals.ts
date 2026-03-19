@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Sun } from 'lucide-react'
+import { renderAppIcon } from './appIcons'
 import backgroundChanceOfRainImage from '../assets/background-chance-of-rain.png'
 import backgroundCloudyImage from '../assets/background-cloudy.png'
 import backgroundFogImage from '../assets/background-fog.png'
@@ -10,11 +13,11 @@ import type { WeatherCondition } from '../types'
 
 interface WeatherVisual {
   backgroundImage: string
-  icon: string
+  icon: ReactNode
   label: string
 }
 
-function resolveFromText(value?: string): { icon: string; label: string } | null {
+function resolveFromText(value?: string): { icon: ReactNode; label: string } | null {
   if (!value) return null
   const normalized = value.toLowerCase()
 
@@ -25,22 +28,22 @@ function resolveFromText(value?: string): { icon: string; label: string } | null
     normalized.includes('sleet') ||
     normalized.includes('freezing')
   ) {
-    return { icon: '❄️', label: 'Snow' }
+    return { icon: renderAppIcon(CloudSnow), label: 'Snow' }
   }
   if (normalized.includes('thunder') || normalized.includes('tstms')) {
-    return { icon: '⛈️', label: 'Thunderstorms' }
+    return { icon: renderAppIcon(CloudLightning), label: 'Thunderstorms' }
   }
   if (normalized.includes('rain') || normalized.includes('drizzle') || normalized.includes('shower')) {
-    return { icon: '🌧️', label: 'Rainy' }
+    return { icon: renderAppIcon(CloudRain), label: 'Rainy' }
   }
   if (normalized.includes('fog') || normalized.includes('mist') || normalized.includes('haze')) {
-    return { icon: '🌫️', label: 'Foggy' }
+    return { icon: renderAppIcon(CloudFog), label: 'Foggy' }
   }
   if (normalized.includes('overcast') || normalized.includes('mostly cloudy') || normalized.includes('broken')) {
-    return { icon: '☁️', label: 'Cloudy' }
+    return { icon: renderAppIcon(Cloud), label: 'Cloudy' }
   }
   if (normalized.includes('cloud')) {
-    return { icon: '☁️', label: 'Cloudy' }
+    return { icon: renderAppIcon(Cloud), label: 'Cloudy' }
   }
   if (
     normalized.includes('partly') ||
@@ -49,36 +52,36 @@ function resolveFromText(value?: string): { icon: string; label: string } | null
     normalized.includes('mostly sunny') ||
     normalized.includes('mostly clear')
   ) {
-    return { icon: '⛅', label: 'Partly cloudy' }
+    return { icon: renderAppIcon(CloudSun), label: 'Partly cloudy' }
   }
   if (normalized.includes('fair') || normalized.includes('sunny') || normalized.includes('clear') || normalized.includes('hot')) {
-    return { icon: '☀️', label: 'Sunny' }
+    return { icon: renderAppIcon(Sun), label: 'Sunny' }
   }
 
   return null
 }
 
-function resolveFromNumeric(item: Partial<WeatherCondition>): { icon: string; label: string } {
+function resolveFromNumeric(item: Partial<WeatherCondition>): { icon: ReactNode; label: string } {
   if ((item.iceAccumulation ?? 0) > 0 || (item.snowfallAmount ?? 0) > 0) {
-    return { icon: '❄️', label: 'Snow' }
+    return { icon: renderAppIcon(CloudSnow), label: 'Snow' }
   }
   if ((item.probabilityOfThunder ?? 0) > 30) {
-    return { icon: '⛈️', label: 'Thunderstorms' }
+    return { icon: renderAppIcon(CloudLightning), label: 'Thunderstorms' }
   }
   if ((item.precipitationAmount ?? 0) > 0 || (item.precipitationProbability ?? 0) > 65) {
-    return { icon: '🌧️', label: 'Rainy' }
+    return { icon: renderAppIcon(CloudRain), label: 'Rainy' }
   }
   if ((item.precipitationProbability ?? 0) > 35) {
-    return { icon: '🌦️', label: 'Chance of rain' }
+    return { icon: renderAppIcon(CloudDrizzle), label: 'Chance of rain' }
   }
   if ((item.skyCover ?? 0) > 75) {
-    return { icon: '☁️', label: 'Cloudy' }
+    return { icon: renderAppIcon(Cloud), label: 'Cloudy' }
   }
   if ((item.skyCover ?? 0) > 40) {
-    return { icon: '⛅', label: 'Partly cloudy' }
+    return { icon: renderAppIcon(CloudSun), label: 'Partly cloudy' }
   }
 
-  return { icon: '☀️', label: 'Sunny' }
+  return { icon: renderAppIcon(Sun), label: 'Sunny' }
 }
 
 function resolveBackgroundImage(label: string): string {

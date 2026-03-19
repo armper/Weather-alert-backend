@@ -123,40 +123,45 @@ function NavIcon({ itemKey, className = 'shell-mobile-nav-icon' }: Readonly<{ it
   switch (itemKey) {
     case 'overview':
       return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <path d="M3.75 10.25 10 4.75l6.25 5.5v5a1 1 0 0 1-1 1h-2.75v-4h-5v4H4.75a1 1 0 0 1-1-1v-5Z" />
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
+          <path d="M4.75 11.5 12 5.75l7.25 5.75" />
+          <path d="M7 10.75v8h10v-8" />
+          <path d="M10 18.75v-4h4v4" />
         </svg>
       )
     case 'rules':
       return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <path d="M10 4.5v11M4.5 10h11" />
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
+          <path d="M7.5 17.25h9l-1.35-1.9V11a3.15 3.15 0 1 0-6.3 0v4.35l-1.35 1.9Z" />
+          <path d="M10.15 18.05a1.85 1.85 0 0 0 3.7 0" />
+          <path d="M18.5 5.5v4" />
+          <path d="M16.5 7.5h4" />
         </svg>
       )
     case 'travel':
       return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <path d="M3.75 9.25h12.5" />
-          <path d="M8 9.25 4.75 5.5" />
-          <path d="M8 9.25 4.75 13" />
-          <path d="M10.75 9.25 15.25 5.75" />
-          <path d="M10.75 9.25 15.25 12.75" />
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
+          <path d="M6 18.25h12.25" />
+          <path d="M8.75 18.25V9.5h6.5v8.75" />
+          <path d="M10 9.5V7.25A1.75 1.75 0 0 1 11.75 5.5h0.5A1.75 1.75 0 0 1 14 7.25V9.5" />
+          <path d="M8.75 12.5h6.5" />
         </svg>
       )
     case 'account':
       return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <circle cx="10" cy="10" r="6.5" fill="none" />
-          <path d="M10 6.5a2.25 2.25 0 1 1 0 4.5 2.25 2.25 0 0 1 0-4.5Z" />
-          <path d="M12.6 7.4l1.15-1.15M7.4 12.6l-1.15 1.15M13.5 10h1.6M4.9 10H6.5M12.6 12.6l1.15 1.15M7.4 7.4 6.25 6.25" />
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="2.6" />
+          <path d="M12 4.75v2.1M12 17.15v2.1M6.85 6.85l1.5 1.5M15.65 15.65l1.5 1.5M4.75 12h2.1M17.15 12h2.1M6.85 17.15l1.5-1.5M15.65 8.35l1.5-1.5" />
+          <circle cx="12" cy="12" r="6.75" />
         </svg>
       )
     case 'subscription':
       return (
-        <svg viewBox="0 0 20 20" className={className} aria-hidden="true" focusable="false">
-          <rect x="3.5" y="5" width="13" height="10" rx="1.5" fill="none" />
-          <path d="M3.5 8.5h13" />
-          <path d="M6.5 12h3" />
+        <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
+          <rect x="4.5" y="6.5" width="15" height="11" rx="2.25" />
+          <path d="M4.5 10h15" />
+          <path d="M8 14h4.75" />
+          <path d="M16.5 14h0.01" />
         </svg>
       )
     case 'admin':

@@ -1,57 +1,77 @@
+import type { ReactNode } from 'react'
+import {
+  CloudRain,
+  CloudSun,
+  Droplets,
+  type LucideIcon,
+  Moon,
+  Snowflake,
+  Sparkles,
+  Sun,
+  TriangleAlert,
+  TrendingUp,
+  Waves,
+  Wind,
+} from 'lucide-react'
+import { renderAppIcon } from './appIcons'
 import type { RuleBuilderIcon } from './ruleBuilder'
 import type { AlertCriteria } from '../types'
 
-export function resolveRuleEmoji(icon: RuleBuilderIcon): string {
+function renderRuleIcon(icon: LucideIcon): ReactNode {
+  return renderAppIcon(icon, 'rule-icon-glyph', 2.15)
+}
+
+export function resolveRuleIconNode(icon: RuleBuilderIcon): ReactNode {
   switch (icon) {
     case 'heat':
-      return '🔥'
+      return renderRuleIcon(Sun)
     case 'jacket':
-      return '🧥'
+      return renderRuleIcon(Snowflake)
     case 'rain':
-      return '🌧️'
+      return renderRuleIcon(CloudRain)
     case 'wind':
-      return '💨'
+      return renderRuleIcon(Wind)
     case 'humidity':
-      return '💧'
+      return renderRuleIcon(Droplets)
     case 'dew':
-      return '🌙'
+      return renderRuleIcon(Moon)
     case 'river':
-      return '🏞️'
+      return renderRuleIcon(TrendingUp)
     case 'flood':
-      return '🌊'
+      return renderRuleIcon(Waves)
     case 'alert':
-      return '🚨'
+      return renderRuleIcon(TriangleAlert)
     case 'sky':
-      return '☀️'
+      return renderRuleIcon(CloudSun)
     default:
-      return '✨'
+      return renderRuleIcon(Sparkles)
   }
 }
 
-export function resolveCriteriaTileEmoji(criteria: AlertCriteria): string {
+export function resolveCriteriaTileIcon(criteria: AlertCriteria): ReactNode {
   if (criteria.temperatureThreshold != null) {
-    return criteria.temperatureDirection === 'BELOW' ? '🧥' : '🔥'
+    return criteria.temperatureDirection === 'BELOW' ? renderRuleIcon(Snowflake) : renderRuleIcon(Sun)
   }
   if (criteria.rainThreshold != null) {
-    return '🌧️'
+    return renderRuleIcon(CloudRain)
   }
   if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
-    return '💨'
+    return renderRuleIcon(Wind)
   }
   if (criteria.humidityThreshold != null) {
-    return '💧'
+    return renderRuleIcon(Droplets)
   }
   if (criteria.dewPointThreshold != null) {
-    return '🌙'
+    return renderRuleIcon(Moon)
   }
   if (criteria.skyCoverThreshold != null) {
-    return '☀️'
+    return renderRuleIcon(CloudSun)
   }
   if (criteria.riverFloodCategoryThreshold) {
-    return '🌊'
+    return renderRuleIcon(Waves)
   }
   if (criteria.riverStageThreshold != null) {
-    return '🏞️'
+    return renderRuleIcon(TrendingUp)
   }
-  return '✨'
+  return renderRuleIcon(Sparkles)
 }

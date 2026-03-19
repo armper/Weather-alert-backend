@@ -1,17 +1,21 @@
+import type { ReactNode } from 'react'
+import { Check, Clock3, CloudSun, Eye, MapPin, Search, Sparkles, TriangleAlert } from 'lucide-react'
+import { renderAppIcon } from './appIcons'
+import { resolveCriteriaMarkerIcon } from './criteria'
 import { deriveLifecycleState } from './alertConsole'
 import { formatFriendlyLocation, formatRelativeTimeCompact } from './formatting'
 import type { AlertCriteria, AlertEvent, WeatherCondition } from '../types'
 
 export interface OverviewRuleChip {
   id: string
-  icon: string
+  icon: ReactNode
   label: string
   href: string
 }
 
 export interface OverviewActivityItem {
   id: string
-  icon: string
+  icon: ReactNode
   title: string
   description: string
   timestamp?: string
@@ -20,7 +24,7 @@ export interface OverviewActivityItem {
 
 export interface OverviewTimelineItem {
   id: string
-  icon: string
+  icon: ReactNode
   timeLabel: string
   title: string
   description: string
@@ -98,7 +102,7 @@ function buildRecentActivity(
     .filter((item) => item.createdAt)
     .map((item) => ({
       id: `rule-${item.id}`,
-      icon: '✨',
+      icon: renderAppIcon(Sparkles),
       title: item.name?.trim() || 'New alert rule',
       description: `Started monitoring ${formatFriendlyLocation(item.location)}`,
       timestamp: item.createdAt,
@@ -111,7 +115,7 @@ function buildRecentActivity(
       ? [
           {
             id: 'forecast-watch',
-            icon: '🌤',
+            icon: renderAppIcon(CloudSun),
             title: 'Forecast watch active',
             description: currentWeather.headline,
             timestamp: currentWeather.timestamp,
@@ -140,10 +144,10 @@ function buildTimeline(criteria: AlertCriteria[], alerts: AlertEvent[], currentW
     }))
 
   const currentItem: OverviewTimelineItem[] = currentWeather
-    ? [
+      ? [
         {
           id: 'timeline-now',
-          icon: '📍',
+          icon: renderAppIcon(MapPin),
           timeLabel: 'Now',
           title: currentWeather.headline?.trim() || 'Current conditions',
           description: `${formatTemperatureLabel(currentWeather)} ${currentWeather.headline?.trim() || 'conditions in view'}`.trim(),
@@ -167,7 +171,7 @@ function buildTimeline(criteria: AlertCriteria[], alerts: AlertEvent[], currentW
       ? [
           {
             id: 'timeline-calm',
-            icon: '🕊',
+            icon: renderAppIcon(Sparkles),
             timeLabel: 'Now',
             title: 'Calm conditions',
             description: 'No alert conditions are currently active.',
@@ -181,14 +185,14 @@ function buildTimeline(criteria: AlertCriteria[], alerts: AlertEvent[], currentW
 function resolveActivityIcon(lifecycle: ReturnType<typeof deriveLifecycleState>) {
   switch (lifecycle) {
     case 'acknowledged':
-      return '👀'
+      return renderAppIcon(Eye)
     case 'resolved':
-      return '✅'
+      return renderAppIcon(Check)
     case 'archived':
-      return '🕘'
+      return renderAppIcon(Clock3)
     case 'triggered':
     default:
-      return '⚠️'
+      return renderAppIcon(TriangleAlert)
   }
 }
 
@@ -207,25 +211,17 @@ function describeActivity(lifecycle: ReturnType<typeof deriveLifecycleState>, al
 }
 
 function resolveRuleIcon(criteria: AlertCriteria) {
-  if (criteria.temperatureThreshold != null || criteria.dewPointThreshold != null) {
-    return '🌡'
-  }
-  if (criteria.rainThreshold != null) {
-    return '🌧'
-  }
-  if (criteria.maxWindSpeed != null || criteria.windGustThreshold != null) {
-    return '🌬'
-  }
-  if (criteria.humidityThreshold != null) {
-    return '💧'
-  }
-  if (criteria.skyCoverThreshold != null) {
-    return '🌫'
-  }
-  if (criteria.riverStageThreshold != null || criteria.riverFloodCategoryThreshold) {
-    return '🌊'
-  }
-  return '🔎'
+  return criteria.temperatureThreshold == null &&
+    criteria.dewPointThreshold == null &&
+    criteria.rainThreshold == null &&
+    criteria.maxWindSpeed == null &&
+    criteria.windGustThreshold == null &&
+    criteria.humidityThreshold == null &&
+    criteria.skyCoverThreshold == null &&
+    criteria.riverStageThreshold == null &&
+    !criteria.riverFloodCategoryThreshold
+    ? renderAppIcon(Search)
+    : resolveCriteriaMarkerIcon(criteria)
 }
 
 function describeOverviewRule(criteria: AlertCriteria) {

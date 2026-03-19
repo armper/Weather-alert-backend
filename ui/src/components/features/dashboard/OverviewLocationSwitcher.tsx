@@ -1,8 +1,6 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { usePlaceSearch } from '../../../hooks/usePlaceSearch'
 import { formatFriendlyLocation } from '../../../lib/formatting'
-import { reverseGeocode } from '../../../services/geocoding'
-import { AriaButton } from '../../ui/AriaButton'
 
 const LocationPickerMap = lazy(() =>
   import('../../maps/LocationPickerMap').then((module) => ({ default: module.LocationPickerMap })),
@@ -33,25 +31,16 @@ export function OverviewLocationSwitcher({
   const searchInputRef = useRef<HTMLInputElement | null>(null)
 
   const [isOpen, setIsOpen] = useState(false)
-  const [resolvingCurrentLocation, setResolvingCurrentLocation] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
   const [query, setQuery] = useState(activeLocation.name)
-  const [draftLocation, setDraftLocation] = useState(activeLocation)
+  const [selectedLocation, setSelectedLocation] = useState(activeLocation)
   const [hasTypedQuery, setHasTypedQuery] = useState(false)
-  const [locationError, setLocationError] = useState<string | null>(null)
   const {
     results,
-    searching,
-    searchError,
     clearResults,
     skipNextSearchFor,
   } = usePlaceSearch(query, { debounceMs: 320, enabled: isOpen && hasTypedQuery })
-
-  const isViewingCustomLocation =
-    Math.abs(activeLocation.latitude - monitoringLocation.latitude) > 0.0001 ||
-    Math.abs(activeLocation.longitude - monitoringLocation.longitude) > 0.0001 ||
-    formatFriendlyLocation(activeLocation.name) !== formatFriendlyLocation(monitoringLocation.name)
 
   useEffect(() => {
     if (!isOpen) {
@@ -60,9 +49,8 @@ export function OverviewLocationSwitcher({
 
     setQuery(activeLocation.name)
     clearResults()
-    setDraftLocation(activeLocation)
+    setSelectedLocation(activeLocation)
     setHasTypedQuery(false)
-    setLocationError(null)
 
     const timeoutId = window.setTimeout(() => {
       searchInputRef.current?.focus()
@@ -99,17 +87,14 @@ export function OverviewLocationSwitcher({
   function closeModal() {
     setIsOpen(false)
     clearResults()
-    setResolvingCurrentLocation(false)
-    setLocationError(null)
   }
 
-  function applyDraftLocation(location: OverviewLocationSelection) {
-    setDraftLocation(location)
+  function syncSelectedLocationState(location: OverviewLocationSelection) {
+    setSelectedLocation(location)
     setQuery(location.name)
     skipNextSearchFor(location.name)
     clearResults()
     setHasTypedQuery(false)
-    setLocationError(null)
   }
 
   function beginTooltipLongPress() {
@@ -130,48 +115,17 @@ export function OverviewLocationSwitcher({
     setShowTooltip(false)
   }
 
-  async function handleUseCurrentLocation() {
-    if (!navigator.geolocation) {
-      setLocationError('Current location is not available on this device.')
+  async function commitSelection(location: OverviewLocationSelection) {
+    if (saving) {
       return
     }
 
-    setResolvingCurrentLocation(true)
-    clearResults()
-    setLocationError(null)
-
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10_000,
-          maximumAge: 60_000,
-        })
-      })
-
-      const latitude = position.coords.latitude
-      const longitude = position.coords.longitude
-      const place = await reverseGeocode(latitude, longitude)
-
-      applyDraftLocation({
-        name: place?.name ?? 'Current location',
-        detail: place?.displayName,
-        latitude,
-        longitude,
-      })
-    } catch {
-      setLocationError('SkyPanda could not read your current location.')
-    } finally {
-      setResolvingCurrentLocation(false)
-    }
-  }
-
-  async function handleSave() {
+    syncSelectedLocationState(location)
+    setIsOpen(false)
     setSaving(true)
 
     try {
-      await onSaveLocation(draftLocation)
-      closeModal()
+      await onSaveLocation(location)
     } finally {
       setSaving(false)
     }
@@ -227,37 +181,45 @@ export function OverviewLocationSwitcher({
             role="dialog"
           >
             <div className="overview-location-dialog-header">
-              <div>
-                <h2 id={`${titleId}-dialog`}>Change location</h2>
-                <p className="overview-location-dialog-copy">
-                  Search or tap the map to update the weather shown here.
-                </p>
-              </div>
-              <AriaButton className="ghost button-inline overview-location-close" onPress={closeModal}>
-                Close
-              </AriaButton>
+              <h2 id={`${titleId}-dialog`}>Choose location</h2>
+              <button className="overview-location-close" aria-label="Close location picker" onClick={closeModal} type="button">
+                ✕
+              </button>
             </div>
 
             <div className="overview-location-picker-grid">
               <div className="overview-location-search-column">
+                <div className="overview-location-selection-card">
+                  <span className="overview-location-selection-label">Selected area</span>
+                  <strong>{formatFriendlyLocation(selectedLocation.name || monitoringLocation.name)}</strong>
+                </div>
+
                 <div className="overview-location-search-wrapper">
-                  <label className="overview-location-search-field" htmlFor={`${titleId}-search`}>
-                    <span>Find a place</span>
-                    <input
-                      ref={searchInputRef}
-                      autoComplete="off"
-                      className="travel-input overview-location-search-input"
-                      id={`${titleId}-search`}
-                      maxLength={180}
-                      onChange={(event) => {
-                        setHasTypedQuery(true)
-                        setQuery(event.target.value)
-                        setLocationError(null)
-                      }}
-                      placeholder="City, ZIP, landmark"
-                      value={query}
-                    />
-                  </label>
+                  <input
+                    ref={searchInputRef}
+                    aria-label="Find a place"
+                    autoComplete="off"
+                    className="travel-input overview-location-search-input"
+                    id={`${titleId}-search`}
+                    maxLength={180}
+                    onChange={(event) => {
+                      setHasTypedQuery(true)
+                      setQuery(event.target.value)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && results[0]) {
+                        event.preventDefault()
+                        void commitSelection({
+                          name: results[0].name,
+                          detail: results[0].displayName,
+                          latitude: results[0].latitude,
+                          longitude: results[0].longitude,
+                        })
+                      }
+                    }}
+                    placeholder="Find a place"
+                    value={query}
+                  />
 
                   {results.length > 0 ? (
                     <ul className="travel-geo-results overview-location-results">
@@ -266,7 +228,7 @@ export function OverviewLocationSwitcher({
                           <button
                             className="travel-geo-result"
                             onClick={() =>
-                              applyDraftLocation({
+                              void commitSelection({
                                 name: item.name,
                                 detail: item.displayName,
                                 latitude: item.latitude,
@@ -283,44 +245,16 @@ export function OverviewLocationSwitcher({
                     </ul>
                   ) : null}
                 </div>
-
-                <div className="overview-location-search-actions">
-                  <AriaButton
-                    className="ghost button-inline overview-location-action"
-                    isDisabled={resolvingCurrentLocation}
-                    onPress={() => void handleUseCurrentLocation()}
-                  >
-                    {resolvingCurrentLocation ? 'Locating...' : 'Use current location'}
-                  </AriaButton>
-                  {isViewingCustomLocation ? (
-                    <AriaButton
-                      className="ghost button-inline overview-location-action"
-                      isDisabled={saving}
-                      onPress={() => applyDraftLocation(monitoringLocation)}
-                    >
-                      Use monitored location
-                    </AriaButton>
-                  ) : null}
-                </div>
-
-                {searching ? <p className="muted small overview-location-status">Finding places…</p> : null}
-                {locationError ?? searchError ? <p className="field-error">{locationError ?? searchError}</p> : null}
-
-                <div className="overview-location-selection-card">
-                  <span className="overview-location-selection-label">Selected location</span>
-                  <strong>{formatFriendlyLocation(draftLocation.name)}</strong>
-                  <span>{draftLocation.detail ?? `${draftLocation.latitude.toFixed(3)}, ${draftLocation.longitude.toFixed(3)}`}</span>
-                </div>
               </div>
 
               <div className="overview-location-map-panel">
                 <Suspense fallback={<div className="overview-location-map-loading" />}>
                   <LocationPickerMap
-                    latitude={draftLocation.latitude}
-                    location={draftLocation.name}
-                    longitude={draftLocation.longitude}
+                    latitude={selectedLocation.latitude}
+                    location={selectedLocation.name}
+                    longitude={selectedLocation.longitude}
                     onSelect={({ location, latitude, longitude }) => {
-                      applyDraftLocation({
+                      void commitSelection({
                         name: location,
                         latitude,
                         longitude,
@@ -330,15 +264,6 @@ export function OverviewLocationSwitcher({
                   />
                 </Suspense>
               </div>
-            </div>
-
-            <div className="overview-location-dialog-footer">
-              <AriaButton className="ghost button-inline overview-location-action" isDisabled={saving} onPress={closeModal}>
-                Cancel
-              </AriaButton>
-              <AriaButton className="button-inline overview-location-save" isDisabled={saving} onPress={() => void handleSave()}>
-                {saving ? 'Updating...' : 'Update location'}
-              </AriaButton>
             </div>
           </div>
         </div>

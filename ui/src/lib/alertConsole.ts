@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { CloudRain, Droplets, Thermometer, Waves, Wind } from 'lucide-react'
+import { renderAppIcon } from './appIcons'
 import { describeCriteria } from './criteria'
 import { formatFriendlyLocation, formatNumber, formatPercent, formatRelativeTime, formatTemperature, formatWind } from './formatting'
 import type { AlertCriteria, AlertEvent, WeatherCondition } from '../types'
@@ -7,7 +10,7 @@ const DAY_IN_MS = 24 * 60 * 60 * 1000
 export type AlertLifecycleState = 'triggered' | 'acknowledged' | 'resolved' | 'archived'
 
 export interface AlertMetricChip {
-  icon: string
+  icon: ReactNode
   label: string
 }
 
@@ -259,14 +262,14 @@ function buildSemanticLabel(lifecycleState: AlertLifecycleState): string {
 
 function buildMetricChips(alert: AlertEvent): AlertMetricChip[] {
   return [
-    alert.conditionTemperatureC != null ? { icon: '🌡', label: formatTemperature(alert.conditionTemperatureC, 'F') } : null,
-    alert.conditionHumidity != null ? { icon: '💧', label: formatPercent(alert.conditionHumidity) } : null,
+    alert.conditionTemperatureC != null ? { icon: renderAppIcon(Thermometer), label: formatTemperature(alert.conditionTemperatureC, 'F') } : null,
+    alert.conditionHumidity != null ? { icon: renderAppIcon(Droplets), label: formatPercent(alert.conditionHumidity) } : null,
     alert.conditionPrecipitationProbability != null
-      ? { icon: '🌧', label: formatPercent(alert.conditionPrecipitationProbability) }
+      ? { icon: renderAppIcon(CloudRain), label: formatPercent(alert.conditionPrecipitationProbability) }
       : null,
-    alert.conditionWindGust != null ? { icon: '🌬', label: formatWind(alert.conditionWindGust) } : null,
+    alert.conditionWindGust != null ? { icon: renderAppIcon(Wind), label: formatWind(alert.conditionWindGust) } : null,
     alert.conditionRiverObservedStage != null
-      ? { icon: '🌊', label: `${formatNumber(alert.conditionRiverObservedStage)} ${alert.conditionRiverStageUnit ?? 'ft'}` }
+      ? { icon: renderAppIcon(Waves), label: `${formatNumber(alert.conditionRiverObservedStage)} ${alert.conditionRiverStageUnit ?? 'ft'}` }
       : null,
   ].filter((value): value is AlertMetricChip => Boolean(value))
 }

@@ -24,8 +24,8 @@ export function AlertTimelineItem({ item }: AlertTimelineItemProps) {
 
       {item.metrics.length > 0 ? (
         <div className="alert-timeline-chips">
-          {item.metrics.slice(0, 3).map((metric) => (
-            <span key={`${metric.icon}-${metric.label}`} className="metric-pill">
+          {item.metrics.slice(0, 3).map((metric, index) => (
+            <span key={`${metric.label}-${index}`} className="metric-pill">
               <span aria-hidden>{metric.icon}</span>
               <span>{metric.label}</span>
             </span>

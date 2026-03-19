@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { Search } from 'lucide-react'
+import { renderAppIcon } from './appIcons'
 import { deriveLifecycleState } from './alertConsole'
 import { describeCriteria, resolveCriteriaMarkerIcon } from './criteria'
 import { formatFriendlyLocation, formatRelativeTime } from './formatting'
@@ -14,7 +17,7 @@ export interface RuleMapGroupItem {
   triggerCondition: string
   monitoringState: RuleMonitoringState
   monitoringTone: RuleTone
-  icon: string
+  icon: ReactNode
 }
 
 export interface RuleLocationGroup {
@@ -26,7 +29,7 @@ export interface RuleLocationGroup {
   locationNames: string[]
   statusTone: RuleTone
   statusLabel: string
-  icon: string
+  icon: ReactNode
   ruleCount: number
   triggeredCount: number
   rules: RuleMapGroupItem[]
@@ -56,7 +59,7 @@ export interface RuleViewModel {
   lastAlertLabel: string
   lastAlertTime: number
   priority: number
-  icon: string
+  icon: ReactNode
   latitude?: number
   longitude?: number
   radiusKm?: number
@@ -429,7 +432,7 @@ function buildRuleLocationGroups(rules: RuleViewModel[]): RuleLocationGroup[] {
           : `${group.rules.filter((item) => item.criteria.enabled !== false).length} rule${
               group.rules.filter((item) => item.criteria.enabled !== false).length === 1 ? '' : 's'
             } monitoring`,
-      icon: primaryRule?.icon ?? '◉',
+      icon: primaryRule?.icon ?? renderAppIcon(Search),
       ruleCount: group.rules.length,
       triggeredCount,
       rules: rulesByPriority.map((item) => ({

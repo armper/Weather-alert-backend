@@ -1,4 +1,6 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
+import { CalendarDays, Check, MapPinned, Plane } from 'lucide-react'
+import { renderAppIcon } from '../lib/appIcons'
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import { useActionState, useDataState } from '../state/useAppState'
@@ -28,10 +30,10 @@ function tripStatus(plan: TravelPlan): 'active' | 'upcoming' | 'past' {
   return 'active'
 }
 
-function statusEmoji(s: 'active' | 'upcoming' | 'past') {
-  if (s === 'active') return '🟢'
-  if (s === 'upcoming') return '📅'
-  return '✓'
+function statusIcon(s: 'active' | 'upcoming' | 'past'): ReactNode {
+  if (s === 'active') return renderAppIcon(Plane)
+  if (s === 'upcoming') return renderAppIcon(CalendarDays)
+  return renderAppIcon(Check)
 }
 
 function formatRange(start?: string, end?: string) {
@@ -196,7 +198,7 @@ export function TravelPlansPage() {
         {empty ? (
           /* ── empty state ── */
           <div className="travel-empty">
-            <span className="travel-empty-icon">✈️</span>
+            <span className="travel-empty-icon">{renderAppIcon(Plane)}</span>
             <p className="travel-empty-label">No trips yet</p>
             <button className="travel-add-btn" type="button" onClick={openCreate}>
               + Plan a trip
@@ -228,7 +230,7 @@ export function TravelPlansPage() {
                       </div>
                     ) : (
                       <div className="travel-tile-map-placeholder">
-                        <span>🗺️</span>
+                        <span>{renderAppIcon(MapPinned)}</span>
                       </div>
                     )}
                     <div className="travel-tile-body">
@@ -236,7 +238,8 @@ export function TravelPlansPage() {
                       <p className="travel-tile-name">{plan.name}</p>
                       <p className="travel-tile-dates">{formatRange(plan.startDate, plan.endDate)}</p>
                       <span className="travel-tile-badge">
-                        {statusEmoji(status)} {daysLabel(plan)}
+                        <span className="travel-tile-badge-icon" aria-hidden>{statusIcon(status)}</span>
+                        <span>{daysLabel(plan)}</span>
                       </span>
                     </div>
                   </button>
@@ -260,7 +263,7 @@ export function TravelPlansPage() {
           <div className={`travel-modal travel-modal--${mode}${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`}>
             {/* header */}
             <div className="travel-modal-header">
-              <span className="travel-modal-icon">{mode === 'create' ? '✈️' : '🗺️'}</span>
+              <span className="travel-modal-icon">{mode === 'create' ? renderAppIcon(Plane) : renderAppIcon(MapPinned)}</span>
               <h2 className="travel-modal-title">
                 {mode === 'create' ? 'Plan a trip' : mode === 'edit' ? 'Edit trip' : (selected?.name ?? 'Trip')}
               </h2>
@@ -285,7 +288,8 @@ export function TravelPlansPage() {
                 <p className="travel-detail-destination">{selected.destination}</p>
                 <p className="travel-detail-dates">{formatRange(selected.startDate, selected.endDate)}</p>
                 <span className="travel-detail-badge">
-                  {statusEmoji(tripStatus(selected))} {daysLabel(selected)}
+                  <span className="travel-tile-badge-icon" aria-hidden>{statusIcon(tripStatus(selected))}</span>
+                  <span>{daysLabel(selected)}</span>
                 </span>
                 {selected.notes ? <p className="travel-detail-notes">{selected.notes}</p> : null}
 

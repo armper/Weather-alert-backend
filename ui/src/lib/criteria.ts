@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { Cloud, CloudRain, Droplets, Search, Thermometer, Waves, Wind } from 'lucide-react'
+import { renderAppIcon } from './appIcons'
 import { formatFriendlyLocation } from './formatting'
 import type { AlertCriteria, ComparisonDirection, FloodCategory } from '../types'
 import type { CriteriaFormState, RuleType } from '../state/types'
@@ -229,23 +232,23 @@ export function resolveCriteriaVisualKind(criteria: AlertCriteria): CriteriaVisu
   return 'general'
 }
 
-export function resolveCriteriaMarkerIcon(criteria: AlertCriteria): string {
+export function resolveCriteriaMarkerIcon(criteria: AlertCriteria): ReactNode {
   switch (resolveCriteriaVisualKind(criteria)) {
     case 'temperature':
-      return '🌡'
+      return renderAppIcon(Thermometer)
     case 'rain':
-      return '🌧'
+      return renderAppIcon(CloudRain)
     case 'wind':
-      return '🌬'
+      return renderAppIcon(Wind)
     case 'humidity':
-      return '💧'
+      return renderAppIcon(Droplets)
     case 'sky':
-      return '☁'
+      return renderAppIcon(Cloud)
     case 'river':
-      return '🌊'
+      return renderAppIcon(Waves)
     case 'general':
     default:
-      return '◉'
+      return renderAppIcon(Search)
   }
 }
 

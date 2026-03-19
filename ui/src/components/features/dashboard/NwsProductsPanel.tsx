@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BellRing, FileText, NotebookText, Radio, TriangleAlert } from 'lucide-react'
+import { renderAppIcon } from '../../../lib/appIcons'
 import type { NwsProduct } from '../../../types'
 
 interface NwsProductsPanelProps {
@@ -60,18 +62,18 @@ function extractDiscussionExcerpt(productText?: string): string {
   return body ? truncateCopy(body, 280) : 'Open the latest discussion for the full NWS narrative forecast.'
 }
 
-function resolveProductIcon(productCode?: string): string {
+function resolveProductIcon(productCode?: string) {
   switch (productCode) {
     case 'AFD':
-      return '📋'
+      return renderAppIcon(NotebookText)
     case 'HWO':
-      return '⚠️'
+      return renderAppIcon(TriangleAlert)
     case 'SPS':
-      return '🔔'
+      return renderAppIcon(BellRing)
     case 'LSR':
-      return '📡'
+      return renderAppIcon(Radio)
     default:
-      return '📄'
+      return renderAppIcon(FileText)
   }
 }
 

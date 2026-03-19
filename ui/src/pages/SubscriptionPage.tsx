@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { House, MapPinned, Radar, type LucideIcon } from 'lucide-react'
 import type { BillingPlan } from '../types'
 import {
   useActionState,
@@ -11,7 +12,7 @@ import {
 const PLAN_DETAILS: Array<{
   id: BillingPlan
   name: string
-  emoji: string
+  icon: LucideIcon
   monthlyPrice: string
   activeAlertsLabel: string
   travelPlansLabel: string
@@ -21,7 +22,7 @@ const PLAN_DETAILS: Array<{
   {
     id: 'FREE',
     name: 'Home',
-    emoji: '☁️',
+    icon: House,
     monthlyPrice: '$0',
     activeAlertsLabel: '1 active alert',
     travelPlansLabel: 'No travel plans',
@@ -31,7 +32,7 @@ const PLAN_DETAILS: Array<{
   {
     id: 'PLUS',
     name: 'Neighborhood',
-    emoji: '✨',
+    icon: MapPinned,
     monthlyPrice: '$6',
     activeAlertsLabel: '10 active alerts',
     travelPlansLabel: '3 travel plans',
@@ -41,7 +42,7 @@ const PLAN_DETAILS: Array<{
   {
     id: 'PRO',
     name: 'Everywhere',
-    emoji: '🛰️',
+    icon: Radar,
     monthlyPrice: '$9',
     activeAlertsLabel: '50 active alerts',
     travelPlansLabel: '15 travel plans',
@@ -153,7 +154,7 @@ export function SubscriptionPage() {
                   onClick={() => isCurrent ? void handleOpenBillingPortal() : setPendingPlan(plan.id)}
                 >
                   <div className="sub-plan-top">
-                    <span className="sub-plan-emoji">{plan.emoji}</span>
+                    <span className="sub-plan-icon" aria-hidden><plan.icon size="1em" strokeWidth={2.1} /></span>
                     <span className="sub-plan-price">{plan.monthlyPrice}<small>/mo</small></span>
                   </div>
                   <h3 className="sub-plan-name">{plan.name}</h3>
@@ -198,7 +199,7 @@ export function SubscriptionPage() {
 
             <div className="sub-dialog-body">
               <div className="sub-dialog-plan-card">
-                <span className="sub-plan-emoji">{pendingDetails.emoji}</span>
+                <span className="sub-plan-icon" aria-hidden><pendingDetails.icon size="1em" strokeWidth={2.1} /></span>
                 <div>
                   <strong>{pendingDetails.name}</strong>
                   <span className="sub-dialog-price">{pendingDetails.monthlyPrice}/mo</span>
