@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type
 import { apiRequest } from '../api'
 import { buildCriteriaPayload, defaultThreshold, describeCriteria } from '../lib/criteria'
 import { formatFriendlyLocation } from '../lib/formatting'
-import { resolveCriteriaTileEmoji, resolveRuleEmoji } from '../lib/ruleIcons'
+import { resolveCriteriaTileIcon, resolveRuleIconNode } from '../lib/ruleIcons'
 import {
   QUICK_START_PRESETS,
   SIMPLE_SITUATIONS,
@@ -392,7 +392,7 @@ export function RulesPage() {
                 aria-pressed={isEnabled}
                 onClick={() => toggle(preset)}
               >
-                <span className="rules-tile-icon">{resolveRuleEmoji(preset.icon)}</span>
+                <span className="rules-tile-icon">{resolveRuleIconNode(preset.icon)}</span>
                 <span className="rules-tile-name">{preset.title}</span>
               </button>
             )
@@ -414,7 +414,7 @@ export function RulesPage() {
                   aria-label={`Edit ${item.name?.trim() || 'custom alert'}`}
                 >
                   <div className="rules-custom-rule-top">
-                    <span className="rules-tile-icon">{resolveCriteriaTileEmoji(item)}</span>
+                    <span className="rules-tile-icon">{resolveCriteriaTileIcon(item)}</span>
                   </div>
                   <span className="rules-tile-name">{item.name?.trim() || 'Custom alert'}</span>
                   <span className="rules-custom-rule-location">{formatFriendlyLocation(item.location)}</span>
@@ -438,7 +438,7 @@ export function RulesPage() {
               type="button"
               onClick={() => openCategory(situation)}
             >
-              <span className="rules-tile-icon">{resolveRuleEmoji(situation.icon)}</span>
+              <span className="rules-tile-icon">{resolveRuleIconNode(situation.icon)}</span>
               <span className="rules-tile-name">{situation.title}</span>
             </button>
           ))}
@@ -454,7 +454,7 @@ export function RulesPage() {
         >
           <div className={`rules-modal rules-modal--builder${modalStatus === 'success' ? ' is-success' : ''}${modalStatus === 'error' ? ' is-error' : ''}`} role="dialog" aria-label={`${editingCriteria ? 'Edit' : 'Create'} ${modalSituation.title} alert`}>
             <div className="rules-modal-header">
-              <span className="rules-modal-icon">{resolveRuleEmoji(modalSituation.icon)}</span>
+              <span className="rules-modal-icon">{resolveRuleIconNode(modalSituation.icon)}</span>
               <h2 className="rules-modal-title">{editingCriteria ? `Edit ${modalSituation.title}` : modalSituation.title}</h2>
               <button type="button" className="rules-modal-close" aria-label="Close" onClick={closeModal}>✕</button>
             </div>

@@ -357,7 +357,7 @@
   filter: hue-rotate(-22deg) saturate(1.18);
 }
 
-.settings-theme-emoji {
+.settings-theme-icon {
   display: grid;
   place-items: center;
   font-size: 1.4rem;

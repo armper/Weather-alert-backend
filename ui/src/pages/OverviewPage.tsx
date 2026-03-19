@@ -3,7 +3,7 @@ import { apiRequest, toErrorMessage } from '../api'
 import { OverviewLocationSwitcher, type OverviewLocationSelection } from '../components/features/dashboard/OverviewLocationSwitcher'
 import { formatDate, formatFriendlyLocation, formatPercentOrNA, formatRelativeTime, formatRelativeTimeCompact, formatTemperature } from '../lib/formatting'
 import { resolveOfficialAlertVisual } from '../lib/officialAlerts'
-import { resolveCriteriaTileEmoji } from '../lib/ruleIcons'
+import { resolveCriteriaTileIcon } from '../lib/ruleIcons'
 import { resolveWeatherVisual } from '../lib/weatherVisuals'
 import { DEFAULT_LAT, DEFAULT_LON } from '../state/types'
 import { useActionState, useAsyncState, useDataState, useNoticeState, useSessionState } from '../state/useAppState'
@@ -485,7 +485,7 @@ export function OverviewPage() {
                 const visual = resolveOfficialAlertVisual(item)
                 const title = criteriaItem?.name?.trim() || item.eventType?.trim() || item.headline?.trim() || 'Alert'
                 const area = formatFriendlyLocation(item.location || 'Selected area')
-                const icon = criteriaItem ? resolveCriteriaTileEmoji(criteriaItem) : visual.icon
+                const icon = criteriaItem ? resolveCriteriaTileIcon(criteriaItem) : visual.icon
 
                 return (
                   <button

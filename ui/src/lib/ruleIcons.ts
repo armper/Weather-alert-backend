@@ -21,7 +21,7 @@ function renderRuleIcon(icon: LucideIcon): ReactNode {
   return renderAppIcon(icon, 'rule-icon-glyph', 2.15)
 }
 
-export function resolveRuleEmoji(icon: RuleBuilderIcon): ReactNode {
+export function resolveRuleIconNode(icon: RuleBuilderIcon): ReactNode {
   switch (icon) {
     case 'heat':
       return renderRuleIcon(Sun)
@@ -48,7 +48,7 @@ export function resolveRuleEmoji(icon: RuleBuilderIcon): ReactNode {
   }
 }
 
-export function resolveCriteriaTileEmoji(criteria: AlertCriteria): ReactNode {
+export function resolveCriteriaTileIcon(criteria: AlertCriteria): ReactNode {
   if (criteria.temperatureThreshold != null) {
     return criteria.temperatureDirection === 'BELOW' ? renderRuleIcon(Snowflake) : renderRuleIcon(Sun)
   }

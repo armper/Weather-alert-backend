@@ -34,7 +34,7 @@ export function OverviewLocationSwitcher({
   const [saving, setSaving] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
   const [query, setQuery] = useState(activeLocation.name)
-  const [draftLocation, setDraftLocation] = useState(activeLocation)
+  const [selectedLocation, setSelectedLocation] = useState(activeLocation)
   const [hasTypedQuery, setHasTypedQuery] = useState(false)
   const {
     results,
@@ -49,7 +49,7 @@ export function OverviewLocationSwitcher({
 
     setQuery(activeLocation.name)
     clearResults()
-    setDraftLocation(activeLocation)
+    setSelectedLocation(activeLocation)
     setHasTypedQuery(false)
 
     const timeoutId = window.setTimeout(() => {
@@ -89,8 +89,8 @@ export function OverviewLocationSwitcher({
     clearResults()
   }
 
-  function applyDraftLocation(location: OverviewLocationSelection) {
-    setDraftLocation(location)
+  function syncSelectedLocationState(location: OverviewLocationSelection) {
+    setSelectedLocation(location)
     setQuery(location.name)
     skipNextSearchFor(location.name)
     clearResults()
@@ -120,7 +120,7 @@ export function OverviewLocationSwitcher({
       return
     }
 
-    applyDraftLocation(location)
+    syncSelectedLocationState(location)
     setIsOpen(false)
     setSaving(true)
 
@@ -191,7 +191,7 @@ export function OverviewLocationSwitcher({
               <div className="overview-location-search-column">
                 <div className="overview-location-selection-card">
                   <span className="overview-location-selection-label">Selected area</span>
-                  <strong>{formatFriendlyLocation(draftLocation.name || monitoringLocation.name)}</strong>
+                  <strong>{formatFriendlyLocation(selectedLocation.name || monitoringLocation.name)}</strong>
                 </div>
 
                 <div className="overview-location-search-wrapper">
@@ -250,9 +250,9 @@ export function OverviewLocationSwitcher({
               <div className="overview-location-map-panel">
                 <Suspense fallback={<div className="overview-location-map-loading" />}>
                   <LocationPickerMap
-                    latitude={draftLocation.latitude}
-                    location={draftLocation.name}
-                    longitude={draftLocation.longitude}
+                    latitude={selectedLocation.latitude}
+                    location={selectedLocation.name}
+                    longitude={selectedLocation.longitude}
                     onSelect={({ location, latitude, longitude }) => {
                       void commitSelection({
                         name: location,

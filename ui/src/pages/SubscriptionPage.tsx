@@ -154,7 +154,7 @@ export function SubscriptionPage() {
                   onClick={() => isCurrent ? void handleOpenBillingPortal() : setPendingPlan(plan.id)}
                 >
                   <div className="sub-plan-top">
-                    <span className="sub-plan-emoji" aria-hidden><plan.icon size="1em" strokeWidth={2.1} /></span>
+                    <span className="sub-plan-icon" aria-hidden><plan.icon size="1em" strokeWidth={2.1} /></span>
                     <span className="sub-plan-price">{plan.monthlyPrice}<small>/mo</small></span>
                   </div>
                   <h3 className="sub-plan-name">{plan.name}</h3>
@@ -199,7 +199,7 @@ export function SubscriptionPage() {
 
             <div className="sub-dialog-body">
               <div className="sub-dialog-plan-card">
-                <span className="sub-plan-emoji" aria-hidden><pendingDetails.icon size="1em" strokeWidth={2.1} /></span>
+                <span className="sub-plan-icon" aria-hidden><pendingDetails.icon size="1em" strokeWidth={2.1} /></span>
                 <div>
                   <strong>{pendingDetails.name}</strong>
                   <span className="sub-dialog-price">{pendingDetails.monthlyPrice}/mo</span>

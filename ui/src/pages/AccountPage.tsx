@@ -242,7 +242,7 @@ export function AccountPage() {
                     className={`settings-theme-tile${themePreference === opt.id ? ' is-active' : ''}`}
                     onClick={() => setThemePreference(opt.id)}
                   >
-                    <span className="settings-theme-emoji" aria-hidden><opt.icon size="1em" strokeWidth={2.1} /></span>
+                    <span className="settings-theme-icon" aria-hidden><opt.icon size="1em" strokeWidth={2.1} /></span>
                     <span className="settings-theme-name">{opt.label}</span>
                     <span className="settings-theme-detail">{opt.detail}</span>
                   </button>
