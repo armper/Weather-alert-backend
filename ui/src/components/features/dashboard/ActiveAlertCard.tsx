@@ -37,8 +37,8 @@ export function ActiveAlertCard({ item, busy, onAcknowledge }: ActiveAlertCardPr
 
       {item.metrics.length > 0 ? (
         <div className="alert-metrics">
-          {item.metrics.map((metric) => (
-            <span key={`${metric.icon}-${metric.label}`} className="metric-pill">
+          {item.metrics.map((metric, index) => (
+            <span key={`${metric.label}-${index}`} className="metric-pill">
               <span aria-hidden>{metric.icon}</span>
               <span>{metric.label}</span>
             </span>

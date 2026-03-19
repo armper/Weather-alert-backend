@@ -36,22 +36,38 @@
   --accent-soft-rgb: 144, 224, 239;
   --accent-deep-rgb: 3, 4, 94;
 
-  --panel-bg: var(--surface);
-  --panel-bg-muted: var(--surface-soft);
-  --panel-bg-hover: var(--surface-soft-hover);
+  --frost-surface-border: rgba(255, 255, 255, 0.36);
+  --frost-surface-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(98, 126, 160, 0.6);
+  --frost-surface-bg-hover:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+    rgba(108, 138, 174, 0.68);
+  --frost-surface-shadow:
+    0 10px 24px rgba(31, 58, 112, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+  --frost-surface-shadow-hover:
+    0 16px 30px rgba(31, 58, 112, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+
+  --panel-bg: var(--frost-surface-bg);
+  --panel-bg-muted: var(--frost-surface-bg);
+  --panel-bg-hover: var(--frost-surface-bg-hover);
   --panel-bg-popover: var(--surface-popover);
-  --panel-border: var(--surface-border);
+  --panel-border: var(--frost-surface-border);
   --panel-border-strong: var(--surface-border-strong);
-  --panel-shadow: 0 20px 35px var(--shadow-soft);
+  --panel-shadow: var(--frost-surface-shadow);
 
   --card-bg: var(--surface);
   --card-bg-muted: var(--surface-soft);
   --card-bg-hover: var(--surface-soft-hover);
-  --card-bg-elevated: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
+  --card-bg-elevated: var(--frost-surface-bg);
   --card-bg-highlight: linear-gradient(180deg, var(--surface) 0%, rgba(var(--accent-bright-rgb), 0.14) 100%);
   --card-highlight-glow: radial-gradient(circle at top right, rgba(var(--accent-soft-rgb), 0.16) 0%, transparent 48%);
-  --card-shadow-soft: 0 10px 18px rgba(var(--accent-deep-rgb), 0.08);
-  --card-shadow-raised: 0 14px 28px rgba(var(--accent-deep-rgb), 0.12);
+  --card-shadow-soft: var(--frost-surface-shadow);
+  --card-shadow-raised: var(--frost-surface-shadow-hover);
 
   --control-bg: var(--field-bg);
   --control-bg-muted: var(--surface-soft);
@@ -120,20 +136,36 @@
   --accent-soft-rgb: 202, 240, 248;
   --accent-deep-rgb: 3, 4, 94;
 
-  --panel-bg: rgba(7, 18, 96, 0.9);
-  --panel-bg-muted: rgba(9, 26, 118, 0.9);
-  --panel-bg-hover: rgba(12, 33, 136, 0.94);
+  --frost-surface-border: rgba(202, 240, 248, 0.26);
+  --frost-surface-bg:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    rgba(10, 24, 76, 0.72);
+  --frost-surface-bg-hover:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+    rgba(16, 34, 98, 0.8);
+  --frost-surface-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --frost-surface-shadow-hover:
+    0 16px 30px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+
+  --panel-bg: var(--frost-surface-bg);
+  --panel-bg-muted: var(--frost-surface-bg);
+  --panel-bg-hover: var(--frost-surface-bg-hover);
   --panel-bg-popover: #07125e;
-  --panel-shadow: 0 20px 35px var(--shadow-strong);
+  --panel-shadow: var(--frost-surface-shadow);
 
   --card-bg: rgba(7, 18, 96, 0.9);
   --card-bg-muted: rgba(9, 26, 118, 0.88);
   --card-bg-hover: rgba(12, 33, 136, 0.94);
-  --card-bg-elevated: linear-gradient(180deg, rgba(7, 18, 96, 0.92) 0%, rgba(9, 26, 118, 0.88) 100%);
+  --card-bg-elevated: var(--frost-surface-bg);
   --card-bg-highlight: linear-gradient(180deg, rgba(7, 18, 96, 0.94) 0%, rgba(0, 180, 216, 0.14) 100%);
   --card-highlight-glow: radial-gradient(circle at top right, rgba(202, 240, 248, 0.12) 0%, transparent 48%);
-  --card-shadow-soft: 0 12px 24px rgba(0, 0, 0, 0.18);
-  --card-shadow-raised: 0 14px 28px rgba(0, 0, 0, 0.24);
+  --card-shadow-soft: var(--frost-surface-shadow);
+  --card-shadow-raised: var(--frost-surface-shadow-hover);
 
   --control-bg: var(--field-bg);
   --control-bg-muted: rgba(9, 26, 118, 0.9);

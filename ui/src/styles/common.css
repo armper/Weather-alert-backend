@@ -19,6 +19,19 @@ html:has(.app-shell.is-immersive-route) #root {
 .app-shell {
   --bottom-nav-content-clearance: 0px;
   --bottom-nav-floating-clearance: 0px;
+  --frost-tile-border: var(--frost-surface-border);
+  --frost-tile-background: var(--frost-surface-bg);
+  --frost-tile-shadow: var(--frost-surface-shadow);
+  --frost-tile-hover-shadow: var(--frost-surface-shadow-hover);
+  --frost-tile-active-border: rgba(117, 244, 255, 0.52);
+  --frost-tile-active-background:
+    linear-gradient(180deg, rgba(196, 255, 250, 0.34), rgba(126, 213, 255, 0.14)),
+    rgba(78, 164, 255, 0.18);
+  --frost-tile-active-shadow:
+    0 0 0 1px rgba(120, 232, 255, 0.16),
+    0 12px 26px rgba(21, 87, 148, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -1px 0 rgba(130, 211, 255, 0.22);
   position: relative;
   min-height: 100vh;
   padding: 2rem;
@@ -128,8 +141,8 @@ html:has(.app-shell.is-immersive-route) #root {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.82);
-  transition: color 120ms ease, transform 120ms ease;
+  color: rgba(255, 255, 255, 0.9);
+  transition: color 120ms ease, transform 120ms ease, filter 180ms ease;
 }
 
 .app-shell.has-bottom-nav .shell-mobile-nav-link:hover {
@@ -141,7 +154,7 @@ html:has(.app-shell.is-immersive-route) #root {
 .app-shell.has-bottom-nav .shell-mobile-nav-link.active {
   background: transparent;
   border-color: transparent;
-  color: #ffffff;
+  color: #bffcff;
   transform: translateY(-1px);
 }
 
@@ -152,32 +165,26 @@ html:has(.app-shell.is-immersive-route) #root {
   width: 2.9rem;
   height: 2.9rem;
   border-radius: 1rem;
-  border: 1px solid transparent;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  border: 1px solid var(--frost-tile-border);
+  background: var(--frost-tile-background);
+  box-shadow: var(--frost-tile-shadow);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
   transition:
     border-color 180ms ease,
     background 180ms ease,
     box-shadow 180ms ease,
     backdrop-filter 180ms ease,
     -webkit-backdrop-filter 180ms ease,
+    filter 180ms ease,
     transform 120ms ease;
 }
 
 .app-shell.has-bottom-nav .shell-mobile-nav-link.active .shell-mobile-nav-icon-frame {
-  border-color: rgba(120, 200, 255, 0.4);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.1)),
-    rgba(130, 170, 224, 0.12);
-  box-shadow:
-    0 0 0 1px rgba(100, 185, 255, 0.12),
-    0 10px 22px rgba(31, 58, 112, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px) saturate(1.08);
-  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+  border-color: var(--frost-tile-active-border);
+  background: var(--frost-tile-active-background);
+  box-shadow: var(--frost-tile-active-shadow);
+  filter: hue-rotate(-22deg) saturate(1.22);
 }
 
 .app-shell.has-bottom-nav .shell-mobile-nav-icon {
@@ -185,7 +192,9 @@ html:has(.app-shell.is-immersive-route) #root {
   height: 1.72rem;
   stroke: currentColor;
   stroke-width: 2.4;
-  fill: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
   filter: drop-shadow(0 8px 18px rgba(27, 45, 85, 0.35));
 }
 
@@ -286,7 +295,8 @@ html:has(.app-shell.is-immersive-route) #root {
   box-shadow:
     var(--panel-shadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.32);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px) saturate(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
 }
 
 .panel h2 {
@@ -2376,4 +2386,9 @@ button:disabled {
   background: rgba(var(--accent-rgb), 0.12);
   color: var(--accent-700);
   font-weight: 700;
+}
+.app-icon-glyph,
+.rule-icon-glyph {
+  display: block;
+  flex-shrink: 0;
 }

@@ -1,4 +1,7 @@
+import { Droplets } from 'lucide-react'
+import { renderAppIcon } from '../../../lib/appIcons'
 import { formatTemperature, formatPercentOrNA } from '../../../lib/formatting'
+import { resolveWeatherVisual } from '../../../lib/weatherVisuals'
 import type { WeatherCondition } from '../../../types'
 
 interface HourlyForecastStripProps {
@@ -22,22 +25,8 @@ function formatHourLabel(item: WeatherCondition): string {
   return date.toLocaleTimeString(undefined, { hour: 'numeric' })
 }
 
-function resolveWeatherIcon(item: WeatherCondition): string {
-  if (item.probabilityOfThunder != null && item.probabilityOfThunder > 30) return '⛈'
-  if ((item.precipitationProbability ?? 0) > 60) return '🌧'
-  if ((item.precipitationProbability ?? 0) > 30) return '🌦'
-  if ((item.skyCover ?? 0) > 75) return '☁️'
-  if ((item.skyCover ?? 0) > 40) return '⛅'
-  return '☀️'
-}
-
 function resolveWeatherLabel(item: WeatherCondition): string {
-  if (item.probabilityOfThunder != null && item.probabilityOfThunder > 30) return 'Thunderstorm'
-  if ((item.precipitationProbability ?? 0) > 60) return 'Rain'
-  if ((item.precipitationProbability ?? 0) > 30) return 'Partly rainy'
-  if ((item.skyCover ?? 0) > 75) return 'Cloudy'
-  if ((item.skyCover ?? 0) > 40) return 'Partly cloudy'
-  return 'Sunny'
+  return resolveWeatherVisual(item).label
 }
 
 export function HourlyForecastStrip({ items, unit = 'F' }: HourlyForecastStripProps) {
@@ -57,9 +46,12 @@ export function HourlyForecastStrip({ items, unit = 'F' }: HourlyForecastStripPr
         {items.slice(0, 24).map((item) => (
           <div key={item.id} className="hourly-forecast-slot">
             <span className="hourly-forecast-time">{formatHourLabel(item)}</span>
-            <span className="hourly-forecast-icon" role="img" aria-label={resolveWeatherLabel(item)}>{resolveWeatherIcon(item)}</span>
+            <span className="hourly-forecast-icon" role="img" aria-label={resolveWeatherLabel(item)}>{resolveWeatherVisual(item).icon}</span>
             <span className="hourly-forecast-temp">{formatTemperature(item.temperature, unit)}</span>
-            <span className="hourly-forecast-rain">💧 {formatPercentOrNA(item.precipitationProbability)}</span>
+            <span className="hourly-forecast-rain">
+              <span className="forecast-precip-icon" aria-hidden>{renderAppIcon(Droplets, 'app-icon-glyph forecast-precip-glyph')}</span>
+              <span>{formatPercentOrNA(item.precipitationProbability)}</span>
+            </span>
           </div>
         ))}
       </div>

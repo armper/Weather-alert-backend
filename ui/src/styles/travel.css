@@ -31,6 +31,8 @@
 }
 
 .travel-empty-icon {
+  display: grid;
+  place-items: center;
   font-size: 3rem;
   line-height: 1;
 }
@@ -83,15 +85,15 @@
 .travel-tile {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 1.2rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.10)),
-    rgba(130, 170, 224, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+    rgba(97, 124, 157, 0.72);
   box-shadow:
-    0 10px 22px rgba(31, 58, 112, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+    0 16px 30px rgba(31, 58, 112, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(10px) saturate(1.08);
   -webkit-backdrop-filter: blur(10px) saturate(1.08);
   color: rgba(255, 255, 255, 0.95);
@@ -104,9 +106,9 @@
 .travel-tile:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 14px 28px rgba(31, 58, 112, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    0 18px 34px rgba(31, 58, 112, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .travel-tile:active {
@@ -114,16 +116,10 @@
 }
 
 .travel-tile.is-active {
-  border-color: rgba(120, 200, 255, 0.55);
-  background:
-    linear-gradient(180deg, rgba(100, 180, 255, 0.38), rgba(60, 140, 220, 0.18)),
-    rgba(80, 160, 240, 0.18);
-  box-shadow:
-    0 0 0 1px rgba(100, 185, 255, 0.3),
-    0 0 24px rgba(80, 160, 255, 0.18),
-    0 12px 28px rgba(31, 58, 112, 0.22),
-    inset 0 1px 0 rgba(180, 220, 255, 0.6),
-    inset 0 -1px 0 rgba(100, 180, 255, 0.2);
+  border-color: var(--frost-tile-active-border);
+  background: var(--frost-tile-active-background);
+  box-shadow: var(--frost-tile-active-shadow);
+  filter: hue-rotate(-22deg) saturate(1.18);
 }
 
 .travel-tile.is-past {
@@ -183,9 +179,18 @@
 
 .travel-tile-badge {
   margin-top: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
   font-size: 0.72rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.75);
+}
+
+.travel-tile-badge-icon {
+  display: grid;
+  place-items: center;
+  font-size: 0.82rem;
 }
 
 /* ─── modal ─── */
@@ -242,6 +247,8 @@
 }
 
 .travel-modal-icon {
+  display: grid;
+  place-items: center;
   font-size: 1.6rem;
   line-height: 1;
 }
@@ -346,6 +353,9 @@
 }
 
 .travel-detail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
   font-size: 0.82rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.75);

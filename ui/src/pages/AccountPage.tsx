@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useThemePreference, type ThemePreference } from '../theme'
 import {
@@ -112,10 +113,10 @@ export function AccountPage() {
     setPreferenceDraft({ ...preferenceForm, enabledChannels: nextChannels, preferredChannel: fallbackPreferred })
   }
 
-  const THEME_OPTIONS: Array<{ id: ThemePreference; label: string; emoji: string; detail: string }> = [
-    { id: 'system', label: 'System', emoji: '🖥️', detail: 'Follow your device preference.' },
-    { id: 'light', label: 'Light', emoji: '☀️', detail: 'Bright daytime palette.' },
-    { id: 'dark', label: 'Dark', emoji: '🌙', detail: 'Twilight palette always.' },
+  const THEME_OPTIONS: Array<{ id: ThemePreference; label: string; icon: LucideIcon; detail: string }> = [
+    { id: 'system', label: 'System', icon: Monitor, detail: 'Follow your device preference.' },
+    { id: 'light', label: 'Light', icon: Sun, detail: 'Bright daytime palette.' },
+    { id: 'dark', label: 'Dark', icon: Moon, detail: 'Twilight palette always.' },
   ]
 
   return (
@@ -241,7 +242,7 @@ export function AccountPage() {
                     className={`settings-theme-tile${themePreference === opt.id ? ' is-active' : ''}`}
                     onClick={() => setThemePreference(opt.id)}
                   >
-                    <span className="settings-theme-emoji">{opt.emoji}</span>
+                    <span className="settings-theme-emoji" aria-hidden><opt.icon size="1em" strokeWidth={2.1} /></span>
                     <span className="settings-theme-name">{opt.label}</span>
                     <span className="settings-theme-detail">{opt.detail}</span>
                   </button>

@@ -20,18 +20,6 @@ import type { AlertCriteria } from '../types'
 
 type ModalStatus = 'idle' | 'saving' | 'success' | 'error'
 
-const TILE_SUBTITLES: Record<string, string> = {
-  'chilly-weather': 'Temperature below 60°F',
-  'hot-day-ahead': 'Temperature above 90°F',
-  'rain-coming': 'Rain chance above 75%',
-  'windy-outside': 'Wind speed above 30 km/h',
-  'very-humid': 'Humidity above 80%',
-  'warm-muggy-night': 'Dew point above 68°F',
-  'river-rising': 'River stage above 8 ft',
-  'river-problem': 'Flood watch level reached',
-  'minor-flooding': 'Minor flooding detected',
-}
-
 const FLOOD_CATEGORY_LABELS: Record<string, string> = {
   ACTION: 'Watch level',
   MINOR: 'Minor flooding',
@@ -399,16 +387,13 @@ export function RulesPage() {
             return (
               <button
                 key={preset.id}
-                className={`rules-tile${isEnabled ? ' is-enabled' : ''}`}
+                className={`rules-tile rules-preset-tile${isEnabled ? ' is-enabled' : ''}`}
                 type="button"
                 aria-pressed={isEnabled}
                 onClick={() => toggle(preset)}
               >
                 <span className="rules-tile-icon">{resolveRuleEmoji(preset.icon)}</span>
                 <span className="rules-tile-name">{preset.title}</span>
-                <span className="rules-tile-desc">
-                  {TILE_SUBTITLES[preset.id] ?? preset.description}
-                </span>
               </button>
             )
           })}

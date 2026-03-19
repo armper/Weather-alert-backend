@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react'
+import { CloudFog, CloudLightning, CloudRain, CloudSnow, Cloudy, Flame, Tornado, TriangleAlert, Waves, Wind } from 'lucide-react'
+import { renderAppIcon } from './appIcons'
 import type { WeatherCondition } from '../types'
 
 export type OfficialAlertTone = 'extreme' | 'severe' | 'warning' | 'advisory' | 'notice'
 
 export interface OfficialAlertVisual {
-  icon: string
+  icon: ReactNode
   label: string
   tone: OfficialAlertTone
 }
@@ -42,38 +45,38 @@ export function resolveOfficialAlertVisual(item: Pick<WeatherCondition, 'severit
   const tone = inferTone(item)
 
   if (text.includes('tornado')) {
-    return { icon: '🌪️', label: 'Tornado', tone }
+    return { icon: renderAppIcon(Tornado), label: 'Tornado', tone }
   }
   if (text.includes('hurricane') || text.includes('tropical storm')) {
-    return { icon: '🌀', label: 'Tropical', tone }
+    return { icon: renderAppIcon(Cloudy), label: 'Tropical', tone }
   }
   if (text.includes('flood') || text.includes('flash flood')) {
-    return { icon: '🌊', label: 'Flood', tone }
+    return { icon: renderAppIcon(Waves), label: 'Flood', tone }
   }
   if (text.includes('thunderstorm') || text.includes('lightning')) {
-    return { icon: '⛈️', label: 'Storm', tone }
+    return { icon: renderAppIcon(CloudLightning), label: 'Storm', tone }
   }
   if (text.includes('wind')) {
-    return { icon: '💨', label: 'Wind', tone }
+    return { icon: renderAppIcon(Wind), label: 'Wind', tone }
   }
   if (text.includes('heat')) {
-    return { icon: '🔥', label: 'Heat', tone }
+    return { icon: renderAppIcon(Flame), label: 'Heat', tone }
   }
   if (text.includes('fire') || text.includes('smoke')) {
-    return { icon: '🔥', label: 'Fire weather', tone }
+    return { icon: renderAppIcon(Flame), label: 'Fire weather', tone }
   }
   if (text.includes('snow') || text.includes('blizzard') || text.includes('ice') || text.includes('freez')) {
-    return { icon: '❄️', label: 'Winter', tone }
+    return { icon: renderAppIcon(CloudSnow), label: 'Winter', tone }
   }
   if (text.includes('rain')) {
-    return { icon: '🌧️', label: 'Rain', tone }
+    return { icon: renderAppIcon(CloudRain), label: 'Rain', tone }
   }
   if (text.includes('air quality')) {
-    return { icon: '🌫️', label: 'Air quality', tone }
+    return { icon: renderAppIcon(CloudFog), label: 'Air quality', tone }
   }
   if (text.includes('marine') || text.includes('surf') || text.includes('coastal')) {
-    return { icon: '🌊', label: 'Marine', tone }
+    return { icon: renderAppIcon(Waves), label: 'Marine', tone }
   }
 
-  return { icon: '⚠️', label: 'Official alert', tone }
+  return { icon: renderAppIcon(TriangleAlert), label: 'Official alert', tone }
 }

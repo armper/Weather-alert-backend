@@ -672,15 +672,15 @@
   justify-content: center;
   gap: 0.2rem;
   padding: 0.65rem 0.45rem;
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 1.2rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.10)),
-    rgba(130, 170, 224, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    rgba(86, 112, 144, 0.84);
   box-shadow:
-    0 10px 22px rgba(31, 58, 112, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+    0 18px 34px rgba(31, 58, 112, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
   -webkit-backdrop-filter: blur(10px) saturate(1.08);
   backdrop-filter: blur(10px) saturate(1.08);
   color: rgba(255, 255, 255, 0.95);
@@ -689,12 +689,17 @@
   text-align: center;
 }
 
+.rules-preset-tile {
+  gap: 0.7rem;
+  padding: 0.9rem 0.65rem;
+}
+
 .rules-tile:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 14px 28px rgba(31, 58, 112, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+    0 20px 36px rgba(31, 58, 112, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .rules-tile:active {
@@ -702,8 +707,40 @@
 }
 
 .rules-tile-icon {
-  font-size: 1.6rem;
+  display: grid;
+  place-items: center;
+  min-height: 1.8rem;
+  color: rgba(255, 255, 255, 0.96);
   line-height: 1;
+}
+
+.rules-tile-icon .rule-icon-glyph {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.rules-preset-tile .rules-tile-icon {
+  min-height: 2.8rem;
+}
+
+.rules-preset-tile .rules-tile-icon .rule-icon-glyph {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.rules-preset-tile .rules-tile-name {
+  font-size: clamp(1rem, 2.45vw, 1.14rem);
+  line-height: 1.14;
+  max-width: 10ch;
+}
+
+.rules-category-tile .rules-tile-icon {
+  min-height: 2.7rem;
+}
+
+.rules-category-tile .rules-tile-icon .rule-icon-glyph {
+  width: 2.15rem;
+  height: 2.15rem;
 }
 
 .rules-tile-name {
@@ -721,16 +758,16 @@
 }
 
 .rules-tile.is-enabled {
-  border-color: rgba(120, 200, 255, 0.55);
+  border-color: rgba(117, 244, 255, 0.56);
   background:
-    linear-gradient(180deg, rgba(100, 180, 255, 0.38), rgba(60, 140, 220, 0.18)),
-    rgba(80, 160, 240, 0.18);
+    linear-gradient(180deg, rgba(196, 255, 250, 0.16), rgba(126, 213, 255, 0.04)),
+    rgba(70, 118, 168, 0.88);
   box-shadow:
-    0 0 0 1px rgba(100, 185, 255, 0.3),
-    0 0 24px rgba(80, 160, 255, 0.18),
-    0 12px 28px rgba(31, 58, 112, 0.22),
-    inset 0 1px 0 rgba(180, 220, 255, 0.6),
-    inset 0 -1px 0 rgba(100, 180, 255, 0.2);
+    0 0 0 1px rgba(120, 232, 255, 0.18),
+    0 18px 36px rgba(21, 87, 148, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(130, 211, 255, 0.08);
+  filter: hue-rotate(-22deg) saturate(1.1);
 }
 
 .rules-tile.is-enabled .rules-tile-name {
@@ -824,8 +861,8 @@
 .rules-custom-rule-tile.is-muted {
   border-color: rgba(255, 255, 255, 0.22);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
-    rgba(110, 135, 175, 0.08);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)),
+    rgba(78, 99, 127, 0.68);
 }
 
 .rules-custom-select {
@@ -907,8 +944,15 @@
 }
 
 .rules-modal-icon {
-  font-size: 1.6rem;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.96);
   line-height: 1;
+}
+
+.rules-modal-icon .rule-icon-glyph {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .rules-modal-title {

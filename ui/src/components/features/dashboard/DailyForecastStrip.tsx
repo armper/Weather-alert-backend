@@ -1,4 +1,7 @@
+import { Droplets } from 'lucide-react'
+import { renderAppIcon } from '../../../lib/appIcons'
 import { formatTemperature, formatPercentOrNA } from '../../../lib/formatting'
+import { resolveWeatherVisual } from '../../../lib/weatherVisuals'
 import type { WeatherCondition } from '../../../types'
 
 interface DailyForecastStripProps {
@@ -59,32 +62,8 @@ function buildUniqueDailyItems(items: WeatherCondition[]): WeatherCondition[] {
     .slice(0, 7)
 }
 
-function resolveWeatherIcon(item: WeatherCondition): string {
-  if (item.probabilityOfThunder != null && item.probabilityOfThunder > 30) {
-    return '⛈'
-  }
-  if ((item.precipitationProbability ?? 0) > 60) {
-    return '🌧'
-  }
-  if ((item.precipitationProbability ?? 0) > 30) {
-    return '🌦'
-  }
-  if ((item.skyCover ?? 0) > 75) {
-    return '☁️'
-  }
-  if ((item.skyCover ?? 0) > 40) {
-    return '⛅'
-  }
-  return '☀️'
-}
-
 function resolveWeatherLabel(item: WeatherCondition): string {
-  if (item.probabilityOfThunder != null && item.probabilityOfThunder > 30) return 'Thunderstorm'
-  if ((item.precipitationProbability ?? 0) > 60) return 'Rain'
-  if ((item.precipitationProbability ?? 0) > 30) return 'Partly rainy'
-  if ((item.skyCover ?? 0) > 75) return 'Cloudy'
-  if ((item.skyCover ?? 0) > 40) return 'Partly cloudy'
-  return 'Sunny'
+  return resolveWeatherVisual(item).label
 }
 
 export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProps) {
@@ -110,10 +89,13 @@ export function DailyForecastStrip({ items, unit = 'F' }: DailyForecastStripProp
             <div key={item.id} className={`daily-forecast-day${today ? ' daily-forecast-day--today' : ''}`}>
               <span className="daily-forecast-day-label">{today ? 'Today' : formatDayLabel(item)}</span>
               <span className="daily-forecast-day-icon" role="img" aria-label={resolveWeatherLabel(item)}>
-                {resolveWeatherIcon(item)}
+                {resolveWeatherVisual(item).icon}
               </span>
               <span className="daily-forecast-day-temp">{formatTemperature(item.temperature, unit)}</span>
-              <span className="daily-forecast-day-rain">💧 {formatPercentOrNA(item.precipitationProbability)}</span>
+              <span className="daily-forecast-day-rain">
+                <span className="forecast-precip-icon" aria-hidden>{renderAppIcon(Droplets, 'app-icon-glyph forecast-precip-glyph')}</span>
+                <span>{formatPercentOrNA(item.precipitationProbability)}</span>
+              </span>
             </div>
           )
         })}
