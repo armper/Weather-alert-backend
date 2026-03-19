@@ -933,6 +933,19 @@
   display: grid;
   gap: 0.2rem;
   justify-items: start;
+  width: fit-content;
+  max-width: min(100%, 28rem);
+  padding: 0.75rem 0.9rem 0.85rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+    rgba(61, 92, 132, 0.26);
+  box-shadow:
+    0 14px 34px rgba(31, 58, 112, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(10px) saturate(1.04);
+  backdrop-filter: blur(10px) saturate(1.04);
 }
 
 .overview-minimal-greeting {
@@ -984,8 +997,14 @@
 .overview-minimal-condition-icon {
   display: grid;
   place-items: center;
+  color: rgba(255, 255, 255, 0.96);
   font-size: 1.5rem;
   line-height: 1;
+}
+
+.overview-minimal-condition-icon .app-icon-glyph {
+  width: 1.45rem;
+  height: 1.45rem;
 }
 
 .overview-official-alerts {
@@ -1167,6 +1186,7 @@
   place-items: center;
   width: 4.6rem;
   height: 4.6rem;
+  color: rgba(255, 255, 255, 0.96);
 }
 
 .overview-official-alert-icon span {
