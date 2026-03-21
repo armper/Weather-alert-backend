@@ -101,6 +101,8 @@
   overflow: hidden;
   transition: transform 120ms ease, box-shadow 120ms ease;
   text-align: left;
+  content-visibility: auto;
+  contain-intrinsic-size: 14rem;
 }
 
 .travel-tile:hover {

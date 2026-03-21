@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import backgroundImage from '../../assets/background.png'
+import backgroundImage from '../../assets/background.webp'
 
 interface PublicPosterLayoutProps {
   eyebrow?: string
