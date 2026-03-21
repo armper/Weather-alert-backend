@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { usePlaceSearch } from '../../../hooks/usePlaceSearch'
 import { formatFriendlyLocation } from '../../../lib/formatting'
@@ -171,103 +172,106 @@ export function OverviewLocationSwitcher({
         </span>
       </div>
 
-      {isOpen ? (
-        <div className="overview-location-dialog-backdrop" role="presentation" onClick={closeModal}>
-          <div
-            aria-labelledby={`${titleId}-dialog`}
-            aria-modal="true"
-            className="overview-location-dialog overview-location-dialog--picker"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <div className="overview-location-dialog-header">
-              <h2 id={`${titleId}-dialog`}>Choose location</h2>
-              <button className="overview-location-close" aria-label="Close location picker" onClick={closeModal} type="button">
-                ✕
-              </button>
-            </div>
-
-            <div className="overview-location-picker-grid">
-              <div className="overview-location-search-column">
-                <div className="overview-location-selection-card">
-                  <span className="overview-location-selection-label">Selected area</span>
-                  <strong>{formatFriendlyLocation(selectedLocation.name || monitoringLocation.name)}</strong>
+      {isOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="overview-location-dialog-backdrop" role="presentation" onClick={closeModal}>
+              <div
+                aria-labelledby={`${titleId}-dialog`}
+                aria-modal="true"
+                className="overview-location-dialog overview-location-dialog--picker"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+              >
+                <div className="overview-location-dialog-header">
+                  <h2 id={`${titleId}-dialog`}>Choose location</h2>
+                  <button className="overview-location-close" aria-label="Close location picker" onClick={closeModal} type="button">
+                    ✕
+                  </button>
                 </div>
 
-                <div className="overview-location-search-wrapper">
-                  <input
-                    ref={searchInputRef}
-                    aria-label="Find a place"
-                    autoComplete="off"
-                    className="travel-input overview-location-search-input"
-                    id={`${titleId}-search`}
-                    maxLength={180}
-                    onChange={(event) => {
-                      setHasTypedQuery(true)
-                      setQuery(event.target.value)
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && results[0]) {
-                        event.preventDefault()
-                        void commitSelection({
-                          name: results[0].name,
-                          detail: results[0].displayName,
-                          latitude: results[0].latitude,
-                          longitude: results[0].longitude,
-                        })
-                      }
-                    }}
-                    placeholder="Find a place"
-                    value={query}
-                  />
+                <div className="overview-location-picker-grid">
+                  <div className="overview-location-search-column">
+                    <div className="overview-location-selection-card">
+                      <span className="overview-location-selection-label">Selected area</span>
+                      <strong>{formatFriendlyLocation(selectedLocation.name || monitoringLocation.name)}</strong>
+                    </div>
 
-                  {results.length > 0 ? (
-                    <ul className="travel-geo-results overview-location-results">
-                      {results.map((item) => (
-                        <li key={item.id}>
-                          <button
-                            className="travel-geo-result"
-                            onClick={() =>
-                              void commitSelection({
-                                name: item.name,
-                                detail: item.displayName,
-                                latitude: item.latitude,
-                                longitude: item.longitude,
-                              })
-                            }
-                            type="button"
-                          >
-                            <strong>{formatFriendlyLocation(item.name)}</strong>
-                            <span>{item.displayName}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
+                    <div className="overview-location-search-wrapper">
+                      <input
+                        ref={searchInputRef}
+                        aria-label="Find a place"
+                        autoComplete="off"
+                        className="travel-input overview-location-search-input"
+                        id={`${titleId}-search`}
+                        maxLength={180}
+                        onChange={(event) => {
+                          setHasTypedQuery(true)
+                          setQuery(event.target.value)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && results[0]) {
+                            event.preventDefault()
+                            void commitSelection({
+                              name: results[0].name,
+                              detail: results[0].displayName,
+                              latitude: results[0].latitude,
+                              longitude: results[0].longitude,
+                            })
+                          }
+                        }}
+                        placeholder="Find a place"
+                        value={query}
+                      />
+
+                      {results.length > 0 ? (
+                        <ul className="travel-geo-results overview-location-results">
+                          {results.map((item) => (
+                            <li key={item.id}>
+                              <button
+                                className="travel-geo-result"
+                                onClick={() =>
+                                  void commitSelection({
+                                    name: item.name,
+                                    detail: item.displayName,
+                                    latitude: item.latitude,
+                                    longitude: item.longitude,
+                                  })
+                                }
+                                type="button"
+                              >
+                                <strong>{formatFriendlyLocation(item.name)}</strong>
+                                <span>{item.displayName}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="overview-location-map-panel">
+                    <Suspense fallback={<div className="overview-location-map-loading" />}>
+                      <LocationPickerMap
+                        latitude={selectedLocation.latitude}
+                        location={selectedLocation.name}
+                        longitude={selectedLocation.longitude}
+                        onSelect={({ location, latitude, longitude }) => {
+                          void commitSelection({
+                            name: location,
+                            latitude,
+                            longitude,
+                          })
+                        }}
+                        showSearchControls={false}
+                      />
+                    </Suspense>
+                  </div>
                 </div>
               </div>
-
-              <div className="overview-location-map-panel">
-                <Suspense fallback={<div className="overview-location-map-loading" />}>
-                  <LocationPickerMap
-                    latitude={selectedLocation.latitude}
-                    location={selectedLocation.name}
-                    longitude={selectedLocation.longitude}
-                    onSelect={({ location, latitude, longitude }) => {
-                      void commitSelection({
-                        name: location,
-                        latitude,
-                        longitude,
-                      })
-                    }}
-                    showSearchControls={false}
-                  />
-                </Suspense>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   )
 }
