@@ -41,9 +41,13 @@ interface RouteTransitionState {
 const SWIPE_NAV_ITEMS = APP_PRIMARY_NAV_ITEMS
 
 const SWIPE_TARGET_BLOCKERS = [
+  'button',
+  'a',
   'input',
   'textarea',
   'select',
+  '[role="button"]',
+  '[role="link"]',
   '[role="dialog"]',
   '[aria-haspopup="dialog"]',
   '[contenteditable="true"]',
