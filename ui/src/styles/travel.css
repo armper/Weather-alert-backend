@@ -145,8 +145,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(134, 238, 255, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(71, 104, 143, 0.72);
   font-size: 1.6rem;
+}
+
+.travel-tile-map-placeholder::before,
+.travel-tile-map-placeholder::after {
+  content: '';
+  position: absolute;
+  inset: auto -12% 1.05rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+}
+
+.travel-tile-map-placeholder::after {
+  inset: 1.35rem -18% auto;
+}
+
+.travel-tile-map-icon {
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.96);
+  filter: drop-shadow(0 8px 22px rgba(10, 18, 42, 0.28));
 }
 
 .travel-tile-body {
