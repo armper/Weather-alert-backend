@@ -217,22 +217,9 @@ export function TravelPlansPage() {
                     type="button"
                     onClick={() => openDetail(plan)}
                   >
-                    {plan.latitude != null && plan.longitude != null ? (
-                      <div className="travel-tile-map">
-                        <Suspense fallback={null}>
-                          <StaticLocationMap
-                            latitude={plan.latitude}
-                            longitude={plan.longitude}
-                            radiusKm={12}
-                            ariaLabel={`Map of ${plan.destination}`}
-                          />
-                        </Suspense>
-                      </div>
-                    ) : (
-                      <div className="travel-tile-map-placeholder">
-                        <span>{renderAppIcon(MapPinned)}</span>
-                      </div>
-                    )}
+                    <div className="travel-tile-map-placeholder" aria-hidden>
+                      <span>{renderAppIcon(MapPinned, 'travel-tile-map-icon', 2.15)}</span>
+                    </div>
                     <div className="travel-tile-body">
                       <p className="travel-tile-destination">{plan.destination ?? 'Destination'}</p>
                       <p className="travel-tile-name">{plan.name}</p>

@@ -27,6 +27,56 @@ interface CustomOverviewView {
   hourlyForecast: WeatherCondition[]
 }
 
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
+
+function extractIsoCalendarDateParts(value?: string): { year: number; month: number; day: number } | null {
+  if (!value) {
+    return null
+  }
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) {
+    return null
+  }
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return null
+  }
+
+  return { year, month, day }
+}
+
+function resolveCalendarDayKey(value?: string): string | null {
+  const parts = extractIsoCalendarDateParts(value)
+  if (parts) {
+    return `${parts.year}-${parts.month}-${parts.day}`
+  }
+
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+}
+
+function extractHeadlineWeekday(item: WeatherCondition): string | null {
+  const headline = item.headline?.trim()
+  if (!headline) {
+    return null
+  }
+
+  const match = headline.match(/^(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\b/i)
+  return match ? `${match[1][0].toUpperCase()}${match[1].slice(1).toLowerCase()}` : null
+}
+
 function resolveDisplayTime(item: WeatherCondition): string | undefined {
   return item.onset ?? item.timestamp
 }
@@ -76,21 +126,31 @@ function buildWeatherVisualSource(
 
 function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherCondition[] {
   const now = new Date()
-  const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`
+  const todayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
+  const todayName = WEEKDAY_NAMES[now.getDay()]
+  const daytimeItems = new Map<string, WeatherCondition>()
+
+  for (const item of items) {
+    const weekdayName = extractHeadlineWeekday(item)
+    if (!weekdayName || weekdayName === todayName || daytimeItems.has(weekdayName)) {
+      continue
+    }
+
+    daytimeItems.set(weekdayName, item)
+    if (daytimeItems.size >= count) {
+      return Array.from(daytimeItems.values())
+    }
+  }
+
   const grouped = new Map<string, WeatherCondition>()
 
   for (const item of items) {
     const displayTime = resolveDisplayTime(item)
-    if (!displayTime) {
+    const dayKey = resolveCalendarDayKey(displayTime)
+    if (!dayKey) {
       continue
     }
 
-    const date = new Date(displayTime)
-    if (Number.isNaN(date.getTime())) {
-      continue
-    }
-
-    const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
     if (dayKey === todayKey || grouped.has(dayKey)) {
       continue
     }
@@ -99,6 +159,30 @@ function buildNextDailyItems(items: WeatherCondition[], count: number): WeatherC
   }
 
   return Array.from(grouped.values()).slice(0, count)
+}
+
+function formatDailyForecastLabel(item: WeatherCondition, fallbackIndex: number): string {
+  const headlineWeekday = extractHeadlineWeekday(item)
+  if (headlineWeekday) {
+    return headlineWeekday.slice(0, 3)
+  }
+
+  const displayTime = resolveDisplayTime(item)
+  const parts = extractIsoCalendarDateParts(displayTime)
+  if (parts) {
+    return new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12)),
+    )
+  }
+
+  if (displayTime) {
+    const date = new Date(displayTime)
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString(undefined, { weekday: 'short' })
+    }
+  }
+
+  return `Day ${fallbackIndex + 1}`
 }
 
 function areLocationsEquivalent(left: OverviewLocationSelection, right: OverviewLocationSelection): boolean {
@@ -404,16 +488,9 @@ export function OverviewPage() {
   const forecastItems = useMemo<MinimalForecastItem[]>(() => {
     const nextDailyItems = buildNextDailyItems(displayDailyForecast, 6)
     const dailyEntries = nextDailyItems.map((item, index) => {
-      const displayTime = resolveDisplayTime(item)
-      const dayDate = displayTime ? new Date(displayTime) : null
-      const dayLabel =
-        dayDate && !Number.isNaN(dayDate.getTime())
-          ? dayDate.toLocaleDateString(undefined, { weekday: 'short' })
-          : `Day ${index + 1}`
-
       return {
         id: `day-${item.id}`,
-        label: dayLabel,
+        label: formatDailyForecastLabel(item, index),
         temperatureLabel: formatTemperature(item.temperature, 'F'),
         precipitationLabel: formatPercentOrNA(item.precipitationProbability),
         icon: resolveWeatherIcon(item),
