@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
+import { LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useThemePreference, type ThemePreference } from '../theme'
 import {
@@ -22,7 +22,7 @@ const FALLBACK_OPTIONS = [
 ]
 
 export function AccountPage() {
-  const { me, initialDataLoading } = useSessionState()
+  const { me, initialDataLoading, logout } = useSessionState()
   const { notificationPreference } = useDataState()
   const { profileForm, setProfileForm, passwordForm, setPasswordForm } = useFormState()
   const { deletingAccount, savingProfile } = useAsyncState()
@@ -99,6 +99,11 @@ export function AccountPage() {
       setDeleteConfirmation('')
       navigate('/auth?accountDeleted=1', { replace: true })
     }
+  }
+
+  function onLogout() {
+    logout()
+    navigate('/auth', { replace: true })
   }
 
   function toggleChannel(channel: 'EMAIL' | 'SMS' | 'PUSH') {
@@ -318,6 +323,13 @@ export function AccountPage() {
                 Permanently removes your profile, alert rules, history, notification preferences, billing data,
                 email&nbsp;address, and phone&nbsp;number.
               </p>
+            </div>
+
+            <div className="settings-logout-row">
+              <button type="button" className="settings-logout-btn" onClick={onLogout}>
+                <LogOut size={18} strokeWidth={2.15} aria-hidden="true" />
+                <span>Log out</span>
+              </button>
             </div>
           </>
         )}

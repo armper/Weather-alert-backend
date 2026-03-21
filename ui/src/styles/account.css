@@ -505,3 +505,36 @@
   gap: 0.6rem;
   flex-wrap: wrap;
 }
+
+.settings-logout-row {
+  display: flex;
+  justify-content: center;
+  padding: 0.15rem 0 max(0.6rem, calc(var(--bottom-nav-content-clearance) * 0.08));
+}
+
+.settings-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: min(100%, 20rem);
+  min-height: 3rem;
+  padding: 0.85rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(34, 53, 90, 0.56);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 140ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.settings-logout-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(44, 68, 112, 0.68);
+  border-color: rgba(255, 255, 255, 0.28);
+}
