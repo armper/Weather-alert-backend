@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { NoticeBanner } from '../components/common/NoticeBanner'
-import backgroundLoginImage from '../assets/background-login.png'
+import backgroundLoginImage from '../assets/background-login.webp'
 import { useAuthState, useNoticeState } from '../state/useAppState'
 
 export function AuthRegisterPage() {
@@ -43,7 +43,13 @@ export function AuthRegisterPage() {
   return (
     <main className="auth-login-stage">
       <div className="auth-login-background" aria-hidden="true">
-        <img className="auth-login-background-image" src={backgroundLoginImage} alt="" />
+        <img
+          className="auth-login-background-image"
+          src={backgroundLoginImage}
+          alt=""
+          decoding="async"
+          fetchPriority="high"
+        />
       </div>
 
       <section className="auth-login-shell auth-register-shell">

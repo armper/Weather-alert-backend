@@ -1,11 +1,17 @@
 import { Link } from 'react-router-dom'
-import backgroundImage from '../assets/background.png'
+import backgroundImage from '../assets/background.webp'
 
 export function AuthLandingPage() {
   return (
     <main className="auth-home-stage">
       <div className="auth-home-background" aria-hidden="true">
-        <img className="auth-home-background-image" src={backgroundImage} alt="" />
+        <img
+          className="auth-home-background-image"
+          src={backgroundImage}
+          alt=""
+          decoding="async"
+          fetchPriority="high"
+        />
       </div>
 
       <section className="auth-home-poster">

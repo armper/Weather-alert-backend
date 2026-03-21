@@ -1867,6 +1867,10 @@ button:disabled {
   height: 100%;
 }
 
+.app-shell.is-immersive-route .shell-route-layer {
+  clip-path: none;
+}
+
 .shell-content.is-route-transitioning[data-swipe-direction='forward'] .shell-route-layer--previous {
   transform: translate3d(var(--shell-swipe-release-offset, 0px), 0, 0);
 }

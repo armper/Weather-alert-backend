@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AppTabPreview } from '../../appTabPages'
-import { APP_ADMIN_NAV_ITEM, APP_PRIMARY_NAV_ITEMS, preloadAppTabPreview } from '../../appTabRoutes'
+import { APP_ADMIN_NAV_ITEM, APP_PRIMARY_NAV_ITEMS } from '../../appTabRoutes'
 import { LoadingPlaceholder } from '../common/LoadingPlaceholder'
 import { resolveWeatherVisual } from '../../lib/weatherVisuals'
 import { useDataState } from '../../state/useAppState'
@@ -68,7 +68,8 @@ const POINTER_SWIPE_THRESHOLD_PX = 108
 const MAX_VERTICAL_DRIFT_PX = 72
 const HORIZONTAL_INTENT_RATIO = 1.35
 const SWIPE_DRAG_MAX_RATIO = 0.22
-const SWIPE_ROUTE_TRANSITION_MS = 280
+const SWIPE_ROUTE_TRANSITION_MS = 220
+const IDLE_ROUTE_PRELOAD_DELAY_MS = 900
 
 function matchesSwipeRoute(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`)
@@ -194,6 +195,7 @@ export function AppShell({ children }: AppShellProps) {
   const pendingNavigationRef = useRef<{ direction: SwipeDirection; releaseOffsetPx: number } | null>(null)
   const transitionFrameRef = useRef<number | null>(null)
   const transitionTimerRef = useRef<number | null>(null)
+  const preloadedRoutePathsRef = useRef(new Set<string>())
   const [dragOffsetPx, setDragOffsetPx] = useState(0)
   const [dragDirection, setDragDirection] = useState<SwipeDirection | null>(null)
   const [previewRoutePath, setPreviewRoutePath] = useState<string | null>(null)
@@ -259,6 +261,15 @@ export function AppShell({ children }: AppShellProps) {
     setPreviewRoutePath(null)
   }
 
+  function preloadRoute(path: string, loader?: () => Promise<unknown>) {
+    if (!loader || preloadedRoutePathsRef.current.has(path)) {
+      return
+    }
+
+    preloadedRoutePathsRef.current.add(path)
+    void loader()
+  }
+
   function beginSwipe(
     clientX: number,
     clientY: number,
@@ -321,7 +332,7 @@ export function AppShell({ children }: AppShellProps) {
     setDragOffsetPx(clampedOffset)
     setPreviewRoutePath(previewRoute?.to ?? null)
     if (previewRoute) {
-      void preloadAppTabPreview(previewRoute.to)
+      preloadRoute(previewRoute.to, previewRoute.preload)
     }
 
     return true
@@ -538,17 +549,48 @@ export function AppShell({ children }: AppShellProps) {
 
   useEffect(() => clearTransitionTimers, [])
 
+  useEffect(() => {
+    if (!hasBottomNav) {
+      return
+    }
+
+    const routesToWarm = APP_PRIMARY_NAV_ITEMS.filter((item) => item.to !== location.pathname)
+    const runPreload = () => {
+      routesToWarm.forEach((item) => preloadRoute(item.to, item.preload))
+    }
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(runPreload, { timeout: 1800 })
+      return () => window.cancelIdleCallback(idleId)
+    }
+
+    const timeoutId = globalThis.setTimeout(runPreload, IDLE_ROUTE_PRELOAD_DELAY_MS)
+    return () => globalThis.clearTimeout(timeoutId)
+  }, [hasBottomNav, location.pathname])
+
   return (
     <div className={`app-shell${hasBottomNav ? ' has-bottom-nav' : ''}${isImmersiveRoute ? ' is-immersive-route' : ''}`}>
       {swipeRouteIndex >= 0 ? (
         <div className="app-shell-route-background" aria-hidden="true">
-          <img className="app-shell-route-background-image" src={appTabBackgroundImage} alt="" />
+          <img
+            className="app-shell-route-background-image"
+            src={appTabBackgroundImage}
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+          />
         </div>
       ) : null}
       <div className="shell-body">
         <nav className="shell-sidebar panel" aria-label="Primary navigation">
           {desktopNavItems.map((item) => (
-            <NavLink key={item.key} to={item.to} className={({ isActive }) => `shell-nav-link${isActive ? ' active' : ''}`}>
+            <NavLink
+              key={item.key}
+              to={item.to}
+              className={({ isActive }) => `shell-nav-link${isActive ? ' active' : ''}`}
+              onPointerEnter={() => preloadRoute(item.to, item.preload)}
+              onFocus={() => preloadRoute(item.to, item.preload)}
+            >
               <NavIcon itemKey={item.key} className="shell-nav-icon" />
               {item.label}
             </NavLink>
@@ -611,6 +653,9 @@ export function AppShell({ children }: AppShellProps) {
             className={({ isActive }) => `shell-mobile-nav-link${isActive ? ' active' : ''}`}
             aria-label={item.label}
             aria-current={location.pathname === item.to ? 'page' : undefined}
+            onFocus={() => preloadRoute(item.to, item.preload)}
+            onPointerEnter={() => preloadRoute(item.to, item.preload)}
+            onTouchStart={() => preloadRoute(item.to, item.preload)}
           >
             <span className="shell-mobile-nav-icon-frame">
               <NavIcon itemKey={item.key} />

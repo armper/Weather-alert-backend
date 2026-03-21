@@ -16,6 +16,7 @@ interface MinimalForecastItem {
   temperatureLabel: string
   precipitationLabel: string
   icon: ReactNode
+  toggleMode?: 'daily' | 'hourly'
 }
 
 interface CustomOverviewView {
@@ -28,6 +29,20 @@ interface CustomOverviewView {
 
 function resolveDisplayTime(item: WeatherCondition): string | undefined {
   return item.onset ?? item.timestamp
+}
+
+function formatHourLabel(item: WeatherCondition): string {
+  const displayTime = resolveDisplayTime(item)
+  if (!displayTime) {
+    return '—'
+  }
+
+  const date = new Date(displayTime)
+  if (Number.isNaN(date.getTime())) {
+    return '—'
+  }
+
+  return date.toLocaleTimeString(undefined, { hour: 'numeric' })
 }
 
 function resolveWeatherIcon(item: Partial<WeatherCondition>): ReactNode {
@@ -163,6 +178,7 @@ export function OverviewPage() {
   const [dismissingAlertIds, setDismissingAlertIds] = useState<string[]>([])
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
   const [expandedOfficialAlert, setExpandedOfficialAlert] = useState<WeatherCondition | null>(null)
+  const [forecastMode, setForecastMode] = useState<'daily' | 'hourly'>('daily')
   const recentAlertRefs = useRef(new Map<string, HTMLButtonElement>())
   const previousRecentAlertPositions = useRef(new Map<string, DOMRect>())
 
@@ -382,8 +398,11 @@ export function OverviewPage() {
     }
     return 'Good evening!'
   }, [now])
+  const hasHourlyForecast = displayHourlyForecast.length > 0
+  const activeForecastMode = forecastMode === 'hourly' && hasHourlyForecast ? 'hourly' : 'daily'
+
   const forecastItems = useMemo<MinimalForecastItem[]>(() => {
-    const nextDailyItems = buildNextDailyItems(displayDailyForecast, 7)
+    const nextDailyItems = buildNextDailyItems(displayDailyForecast, 6)
     const dailyEntries = nextDailyItems.map((item, index) => {
       const displayTime = resolveDisplayTime(item)
       const dayDate = displayTime ? new Date(displayTime) : null
@@ -404,17 +423,41 @@ export function OverviewPage() {
     const nowPrecipProb =
       displayWeather?.precipitationProbability ?? displayHourlyForecast[0]?.precipitationProbability
 
-    const nowEntry: MinimalForecastItem = {
-      id: 'now',
-      label: 'Now',
+    const todayEntry: MinimalForecastItem = {
+      id: 'today',
+      label: 'Today',
       temperatureLabel: formatTemperature(displayWeather?.temperature, 'F'),
       precipitationLabel: formatPercentOrNA(nowPrecipProb),
       icon: resolveWeatherIcon(displayWeather ?? {}),
+      toggleMode: hasHourlyForecast ? 'hourly' : undefined,
     }
 
-    return [nowEntry, ...dailyEntries]
-  }, [displayDailyForecast, displayHourlyForecast, displayWeather])
+    if (activeForecastMode === 'hourly') {
+      const hourlyEntries = displayHourlyForecast.slice(0, 10).map((item, index) => ({
+        id: `hour-${item.id}`,
+        label: index === 0 ? 'Now' : formatHourLabel(item),
+        temperatureLabel: formatTemperature(item.temperature, 'F'),
+        precipitationLabel: formatPercentOrNA(item.precipitationProbability),
+        icon: resolveWeatherIcon(item),
+      }))
+
+      const weeklyToggleEntry: MinimalForecastItem = {
+        id: 'weekly-toggle',
+        label: '7 Days',
+        temperatureLabel: formatTemperature(displayWeather?.temperature, 'F'),
+        precipitationLabel: formatPercentOrNA(nowPrecipProb),
+        icon: resolveWeatherIcon(displayWeather ?? {}),
+        toggleMode: 'daily',
+      }
+
+      return [weeklyToggleEntry, ...hourlyEntries]
+    }
+
+    return [todayEntry, ...dailyEntries]
+  }, [activeForecastMode, displayDailyForecast, displayHourlyForecast, displayWeather, hasHourlyForecast])
   const isForecastLoading = loadingData && !usingCustomLocation && displayDailyForecast.length === 0
+  const forecastAriaLabel =
+    activeForecastMode === 'hourly' ? 'Today and next hours forecast' : 'Today and next seven days forecast'
 
   return (
     <section className="page-stack overview-page-stack">
@@ -516,7 +559,7 @@ export function OverviewPage() {
 
         <section
           className={`overview-minimal-forecast-strip${isForecastLoading ? ' is-loading' : ''}`}
-          aria-label="Now and next seven days forecast"
+          aria-label={forecastAriaLabel}
         >
           {isForecastLoading ? (
             <div className="overview-minimal-forecast-loading-glow" role="status" aria-label="Loading seven day forecast" aria-hidden>
@@ -527,14 +570,35 @@ export function OverviewPage() {
           ) : (
             <div className="overview-minimal-forecast-row">
               {forecastItems.map((item) => (
-                <article key={item.id} className="overview-minimal-forecast-item">
-                  <p className="overview-minimal-forecast-label">{item.label}</p>
-                  <p className="overview-minimal-forecast-temp">{item.temperatureLabel}</p>
-                  <p className="overview-minimal-forecast-icon" aria-hidden>
-                    {item.icon}
-                  </p>
-                  <p className="overview-minimal-forecast-precip">{item.precipitationLabel}</p>
-                </article>
+                item.toggleMode ? (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`overview-minimal-forecast-item overview-minimal-forecast-item--toggle${
+                      activeForecastMode === 'hourly' ? ' is-hourly-active' : ''
+                    }`}
+                    aria-label={
+                      item.toggleMode === 'hourly' ? 'Show hourly forecast' : 'Show seven day forecast'
+                    }
+                    onClick={() => setForecastMode(item.toggleMode ?? 'daily')}
+                  >
+                    <p className="overview-minimal-forecast-label">{item.label}</p>
+                    <p className="overview-minimal-forecast-temp">{item.temperatureLabel}</p>
+                    <p className="overview-minimal-forecast-icon" aria-hidden>
+                      {item.icon}
+                    </p>
+                    <p className="overview-minimal-forecast-precip">{item.precipitationLabel}</p>
+                  </button>
+                ) : (
+                  <article key={item.id} className="overview-minimal-forecast-item">
+                    <p className="overview-minimal-forecast-label">{item.label}</p>
+                    <p className="overview-minimal-forecast-temp">{item.temperatureLabel}</p>
+                    <p className="overview-minimal-forecast-icon" aria-hidden>
+                      {item.icon}
+                    </p>
+                    <p className="overview-minimal-forecast-precip">{item.precipitationLabel}</p>
+                  </article>
+                )
               ))}
             </div>
           )}
